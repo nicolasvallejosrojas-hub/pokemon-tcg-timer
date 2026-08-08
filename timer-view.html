@@ -50,6 +50,8 @@
   .hl{outline:2px solid var(--accent);}
   .stand{display:flex;gap:12px;padding:9px 12px;border-bottom:1px solid var(--divider);font-size:14px;}
   .stand b{min-width:30px;color:var(--accent);}
+  .rec{opacity:.55;font-size:11.5px;white-space:nowrap;}
+  .pts{opacity:.8;font-size:12px;white-space:nowrap;min-width:52px;text-align:right;}
   #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
   .banner{background:rgba(145,132,217,.14);border:1px solid var(--accent);border-radius:8px;
     padding:9px 11px;font-size:12.5px;margin-bottom:10px;line-height:1.45;}
@@ -204,7 +206,8 @@ function renderPair(){
     P.standings.forEach(s=>{
       const d=document.createElement("div"); d.className="stand";
       if (q && s.name.toLowerCase().includes(q)) d.classList.add("hl");
-      d.innerHTML=`<b>${s.place}º</b><span>${s.name}</span>`;
+      d.innerHTML=`<b>${s.place}º</b><span style="flex:1">${s.name}</span>
+        <span class="rec">${s.w}-${s.l}-${s.t}</span><span class="pts">${s.pts} pts</span>`;
       list.appendChild(d);
     });
     return;
@@ -215,8 +218,9 @@ function renderPair(){
     const hit=q && (m.p1.toLowerCase().includes(q) || (m.p2||"").toLowerCase().includes(q));
     if (hit) d.classList.add("hl");
     if (q && !hit) d.style.opacity=.35;
+    const line = (n,r) => n ? n + (r ? `<span class="rec"> ${r.w}-${r.l}-${r.t} · ${r.pts} pts</span>` : "") : "";
     d.innerHTML=`<div class="mesa">${m.p2? "M"+m.table : "—"}</div>
-      <div class="pl">${m.p1}<br>${m.p2 ?? "<i style='opacity:.6'>BYE (descansa)</i>"}</div>
+      <div class="pl">${line(m.p1,m.p1rec)}<br>${m.p2 ? line(m.p2,m.p2rec) : "<i style='opacity:.6'>BYE (descansa)</i>"}</div>
       <div class="res">${m.p2? (m.result||"") : ""}</div>`;
     list.appendChild(d);
   });
