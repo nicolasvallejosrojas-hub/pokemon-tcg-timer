@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emparejamientos — Admin</title>
+<style>
+  :root{--bg:#161826;--surface:#232532;--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);}
+  body{margin:0;background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;padding:20px;}
+  h1{font-size:18px;font-weight:500;}
+  .card{background:var(--surface);border:1px solid var(--divider);border-radius:10px;padding:16px;margin-bottom:14px;max-width:760px;}
+  button{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:8px;padding:9px 20px;font-size:14px;cursor:pointer;font-family:inherit;}
+  button.sec{border-color:var(--divider);color:var(--text);}
+  input{background:var(--bg);border:1px solid var(--divider);border-radius:6px;color:var(--text);padding:7px 9px;font-size:13px;}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px;}
+  td,th{border-bottom:1px solid var(--divider);padding:6px 8px;text-align:left;}
+  .muted{font-size:12px;opacity:.6;} .ok{color:#7fd98a;} .err{color:#e05a5a;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  #qr{width:200px;height:200px;background:#fff;padding:8px;border-radius:6px;}
+  #panel{display:none;} .center{display:flex;flex-direction:column;align-items:center;}
+</style>
+</head>
+<body>
+<h1>Emparejamientos — Panel del organizador</h1>
+
+<div class="card" id="loginCard">
+  <div class="row">
+    <input id="email" type="email" placeholder="correo" autocomplete="username">
+    <input id="pass" type="password" placeholder="contraseña" autocomplete="current-password">
+    <button id="loginBtn">Entrar</button>
+  </div>
+  <div id="loginMsg" class="muted" style="margin-top:8px"></div>
+</div>
+
+<div id="panel">
+<div class="card">
+  <div style="margin-bottom:8px">Carga el <b>.tdf</b> que TOM guarda tras emparejar cada ronda
+  (sirve el <code>_rN-begin.tdf</code> de la carpeta de respaldos, o el archivo principal tras "Guardar").</div>
+  <input type="file" id="tdf" accept=".tdf,.xml">
+  <div id="parseMsg" class="muted" style="margin-top:8px"></div>
+  <div id="preview"></div>
+  <div class="row" style="margin-top:12px">
+    <button id="publishBtn" disabled>Publicar a los jugadores</button>
+    <span id="pubMsg" class="muted"></span>
+  </div>
+</div>
+
+<div class="card center">
+  <div style="margin-bottom:8px">QR para los jugadores (fijo — imprímelo una vez)</div>
+  <img id="qr" alt="QR">
+  <div class="row" style="margin-top:8px;width:100%;max-width:460px">
+    <input id="shareUrl" readonly style="flex:1">
+    <button id="copyBtn" class="sec" style="padding:7px 12px">Copiar</button>
+  </div>
+</div>
+</div>
+
+<script src="config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const app = initializeApp(FIREBASE_CONFIG);
+const db  = getDatabase(app);
+const auth = getAuth(app);
+const $ = id => document.getElementById(id);
+let parsed = null;
+
+$("loginBtn").onclick = async () => {
+  $("loginMsg").textContent = "Entrando…";
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
+  catch(e){ $("loginMsg").innerHTML='<span class="err">Error: '+e.code+'</span>'; }
+};
+onAuthStateChanged(auth, u => {
+  $("loginCard").style.display = u?"none":"block";
+  $("panel").style.display = u?"block":"none";
+  if (u){
+    const url = location.origin + location.pathname.replace(/pairings-admin\.html?$/,"") + "pairings.html";
+    $("shareUrl").value = url;
+    $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
+    $("copyBtn").onclick = () => navigator.clipboard?.writeText(url);
+  }
+});
+
+const OUTCOME = {0:"En juego",1:"Gana J1",2:"Gana J2",3:"Empate",4:"Doble derrota",5:"Bye",8:"Gana J1",10:"Gana J2"};
+
+$("tdf").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { parsed = parseTdf(ev.target.result); showPreview(parsed);
+      $("publishBtn").disabled = false;
+      $("parseMsg").innerHTML = '<span class="ok">Archivo leído ✓</span> — revisa y publica.';
+    } catch(err){
+      parsed = null; $("publishBtn").disabled = true;
+      $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+err.message+'</span>';
+    }
+  };
+  reader.readAsText(f);
+};
+
+function parseTdf(xmlText){
+  const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+  if (doc.querySelector("parsererror")) throw new Error("XML inválido");
+  const name = doc.querySelector("data > name")?.textContent || "Torneo";
+  const roundtime = doc.querySelector("data > roundtime")?.textContent || "";
+  const players = {};
+  doc.querySelectorAll("players > player").forEach(p => {
+    players[p.getAttribute("userid")] =
+      (p.querySelector("firstname")?.textContent||"") + " " + (p.querySelector("lastname")?.textContent||"");
+  });
+  const rounds = [];
+  doc.querySelectorAll("pods > pod > rounds > round").forEach(r => {
+    const matches = [];
+    r.querySelectorAll("matches > match").forEach(m => {
+      const p1 = m.querySelector("player1")?.getAttribute("userid");
+      const p2 = m.querySelector("player2")?.getAttribute("userid");
+      const solo = m.querySelector("player")?.getAttribute("userid");
+      const out = parseInt(m.getAttribute("outcome")||"0",10);
+      matches.push({
+        table: parseInt(m.querySelector("tablenumber")?.textContent||"0",10),
+        p1: players[p1||solo] || "?",
+        p2: p2 ? (players[p2]||"?") : null,          // null = bye
+        result: OUTCOME[out] ?? ""
+      });
+    });
+    matches.sort((a,b)=>a.table-b.table);
+    rounds.push({ number: parseInt(r.getAttribute("number"),10), matches });
+  });
+  if (!rounds.length) throw new Error("el archivo no contiene rondas emparejadas");
+  // standings finales si existen
+  const standings = [];
+  doc.querySelectorAll('standings pod[type="finished"] player').forEach(p =>
+    standings.push({ place: parseInt(p.getAttribute("place"),10), name: players[p.getAttribute("id")]||"?" }));
+  standings.sort((a,b)=>a.place-b.place);
+  return { name, roundtime, rounds, standings, updatedAt: Date.now() };
+}
+
+function showPreview(d){
+  const last = d.rounds[d.rounds.length-1];
+  let html = `<div style="margin-top:10px"><b>${d.name}</b> — se publicará hasta la <b>ronda ${last.number}</b>`;
+  if (d.standings.length) html += ` + posiciones finales`;
+  html += `</div><table><tr><th>Mesa</th><th>Jugador 1</th><th>Jugador 2</th><th>Resultado</th></tr>`;
+  last.matches.forEach(m => {
+    html += `<tr><td>${m.p2?m.table:"—"}</td><td>${m.p1}</td><td>${m.p2??"<i>BYE</i>"}</td><td>${m.p2?m.result:"Bye"}</td></tr>`;
+  });
+  $("preview").innerHTML = html + "</table>";
+}
+
+$("publishBtn").onclick = async () => {
+  $("pubMsg").textContent = "Publicando…";
+  try { await set(ref(db,"pairings"), parsed);
+    $("pubMsg").innerHTML = '<span class="ok">Publicado ✓ — los jugadores ya lo ven</span>';
+  } catch(e){
+    $("pubMsg").innerHTML = '<span class="err">Error: '+(e.code||e.message)+'</span>';
+  }
+};
+</script>
+</body>
+</html>

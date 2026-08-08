@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timer del torneo</title>
+<style>
+  :root{--text:#e9e9ed;--neg:#e05a5a;}
+  html,body{margin:0;height:100%;}
+  body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;
+       overflow:hidden;position:relative;}
+  #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none;}
+  #wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:4vh;
+        width:100%;padding:16px;box-sizing:border-box;text-align:center;}
+  #logo{max-height:9vh;max-width:60vw;object-fit:contain;display:none;}
+  #names{font-size:clamp(16px,3.5vw,28px);opacity:.9;display:none;gap:14px;align-items:baseline;justify-content:center;flex-wrap:wrap;}
+  #names .vs{opacity:.45;font-size:.8em;}
+  #clock{font-weight:600;line-height:1;font-size:clamp(64px,22vw,220px);font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  #status{font-size:clamp(12px,2.5vw,16px);opacity:.55;min-height:1.4em;}
+  .imgbox{position:fixed;z-index:1;pointer-events:none;}
+  .imgbox img{width:100%;height:100%;object-fit:contain;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .warn{animation:pulse 1s ease-in-out infinite;}
+</style>
+</head>
+<body>
+<img id="bg" alt="">
+<div id="wrap">
+  <img id="logo" alt="">
+  <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
+  <div id="clock">--:--</div>
+  <div id="status">Conectando…</div>
+</div>
+
+<script src="config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const app = initializeApp(FIREBASE_CONFIG);
+const db  = getDatabase(app);
+
+let S = null;            // estado remoto del timer
+let offset = 0;          // corrección de reloj del dispositivo vs servidor
+
+onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
+onValue(ref(db, "timer"), snap => {
+  S = snap.val();
+  document.getElementById("status").textContent = S ? "" : "Esperando al organizador…";
+  applyTheme();
+}, () => {
+  document.getElementById("status").textContent = "Sin conexión — reintentando…";
+});
+
+const $ = id => document.getElementById(id);
+
+function applyTheme(){
+  if (!S) return;
+  const b = document.body;
+  if (S.bgType === "image" && S.bgImage){
+    $("bg").src = S.bgImage; $("bg").style.display = "block";
+    $("bg").style.filter = `opacity(${S.bgOpacity??100}%) brightness(${S.bgBrightness??100}%)`;
+    b.style.background = "#0e0f18";
+  } else {
+    $("bg").style.display = "none";
+    b.style.background = S.bgType === "gradient"
+      ? `linear-gradient(${S.bgDir||"to right"}, ${S.bgColor1||"#161826"}, ${S.bgColor2||"#2b2741"})`
+      : (S.bgColor1 || "#161826");
+  }
+  if (S.logo){ $("logo").src = S.logo; $("logo").style.display = "block"; } else $("logo").style.display = "none";
+  const hasNames = (S.name1 || S.name2) && (S.name1 !== "Jugador 1" || S.name2 !== "Jugador 2");
+  $("names").style.display = hasNames ? "flex" : "none";
+  $("n1").textContent = S.name1 || ""; $("n2").textContent = S.name2 || "";
+  document.querySelectorAll(".imgbox").forEach(e => e.remove());
+  (S.imgBoxes || []).forEach(box => {
+    if (!box.src) return;
+    const d = document.createElement("div");
+    d.className = "imgbox";
+    // posiciones guardadas sobre lienzo 1180x660 → porcentajes
+    d.style.left = (box.x/1180*100)+"vw"; d.style.top = (box.y/660*100)+"vh";
+    d.style.width = (box.w/1180*100)+"vw"; d.style.height = (box.h/660*100)+"vh";
+    const im = document.createElement("img");
+    im.src = box.src;
+    if (box.flip) im.style.transform = "scaleX(-1)";
+    d.appendChild(im); document.body.appendChild(d);
+  });
+}
+
+function fmt(sec){
+  const neg = sec < 0, a = Math.abs(sec);
+  return (neg?"-":"") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0");
+}
+
+function tick(){
+  const c = $("clock");
+  if (!S){ requestAnimationFrame(tick); return; }
+  let sec;
+  if (S.paused || !S.endTime){
+    sec = Math.round(S.remaining ?? 0);
+  } else {
+    sec = Math.round((S.endTime - (Date.now()+offset)) / 1000);
+  }
+  c.textContent = fmt(sec);
+  c.style.color = sec < 0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
+  c.classList.toggle("warn", !S.paused && sec <= 10 && sec >= 0);
+  requestAnimationFrame(tick);
+}
+tick();
+
+// Mantener pantalla encendida si el navegador lo permite
+try { navigator.wakeLock?.request("screen").catch(()=>{}); } catch(e){}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible"){
+    try { navigator.wakeLock?.request("screen").catch(()=>{}); } catch(e){}
+  }
+});
+</script>
+</body>
+</html>

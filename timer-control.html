@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timer — Control del organizador</title>
+<style>
+  :root{
+    --bg:#161826;--surface:#232532;--text:#e9e9ed;--accent:#9184d9;
+    --divider:rgba(233,233,237,.16);--radius:10px;
+  }
+  html,body{margin:0;min-height:100%;}
+  body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;padding:20px;box-sizing:border-box;}
+  h1{font-size:18px;font-weight:500;margin:0 0 16px;}
+  .card{background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);padding:16px;margin-bottom:14px;max-width:760px;}
+  button{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:8px;
+         padding:9px 20px;font-family:inherit;font-size:14px;cursor:pointer;}
+  button.sec{border-color:var(--divider);color:var(--text);}
+  button.small{padding:5px 10px;font-size:12px;}
+  button:disabled{opacity:.4;cursor:default;}
+  input,select{background:var(--bg);border:1px solid var(--divider);border-radius:6px;color:var(--text);
+        padding:7px 9px;font-family:inherit;font-size:13px;box-sizing:border-box;}
+  label{font-size:12px;display:block;margin-top:10px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  #clock{font-size:88px;font-weight:600;line-height:1;text-align:center;font-variant-numeric:tabular-nums;
+         cursor:pointer;margin:8px 0;}
+  #clockEdit{font-size:60px;width:280px;text-align:center;display:none;background:transparent;border:none;
+             border-bottom:2px solid var(--accent);color:var(--text);outline:none;margin:14px auto;display:none;}
+  .center{display:flex;flex-direction:column;align-items:center;}
+  .preset.active{border-color:var(--accent);color:var(--accent);}
+  .preset{border-color:var(--divider);color:var(--text);}
+  #qr{width:200px;height:200px;background:#fff;padding:8px;border-radius:6px;}
+  .muted{font-size:12px;opacity:.6;}
+  .ok{color:#7fd98a;} .err{color:#e05a5a;}
+  #panel{display:none;}
+  .imgrow{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;}
+  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:4px;background:var(--bg);}
+</style>
+</head>
+<body>
+<h1>Timer de torneo — Control</h1>
+
+<div class="card" id="loginCard">
+  <div class="muted" style="margin-bottom:8px">Inicia sesión como organizador para poder transmitir.</div>
+  <div class="row">
+    <input id="email" type="email" placeholder="correo" autocomplete="username">
+    <input id="pass" type="password" placeholder="contraseña" autocomplete="current-password">
+    <button id="loginBtn">Entrar</button>
+  </div>
+  <div id="loginMsg" class="muted" style="margin-top:8px"></div>
+</div>
+
+<div id="panel">
+<div class="card center">
+  <div id="clock">32:00</div>
+  <input id="clockEdit" placeholder="mm:ss">
+  <div class="row" style="justify-content:center">
+    <button id="toggleBtn">Iniciar</button>
+    <button id="resetBtn" class="sec">Reiniciar</button>
+  </div>
+  <div class="row" id="presets" style="justify-content:center;margin-top:12px"></div>
+  <div class="row" style="justify-content:center;margin-top:8px">
+    <input id="newPreset" type="number" min="1" placeholder="min" style="width:70px">
+    <button id="addPreset" class="small sec">Agregar preset</button>
+  </div>
+  <div id="syncMsg" class="muted" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px;margin-bottom:4px">Jugadores (opcional, se muestra en la vista)</div>
+  <div class="row">
+    <input id="name1" placeholder="Jugador 1">
+    <input id="name2" placeholder="Jugador 2">
+  </div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px">Apariencia</div>
+  <label>Logo del evento <input type="file" id="logoFile" accept="image/*"></label>
+  <label>Fondo
+    <select id="bgType">
+      <option value="color">Color</option>
+      <option value="gradient">Gradiente</option>
+      <option value="image">Imagen</option>
+    </select>
+  </label>
+  <div class="row" style="margin-top:6px">
+    <input type="color" id="bgColor1" value="#161826">
+    <input type="color" id="bgColor2" value="#2b2741">
+    <select id="bgDir">
+      <option value="to right">→</option><option value="to bottom">↓</option><option value="to bottom right">↘</option>
+    </select>
+  </div>
+  <label id="bgImgLabel" style="display:none">Imagen de fondo <input type="file" id="bgImageFile" accept="image/*">
+    <span class="muted">Se comprime automáticamente para transmitir rápido.</span></label>
+  <div class="row">
+    <label>Brillo <input type="range" id="bgBrightness" min="20" max="150" value="100"></label>
+    <label>Opacidad <input type="range" id="bgOpacity" min="10" max="100" value="100"></label>
+  </div>
+  <div class="row">
+    <label>Color timer <input type="color" id="timerColor" value="#e9e9ed"></label>
+    <label>Color en negativo <input type="color" id="negativeColor" value="#e05a5a"></label>
+  </div>
+  <label>Sonido al pasar a negativo (suena en ESTE equipo)
+    <input type="file" id="alarmFile" accept="audio/*"></label>
+  <div id="alarmName" class="muted"></div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px;margin-bottom:6px">Imágenes flotantes (se muestran en la vista)</div>
+  <button id="addImg" class="small sec">+ Agregar imagen</button>
+  <div id="imgList"></div>
+  <div class="muted" style="margin-top:6px">Posición X/Y y tamaño sobre un lienzo de 1180×660 (se adapta a cada pantalla).</div>
+</div>
+
+<div class="card center">
+  <div style="font-size:14px;margin-bottom:8px">QR para los jugadores (imprímelo una sola vez — nunca cambia)</div>
+  <img id="qr" alt="QR">
+  <div class="row" style="margin-top:8px;width:100%;max-width:460px">
+    <input id="shareUrl" readonly style="flex:1">
+    <button id="copyBtn" class="small sec">Copiar</button>
+  </div>
+</div>
+</div>
+
+<script src="config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const app  = initializeApp(FIREBASE_CONFIG);
+const db   = getDatabase(app);
+const auth = getAuth(app);
+const $ = id => document.getElementById(id);
+const T = ref(db, "timer");
+
+// ---------- Estado local ----------
+let st = {
+  presetMin: 32, customPresets: [], remaining: 32*60, paused: true, endTime: null,
+  name1:"", name2:"", logo:"", bgType:"color", bgColor1:"#161826", bgColor2:"#2b2741",
+  bgDir:"to right", bgImage:"", bgBrightness:100, bgOpacity:100,
+  timerColor:"#e9e9ed", negativeColor:"#e05a5a", imgBoxes:[], nextId:1
+};
+try { Object.assign(st, JSON.parse(localStorage.getItem("timer-control")||"{}")); } catch(e){}
+let offset = 0, alarmURL = "", alarmFired = false, audioCtx = null;
+onValue(ref(db,".info/serverTimeOffset"), s => offset = s.val()||0);
+
+// ---------- Login ----------
+$("loginBtn").onclick = async () => {
+  $("loginMsg").textContent = "Entrando…";
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
+  catch(e){ $("loginMsg").innerHTML = '<span class="err">Error: '+ e.code +'</span>'; }
+};
+onAuthStateChanged(auth, u => {
+  $("loginCard").style.display = u ? "none" : "block";
+  $("panel").style.display = u ? "block" : "none";
+  if (u){ renderAll(); publish("estado inicial"); }
+});
+
+// ---------- Sincronización ----------
+function snapshot(){
+  return {
+    endTime: st.paused ? null : st.endTime,
+    paused: st.paused,
+    remaining: st.remaining,
+    name1: st.name1, name2: st.name2, logo: st.logo,
+    bgType: st.bgType, bgColor1: st.bgColor1, bgColor2: st.bgColor2, bgDir: st.bgDir,
+    bgImage: st.bgImage, bgBrightness: +st.bgBrightness, bgOpacity: +st.bgOpacity,
+    timerColor: st.timerColor, negativeColor: st.negativeColor,
+    imgBoxes: st.imgBoxes.filter(b=>b.src),
+    updatedAt: Date.now()
+  };
+}
+let pubTimer = null;
+function publish(reason){
+  try { localStorage.setItem("timer-control", JSON.stringify(st)); } catch(e){}
+  clearTimeout(pubTimer);
+  pubTimer = setTimeout(async () => {
+    try {
+      await set(T, snapshot());
+      $("syncMsg").innerHTML = '<span class="ok">Sincronizado ✓</span>';
+    } catch(e) {
+      $("syncMsg").innerHTML = '<span class="err">No se pudo sincronizar ('+(e.code||e.message)+')</span>';
+    }
+  }, 250); // agrupa cambios rápidos (sliders) en una sola escritura
+}
+
+// ---------- Lógica del timer ----------
+function now(){ return Date.now() + offset; }
+function currentSec(){
+  return st.paused ? Math.round(st.remaining) : Math.round((st.endTime - now())/1000);
+}
+function fmt(sec){
+  const neg = sec<0, a = Math.abs(sec);
+  return (neg?"-":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0");
+}
+function startPause(){
+  if (st.paused){
+    ensureAudio();
+    st.endTime = now() + st.remaining*1000;
+    st.paused = false;
+    alarmFired = currentSec() < 0;
+  } else {
+    st.remaining = currentSec();
+    st.paused = true;
+  }
+  publish("toggle"); renderClock();
+}
+function reset(){
+  st.paused = true; st.remaining = st.presetMin*60; st.endTime = null; alarmFired = false;
+  publish("reset"); renderClock();
+}
+function setPreset(min){
+  st.presetMin = min; reset(); renderPresets();
+}
+$("toggleBtn").onclick = startPause;
+$("resetBtn").onclick = reset;
+$("addPreset").onclick = () => {
+  const v = parseInt($("newPreset").value,10);
+  if (!v || v<=0 || [32,53,...st.customPresets].includes(v)) return;
+  st.customPresets.push(v); $("newPreset").value=""; renderPresets(); publish("preset");
+};
+
+// Edición directa del reloj
+$("clock").onclick = () => {
+  $("clock").style.display="none";
+  const e = $("clockEdit");
+  e.style.display="block"; e.value = fmt(currentSec()).replace("-",""); e.focus();
+};
+function commitEdit(){
+  const e = $("clockEdit"); const raw = e.value.trim();
+  let secs;
+  if (raw.includes(":")){ const [m,s]=raw.split(":"); secs=(parseInt(m)||0)*60+(parseInt(s)||0); }
+  else { const m=parseFloat(raw); secs=isNaN(m)?currentSec():Math.round(m*60); }
+  st.remaining = Math.max(0,secs); st.paused = true; st.endTime = null; alarmFired=false;
+  e.style.display="none"; $("clock").style.display="block";
+  publish("edición"); renderClock();
+}
+$("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); };
+$("clockEdit").onblur = commitEdit;
+
+// Reloj + alarma local
+function ensureAudio(){
+  if (!audioCtx){ const C=window.AudioContext||window.webkitAudioContext; if (C) audioCtx=new C(); }
+  if (audioCtx?.state==="suspended") audioCtx.resume();
+}
+function beep(f,d){ try{
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.frequency.value=f; g.gain.setValueAtTime(.0001,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.2,audioCtx.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d+.02);
+}catch(e){} }
+function renderClock(){
+  const sec = currentSec();
+  const c = $("clock");
+  c.textContent = fmt(sec);
+  c.style.color = sec<0 ? st.negativeColor : st.timerColor;
+  if (!st.paused){
+    if (sec===0 || (sec<0 && !alarmFired)){
+      if (!alarmFired){
+        alarmFired = true;
+        if (alarmURL){ new Audio(alarmURL).play().catch(()=>beep(880,.4)); } else beep(880,.4);
+      }
+    } else if (sec<=10 && sec>0) beep(660,.12);
+  }
+}
+setInterval(renderClock, 250);
+
+// ---------- Apariencia ----------
+function compressImage(file, maxW, quality, cb){
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.min(1, maxW/img.width);
+    const cv = document.createElement("canvas");
+    cv.width = img.width*scale; cv.height = img.height*scale;
+    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+    cb(cv.toDataURL("image/jpeg", quality));
+  };
+  img.src = URL.createObjectURL(file);
+}
+const bind = (id, field, ev="input") => { $(id).value = st[field] ?? $(id).value;
+  $(id).addEventListener(ev, e => { st[field]=e.target.value; publish(field); }); };
+bind("name1","name1"); bind("name2","name2");
+bind("bgColor1","bgColor1"); bind("bgColor2","bgColor2"); bind("bgDir","bgDir","change");
+bind("bgBrightness","bgBrightness"); bind("bgOpacity","bgOpacity");
+bind("timerColor","timerColor"); bind("negativeColor","negativeColor");
+$("bgType").value = st.bgType;
+$("bgType").onchange = e => { st.bgType=e.target.value;
+  $("bgImgLabel").style.display = st.bgType==="image"?"block":"none"; publish("bgType"); };
+$("bgImgLabel").style.display = st.bgType==="image"?"block":"none";
+$("logoFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f, 400, .85, d=>{ st.logo=d; publish("logo"); }); };
+$("bgImageFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f, 1600, .7, d=>{ st.bgImage=d; publish("bgImage"); }); };
+$("alarmFile").onchange = e => { const f=e.target.files[0]; if(!f) return;
+  alarmURL = URL.createObjectURL(f); $("alarmName").textContent = "Pista: "+f.name; };
+
+// ---------- Imágenes flotantes ----------
+$("addImg").onclick = () => {
+  st.imgBoxes.push({ id: st.nextId++, x:480, y:230, w:150, h:200, src:"", flip:false });
+  renderImgs(); publish("imgs");
+};
+function renderImgs(){
+  const list = $("imgList"); list.innerHTML = "";
+  st.imgBoxes.forEach(b => {
+    const row = document.createElement("div"); row.className="imgrow";
+    row.innerHTML = `
+      <img src="${b.src||'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='}">
+      <input type="file" accept="image/*" style="max-width:190px">
+      X <input type="number" value="${b.x}" style="width:64px"> Y <input type="number" value="${b.y}" style="width:64px">
+      An <input type="number" value="${b.w}" style="width:64px"> Al <input type="number" value="${b.h}" style="width:64px">
+      <button class="small sec">⇋</button><button class="small sec">✕</button>`;
+    const [file,x,y,w,h] = row.querySelectorAll("input");
+    const [flip,del] = row.querySelectorAll("button");
+    file.onchange = e => { const f=e.target.files[0]; if(f) compressImage(f, 500, .85, d=>{ b.src=d; renderImgs(); publish("imgs"); }); };
+    x.oninput=e=>{b.x=+e.target.value;publish("imgs")}; y.oninput=e=>{b.y=+e.target.value;publish("imgs")};
+    w.oninput=e=>{b.w=+e.target.value;publish("imgs")}; h.oninput=e=>{b.h=+e.target.value;publish("imgs")};
+    flip.onclick=()=>{b.flip=!b.flip;publish("imgs")};
+    del.onclick=()=>{st.imgBoxes=st.imgBoxes.filter(o=>o.id!==b.id);renderImgs();publish("imgs")};
+    list.appendChild(row);
+  });
+}
+
+// ---------- Presets y QR ----------
+function renderPresets(){
+  const box = $("presets"); box.innerHTML = "";
+  [32,53,...st.customPresets].forEach(m => {
+    const btn = document.createElement("button");
+    btn.className = "small preset"+(st.presetMin===m?" active":"");
+    btn.textContent = m+" min";
+    btn.onclick = () => setPreset(m);
+    box.appendChild(btn);
+    if (![32,53].includes(m)){
+      const x = document.createElement("button");
+      x.className="small sec"; x.textContent="×";
+      x.onclick=()=>{ st.customPresets=st.customPresets.filter(p=>p!==m); renderPresets(); publish("preset"); };
+      box.appendChild(x);
+    }
+  });
+}
+function renderAll(){
+  const url = location.origin + location.pathname.replace(/timer-control\.html?$/,"") + "timer-view.html";
+  $("shareUrl").value = url;
+  $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
+  $("copyBtn").onclick = () => navigator.clipboard?.writeText(url);
+  renderPresets(); renderImgs(); renderClock();
+}
+</script>
+</body>
+</html>
