@@ -200,7 +200,7 @@ $("loginBtn").onclick = async () => {
 onAuthStateChanged(auth, u => {
   $("loginCard").style.display = u ? "none" : "block";
   $("all").style.display = u ? "block" : "none";
-  if (u){ renderAll(); publishTimer(); }
+  if (u){ renderAll(); publishState(); publishTheme(); }
 });
 $("tabT").onclick = () => switchTab("t");
 $("tabP").onclick = () => switchTab("p");
@@ -223,25 +223,46 @@ try { Object.assign(st, JSON.parse(localStorage.getItem("timer-control")||"{}"))
 let offset = 0, alarmURL = "", alarmFired = false, audioCtx = null;
 onValue(ref(db,".info/serverTimeOffset"), s => offset = s.val()||0);
 
-function snapshot(){
+/* El estado del reloj viaja SOLO (unos 100 bytes) para que iniciar/pausar
+   llegue al instante. La apariencia (imagenes, colores) va por separado. */
+const R_STATE = ref(db, "timer/state");
+const R_THEME = ref(db, "timer/theme");
+
+function snapState(){
+  return { endTime: st.paused ? null : st.endTime, paused: st.paused,
+           remaining: st.remaining, timerColor: st.timerColor,
+           negativeColor: st.negativeColor, updatedAt: Date.now() };
+}
+function snapTheme(){
   return {
-    endTime: st.paused ? null : st.endTime, paused: st.paused, remaining: st.remaining,
     name1: st.name1, name2: st.name2, logo: st.logo,
     bgType: st.bgType, bgColor1: st.bgColor1, bgColor2: st.bgColor2, bgDir: st.bgDir,
     bgImage: st.bgImage, bgBrightness: +st.bgBrightness, bgOpacity: +st.bgOpacity,
-    timerColor: st.timerColor, negativeColor: st.negativeColor,
     imgBoxes: st.imgBoxes.filter(b=>b.src), updatedAt: Date.now()
   };
 }
-let pubTimer = null;
-function publishTimer(){
-  try { localStorage.setItem("timer-control", JSON.stringify(st)); } catch(e){}
-  clearTimeout(pubTimer);
-  pubTimer = setTimeout(async () => {
-    try { await set(T, snapshot()); $("syncMsg").innerHTML = '<span class="ok">Sincronizado ✓</span>'; }
-    catch(e){ $("syncMsg").innerHTML = '<span class="err">No se pudo sincronizar ('+(e.code||e.message)+')</span>'; }
-  }, 250);
+function saveLocal(){ try { localStorage.setItem("timer-control", JSON.stringify(st)); } catch(e){} }
+
+// Iniciar / pausar / reiniciar: envio inmediato, sin espera
+async function publishState(){
+  saveLocal();
+  const t0 = performance.now();
+  try {
+    await set(R_STATE, snapState());
+    $("syncMsg").innerHTML = '<span class="ok">Sincronizado ✓ ('+Math.round(performance.now()-t0)+' ms)</span>';
+  } catch(e){ $("syncMsg").innerHTML = '<span class="err">No se pudo sincronizar ('+(e.code||e.message)+')</span>'; }
 }
+// Apariencia: se agrupa, porque los deslizadores disparan muchos cambios seguidos
+let themeTimer = null;
+function publishTheme(){
+  saveLocal();
+  clearTimeout(themeTimer);
+  themeTimer = setTimeout(async () => {
+    try { await set(R_THEME, snapTheme()); $("syncMsg").innerHTML = '<span class="ok">Apariencia sincronizada ✓</span>'; }
+    catch(e){ $("syncMsg").innerHTML = '<span class="err">No se pudo sincronizar ('+(e.code||e.message)+')</span>'; }
+  }, 400);
+}
+const publishTimer = publishTheme;   // compatibilidad con los controles de apariencia
 const now = () => Date.now() + offset;
 const currentSec = () => st.paused ? Math.round(st.remaining) : Math.round((st.endTime - now())/1000);
 function fmt(sec){ const n=sec<0,a=Math.abs(sec);
@@ -252,17 +273,17 @@ function startPause(){
     ensureAudio(); st.endTime = now() + st.remaining*1000; st.paused = false;
     alarmFired = currentSec() < 0;
   } else { st.remaining = currentSec(); st.paused = true; }
-  publishTimer(); renderClock();
+  publishState(); renderClock();
 }
 function reset(){ st.paused=true; st.remaining=st.presetMin*60; st.endTime=null; alarmFired=false;
-  publishTimer(); renderClock(); }
+  publishState(); renderClock(); }
 function setPreset(m){ st.presetMin=m; reset(); renderPresets(); }
 $("toggleBtn").onclick = startPause;
 $("resetBtn").onclick = reset;
 $("addPreset").onclick = () => {
   const v = parseInt($("newPreset").value,10);
   if (!v || v<=0 || [32,53,...st.customPresets].includes(v)) return;
-  st.customPresets.push(v); $("newPreset").value=""; renderPresets(); publishTimer();
+  st.customPresets.push(v); $("newPreset").value=""; renderPresets(); publishState();
 };
 $("clock").onclick = () => {
   $("clock").style.display="none";
@@ -274,7 +295,7 @@ function commitEdit(){
   else { const m=parseFloat(raw); secs=isNaN(m)?currentSec():Math.round(m*60); }
   st.remaining=Math.max(0,secs); st.paused=true; st.endTime=null; alarmFired=false;
   e.style.display="none"; $("clock").style.display="block";
-  publishTimer(); renderClock();
+  publishState(); renderClock();
 }
 $("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); };
 $("clockEdit").onblur = commitEdit;
@@ -342,7 +363,9 @@ const bind = (id, field, ev="input") => { $(id).value = st[field] ?? $(id).value
 bind("name1","name1"); bind("name2","name2");
 bind("bgColor1","bgColor1"); bind("bgColor2","bgColor2"); bind("bgDir","bgDir","change");
 bind("bgBrightness","bgBrightness"); bind("bgOpacity","bgOpacity");
-bind("timerColor","timerColor"); bind("negativeColor","negativeColor");
+$("timerColor").value=st.timerColor; $("negativeColor").value=st.negativeColor;
+$("timerColor").addEventListener("input", e=>{st.timerColor=e.target.value;publishState();});
+$("negativeColor").addEventListener("input", e=>{st.negativeColor=e.target.value;publishState();});
 $("bgType").value = st.bgType;
 $("bgType").onchange = e => { st.bgType=e.target.value;
   $("bgImgLabel").style.display = st.bgType==="image"?"block":"none"; publishTimer(); };

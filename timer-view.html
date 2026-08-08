@@ -109,15 +109,26 @@ function show(t){
 $("tabT").onclick = () => show("timer");
 $("tabP").onclick = () => show("pair");
 
-let S = null, offset = 0;
+let S = null, TH = null, offset = 0;
 onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
-onValue(ref(db, "timer"), snap => {
+
+// El reloj llega por su propio canal (paquete diminuto = respuesta inmediata)
+onValue(ref(db, "timer/state"), snap => {
   S = snap.val();
   $("tstatus").textContent = S ? "" : "Esperando al organizador…";
-  applyTheme();
 }, () => $("tstatus").textContent = "Sin conexión — reintentando…");
 
+// La apariencia llega aparte y solo cuando el organizador la cambia
+onValue(ref(db, "timer/theme"), snap => { TH = snap.val(); applyTheme(); });
+
+// Compatibilidad con la estructura antigua (por si quedo algo publicado antes)
+onValue(ref(db, "timer"), snap => {
+  const v = snap.val();
+  if (v && v.paused !== undefined && !v.state){ S = v; TH = v; applyTheme(); }
+});
+
 function applyTheme(){
+  const S = TH; // la apariencia vive en su propio nodo
   if (!S) return;
   if (S.bgType === "image" && S.bgImage){
     $("bg").src = S.bgImage; $("bg").style.display = "block";
