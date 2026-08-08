@@ -121,11 +121,6 @@ onValue(ref(db, "timer/state"), snap => {
 // La apariencia llega aparte y solo cuando el organizador la cambia
 onValue(ref(db, "timer/theme"), snap => { TH = snap.val(); applyTheme(); });
 
-// Compatibilidad con la estructura antigua (por si quedo algo publicado antes)
-onValue(ref(db, "timer"), snap => {
-  const v = snap.val();
-  if (v && v.paused !== undefined && !v.state){ S = v; TH = v; applyTheme(); }
-});
 
 function applyTheme(){
   const S = TH; // la apariencia vive en su propio nodo
@@ -158,6 +153,7 @@ function applyTheme(){
 }
 function fmt(sec){ const n=sec<0,a=Math.abs(sec);
   return (n?"-":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0"); }
+
 function tick(){
   if (S){
     const sec = (S.paused || !S.endTime) ? Math.round(S.remaining??0)

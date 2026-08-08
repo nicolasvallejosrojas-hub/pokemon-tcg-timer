@@ -200,7 +200,7 @@ $("loginBtn").onclick = async () => {
 onAuthStateChanged(auth, u => {
   $("loginCard").style.display = u ? "none" : "block";
   $("all").style.display = u ? "block" : "none";
-  if (u){ renderAll(); publishState(); publishTheme(); }
+  if (u){ renderAll(); cleanAndPublish(); }
 });
 $("tabT").onclick = () => switchTab("t");
 $("tabP").onclick = () => switchTab("p");
@@ -263,6 +263,15 @@ function publishTheme(){
   }, 400);
 }
 const publishTimer = publishTheme;   // compatibilidad con los controles de apariencia
+
+/* Al entrar, reescribe el nodo completo una sola vez: borra los datos con el
+   formato antiguo que quedaban sueltos y hacian pesar de mas cada actualizacion. */
+async function cleanAndPublish(){
+  try {
+    await set(T, { state: snapState(), theme: snapTheme() });
+    $("syncMsg").innerHTML = '<span class="ok">Sincronizado ✓</span>';
+  } catch(e){ $("syncMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
+}
 const now = () => Date.now() + offset;
 const currentSec = () => st.paused ? Math.round(st.remaining) : Math.round((st.endTime - now())/1000);
 function fmt(sec){ const n=sec<0,a=Math.abs(sec);
