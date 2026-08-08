@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel del organizador</title>
+<style>
+  :root{--bg:#161826;--surface:#232532;--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);--radius:10px;}
+  html,body{margin:0;min-height:100%;}
+  body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;padding:18px;box-sizing:border-box;}
+  h1{font-size:18px;font-weight:500;margin:0 0 14px;}
+  .card{background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);padding:16px;margin-bottom:14px;max-width:840px;}
+  button{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:8px;
+         padding:9px 20px;font-family:inherit;font-size:14px;cursor:pointer;}
+  button.sec{border-color:var(--divider);color:var(--text);}
+  button.small{padding:5px 10px;font-size:12px;}
+  button:disabled{opacity:.4;cursor:default;}
+  input,select{background:var(--bg);border:1px solid var(--divider);border-radius:6px;color:var(--text);
+        padding:7px 9px;font-family:inherit;font-size:13px;box-sizing:border-box;}
+  label{font-size:12px;display:block;margin-top:10px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .muted{font-size:12px;opacity:.6;} .ok{color:#7fd98a;} .err{color:#e05a5a;} .warnc{color:#EF9F27;}
+  .center{display:flex;flex-direction:column;align-items:center;}
+
+  #tabs{display:flex;gap:8px;margin-bottom:16px;}
+  #tabs button{border-radius:20px;padding:8px 22px;border-color:var(--divider);color:var(--text);}
+  #tabs button.on{border-color:var(--accent);color:var(--accent);}
+  .panel.hide{display:none;}
+
+  #clock{font-size:82px;font-weight:600;line-height:1;text-align:center;font-variant-numeric:tabular-nums;
+         cursor:pointer;margin:8px 0;}
+  #clockEdit{font-size:56px;width:280px;text-align:center;background:transparent;border:none;
+             border-bottom:2px solid var(--accent);color:var(--text);outline:none;margin:14px auto;display:none;}
+  .preset.active{border-color:var(--accent);color:var(--accent);}
+  .preset{border-color:var(--divider);color:var(--text);}
+  .imgrow{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;}
+  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:4px;background:var(--bg);}
+
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px;}
+  td,th{border-bottom:1px solid var(--divider);padding:6px 8px;text-align:left;}
+  .rec{opacity:.6;font-size:11.5px;}
+  #drop{border:2px dashed var(--divider);border-radius:12px;padding:34px 16px;text-align:center;
+    cursor:pointer;transition:border-color .15s, background .15s;}
+  #drop:hover{border-color:var(--accent);}
+  #drop.over{border-color:var(--accent);background:rgba(145,132,217,.12);}
+  #drop.busy{opacity:.55;pointer-events:none;}
+  #drop .big{font-size:15.5px;font-weight:500;margin:8px 0 3px;}
+  #drop .sm{font-size:12.5px;opacity:.6;}
+  #drop .ico{font-size:26px;opacity:.5;line-height:1;}
+  .chk{display:flex;align-items:center;gap:7px;font-size:12.5px;opacity:.85;margin-top:10px;cursor:pointer;}
+  #qr{width:190px;height:190px;background:#fff;padding:8px;border-radius:6px;}
+</style>
+</head>
+<body>
+<h1>Panel del organizador</h1>
+
+<div class="card" id="loginCard">
+  <div class="muted" style="margin-bottom:8px">Inicia sesión para controlar el timer y publicar emparejamientos.</div>
+  <div class="row">
+    <input id="email" type="email" placeholder="correo" autocomplete="username">
+    <input id="pass" type="password" placeholder="contraseña" autocomplete="current-password">
+    <button id="loginBtn">Entrar</button>
+  </div>
+  <div id="loginMsg" class="muted" style="margin-top:8px"></div>
+</div>
+
+<div id="all" style="display:none">
+<div id="tabs">
+  <button id="tabT" class="on">Timer</button>
+  <button id="tabP">Emparejamientos</button>
+</div>
+
+<!-- ============ TIMER ============ -->
+<div class="panel" id="panelT">
+<div class="card center">
+  <div id="clock">32:00</div>
+  <input id="clockEdit" placeholder="mm:ss">
+  <div class="row" style="justify-content:center">
+    <button id="toggleBtn">Iniciar</button>
+    <button id="resetBtn" class="sec">Reiniciar</button>
+  </div>
+  <div class="row" id="presets" style="justify-content:center;margin-top:12px"></div>
+  <div class="row" style="justify-content:center;margin-top:8px">
+    <input id="newPreset" type="number" min="1" placeholder="min" style="width:70px">
+    <button id="addPreset" class="small sec">Agregar preset</button>
+  </div>
+  <div id="syncMsg" class="muted" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px;margin-bottom:4px">Jugadores (opcional, se muestra en la vista)</div>
+  <div class="row">
+    <input id="name1" placeholder="Jugador 1">
+    <input id="name2" placeholder="Jugador 2">
+  </div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px">Apariencia</div>
+  <label>Logo del evento <input type="file" id="logoFile" accept="image/*"></label>
+  <label>Fondo
+    <select id="bgType">
+      <option value="color">Color</option>
+      <option value="gradient">Gradiente</option>
+      <option value="image">Imagen</option>
+    </select>
+  </label>
+  <div class="row" style="margin-top:6px">
+    <input type="color" id="bgColor1" value="#161826">
+    <input type="color" id="bgColor2" value="#2b2741">
+    <select id="bgDir">
+      <option value="to right">→</option><option value="to bottom">↓</option><option value="to bottom right">↘</option>
+    </select>
+  </div>
+  <label id="bgImgLabel" style="display:none">Imagen de fondo <input type="file" id="bgImageFile" accept="image/*">
+    <span class="muted">Ideal 1920×1080. Lo importante, al centro.</span></label>
+  <div class="row">
+    <label>Brillo <input type="range" id="bgBrightness" min="20" max="150" value="100"></label>
+    <label>Opacidad <input type="range" id="bgOpacity" min="10" max="100" value="100"></label>
+  </div>
+  <div class="row">
+    <label>Color timer <input type="color" id="timerColor" value="#e9e9ed"></label>
+    <label>Color en negativo <input type="color" id="negativeColor" value="#e05a5a"></label>
+  </div>
+  <label>Sonido al pasar a negativo (suena en este equipo)
+    <input type="file" id="alarmFile" accept="audio/*"></label>
+  <div id="alarmName" class="muted"></div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px;margin-bottom:6px">Imágenes flotantes</div>
+  <button id="addImg" class="small sec">+ Agregar imagen</button>
+  <div id="imgList"></div>
+  <div class="muted" style="margin-top:6px">Posición X/Y y tamaño sobre un lienzo de 1180×660.</div>
+</div>
+</div>
+
+<!-- ============ EMPAREJAMIENTOS ============ -->
+<div class="panel hide" id="panelP">
+<div class="card">
+  <div style="margin-bottom:10px">Carga el <b>.tdf</b> de TOM (el principal tras guardar, o un respaldo <code>_rN-begin</code> / <code>_rN-end</code>).</div>
+  <div id="drop">
+    <div class="ico">&#128196;</div>
+    <div class="big">Arrastra aquí el archivo .tdf</div>
+    <div class="sm">o haz clic para buscarlo en tu computador</div>
+  </div>
+  <input type="file" id="tdf" accept=".tdf,.xml" style="display:none">
+  <label class="chk"><input type="checkbox" id="autoPub"> Publicar automáticamente al soltar el archivo</label>
+  <div id="parseMsg" class="muted" style="margin-top:8px"></div>
+  <div id="preview"></div>
+  <div class="row" style="margin-top:12px">
+    <button id="publishBtn" disabled>Publicar a los jugadores</button>
+    <span id="pubMsg" class="muted"></span>
+  </div>
+</div>
+</div>
+
+<!-- ============ QR (común) ============ -->
+<div class="card center">
+  <div style="font-size:14px;margin-bottom:8px">QR para los jugadores — timer y emparejamientos en una sola página</div>
+  <img id="qr" alt="QR">
+  <div class="row" style="margin-top:8px;width:100%;max-width:460px">
+    <input id="shareUrl" readonly style="flex:1">
+    <button id="copyBtn" class="small sec">Copiar</button>
+  </div>
+</div>
+</div>
+
+<script src="config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const app  = initializeApp(FIREBASE_CONFIG);
+const db   = getDatabase(app);
+const auth = getAuth(app);
+const $ = id => document.getElementById(id);
+const T = ref(db, "timer");
+
+/* ---------------- Login y pestañas ---------------- */
+$("loginBtn").onclick = async () => {
+  $("loginMsg").textContent = "Entrando…";
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
+  catch(e){ $("loginMsg").innerHTML = '<span class="err">Error: '+ e.code +'</span>'; }
+};
+onAuthStateChanged(auth, u => {
+  $("loginCard").style.display = u ? "none" : "block";
+  $("all").style.display = u ? "block" : "none";
+  if (u){ renderAll(); publishTimer(); }
+});
+$("tabT").onclick = () => switchTab("t");
+$("tabP").onclick = () => switchTab("p");
+function switchTab(t){
+  $("panelT").classList.toggle("hide", t!=="t");
+  $("panelP").classList.toggle("hide", t!=="p");
+  $("tabT").classList.toggle("on", t==="t");
+  $("tabP").classList.toggle("on", t==="p");
+}
+
+/* ================= TIMER ================= */
+let st = {
+  presetMin: 32, customPresets: [], remaining: 32*60, paused: true, endTime: null,
+  name1:"", name2:"", logo:"", bgType:"color", bgColor1:"#161826", bgColor2:"#2b2741",
+  bgDir:"to right", bgImage:"", bgBrightness:100, bgOpacity:100,
+  timerColor:"#e9e9ed", negativeColor:"#e05a5a", imgBoxes:[], nextId:1
+};
+try { Object.assign(st, JSON.parse(localStorage.getItem("timer-control")||"{}")); } catch(e){}
+let offset = 0, alarmURL = "", alarmFired = false, audioCtx = null;
+onValue(ref(db,".info/serverTimeOffset"), s => offset = s.val()||0);
+
+function snapshot(){
+  return {
+    endTime: st.paused ? null : st.endTime, paused: st.paused, remaining: st.remaining,
+    name1: st.name1, name2: st.name2, logo: st.logo,
+    bgType: st.bgType, bgColor1: st.bgColor1, bgColor2: st.bgColor2, bgDir: st.bgDir,
+    bgImage: st.bgImage, bgBrightness: +st.bgBrightness, bgOpacity: +st.bgOpacity,
+    timerColor: st.timerColor, negativeColor: st.negativeColor,
+    imgBoxes: st.imgBoxes.filter(b=>b.src), updatedAt: Date.now()
+  };
+}
+let pubTimer = null;
+function publishTimer(){
+  try { localStorage.setItem("timer-control", JSON.stringify(st)); } catch(e){}
+  clearTimeout(pubTimer);
+  pubTimer = setTimeout(async () => {
+    try { await set(T, snapshot()); $("syncMsg").innerHTML = '<span class="ok">Sincronizado ✓</span>'; }
+    catch(e){ $("syncMsg").innerHTML = '<span class="err">No se pudo sincronizar ('+(e.code||e.message)+')</span>'; }
+  }, 250);
+}
+const now = () => Date.now() + offset;
+const currentSec = () => st.paused ? Math.round(st.remaining) : Math.round((st.endTime - now())/1000);
+function fmt(sec){ const n=sec<0,a=Math.abs(sec);
+  return (n?"-":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0"); }
+
+function startPause(){
+  if (st.paused){
+    ensureAudio(); st.endTime = now() + st.remaining*1000; st.paused = false;
+    alarmFired = currentSec() < 0;
+  } else { st.remaining = currentSec(); st.paused = true; }
+  publishTimer(); renderClock();
+}
+function reset(){ st.paused=true; st.remaining=st.presetMin*60; st.endTime=null; alarmFired=false;
+  publishTimer(); renderClock(); }
+function setPreset(m){ st.presetMin=m; reset(); renderPresets(); }
+$("toggleBtn").onclick = startPause;
+$("resetBtn").onclick = reset;
+$("addPreset").onclick = () => {
+  const v = parseInt($("newPreset").value,10);
+  if (!v || v<=0 || [32,53,...st.customPresets].includes(v)) return;
+  st.customPresets.push(v); $("newPreset").value=""; renderPresets(); publishTimer();
+};
+$("clock").onclick = () => {
+  $("clock").style.display="none";
+  const e=$("clockEdit"); e.style.display="block"; e.value=fmt(currentSec()).replace("-",""); e.focus();
+};
+function commitEdit(){
+  const e=$("clockEdit"), raw=e.value.trim(); let secs;
+  if (raw.includes(":")){ const [m,s]=raw.split(":"); secs=(parseInt(m)||0)*60+(parseInt(s)||0); }
+  else { const m=parseFloat(raw); secs=isNaN(m)?currentSec():Math.round(m*60); }
+  st.remaining=Math.max(0,secs); st.paused=true; st.endTime=null; alarmFired=false;
+  e.style.display="none"; $("clock").style.display="block";
+  publishTimer(); renderClock();
+}
+$("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); };
+$("clockEdit").onblur = commitEdit;
+
+function ensureAudio(){
+  if (!audioCtx){ const C=window.AudioContext||window.webkitAudioContext; if (C) audioCtx=new C(); }
+  if (audioCtx?.state==="suspended") audioCtx.resume();
+}
+function beep(f,d){ try{
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.frequency.value=f; g.gain.setValueAtTime(.0001,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.2,audioCtx.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d+.02);
+}catch(e){} }
+function renderClock(){
+  const sec=currentSec(), c=$("clock");
+  c.textContent=fmt(sec);
+  c.style.color = sec<0 ? st.negativeColor : st.timerColor;
+  $("toggleBtn").textContent = st.paused ? "Iniciar" : "Pausar";
+  if (!st.paused){
+    if (sec<=0 && !alarmFired){
+      alarmFired=true;
+      if (alarmURL){ new Audio(alarmURL).play().catch(()=>beep(880,.4)); } else beep(880,.4);
+    } else if (sec<=10 && sec>0) beep(660,.12);
+  }
+}
+setInterval(renderClock, 250);
+
+function compressImage(file, maxW, quality, cb, forceJpeg){
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.min(1, maxW/img.width);
+    const cv = document.createElement("canvas");
+    cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
+    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+    const keepAlpha = !forceJpeg && /png|gif|webp|svg/i.test(file.type || file.name);
+    cb(keepAlpha ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg", quality));
+    URL.revokeObjectURL(img.src);
+  };
+  img.onerror = () => alert("No pude leer esa imagen. Prueba con otro archivo PNG o JPG.");
+  img.src = URL.createObjectURL(file);
+}
+const bind = (id, field, ev="input") => { $(id).value = st[field] ?? $(id).value;
+  $(id).addEventListener(ev, e => { st[field]=e.target.value; publishTimer(); }); };
+bind("name1","name1"); bind("name2","name2");
+bind("bgColor1","bgColor1"); bind("bgColor2","bgColor2"); bind("bgDir","bgDir","change");
+bind("bgBrightness","bgBrightness"); bind("bgOpacity","bgOpacity");
+bind("timerColor","timerColor"); bind("negativeColor","negativeColor");
+$("bgType").value = st.bgType;
+$("bgType").onchange = e => { st.bgType=e.target.value;
+  $("bgImgLabel").style.display = st.bgType==="image"?"block":"none"; publishTimer(); };
+$("bgImgLabel").style.display = st.bgType==="image"?"block":"none";
+$("logoFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f,400,.85,d=>{st.logo=d;publishTimer();}); };
+$("bgImageFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f,1600,.7,d=>{st.bgImage=d;publishTimer();},true); };
+$("alarmFile").onchange = e => { const f=e.target.files[0]; if(!f) return;
+  alarmURL=URL.createObjectURL(f); $("alarmName").textContent="Pista: "+f.name; };
+
+$("addImg").onclick = () => { st.imgBoxes.push({id:st.nextId++,x:480,y:230,w:150,h:200,src:"",flip:false});
+  renderImgs(); publishTimer(); };
+function renderImgs(){
+  const list=$("imgList"); list.innerHTML="";
+  st.imgBoxes.forEach(b => {
+    const row=document.createElement("div"); row.className="imgrow";
+    row.innerHTML=`<img src="${b.src||'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='}">
+      <input type="file" accept="image/*" style="max-width:190px">
+      X <input type="number" value="${b.x}" style="width:64px"> Y <input type="number" value="${b.y}" style="width:64px">
+      An <input type="number" value="${b.w}" style="width:64px"> Al <input type="number" value="${b.h}" style="width:64px">
+      <button class="small sec">⇋</button><button class="small sec">✕</button>`;
+    const [file,x,y,w,h]=row.querySelectorAll("input");
+    const [flip,del]=row.querySelectorAll("button");
+    file.onchange=e=>{const f=e.target.files[0]; if(f) compressImage(f,500,.85,d=>{b.src=d;renderImgs();publishTimer();});};
+    x.oninput=e=>{b.x=+e.target.value;publishTimer()}; y.oninput=e=>{b.y=+e.target.value;publishTimer()};
+    w.oninput=e=>{b.w=+e.target.value;publishTimer()}; h.oninput=e=>{b.h=+e.target.value;publishTimer()};
+    flip.onclick=()=>{b.flip=!b.flip;publishTimer()};
+    del.onclick=()=>{st.imgBoxes=st.imgBoxes.filter(o=>o.id!==b.id);renderImgs();publishTimer()};
+    list.appendChild(row);
+  });
+}
+function renderPresets(){
+  const box=$("presets"); box.innerHTML="";
+  [32,53,...st.customPresets].forEach(m => {
+    const btn=document.createElement("button");
+    btn.className="small preset"+(st.presetMin===m?" active":"");
+    btn.textContent=m+" min"; btn.onclick=()=>setPreset(m); box.appendChild(btn);
+    if (![32,53].includes(m)){
+      const x=document.createElement("button"); x.className="small sec"; x.textContent="×";
+      x.onclick=()=>{st.customPresets=st.customPresets.filter(p=>p!==m);renderPresets();publishTimer();};
+      box.appendChild(x);
+    }
+  });
+}
+function renderAll(){
+  const url = location.origin + location.pathname.replace(/admin\.html?$/,"") + "timer-view.html";
+  $("shareUrl").value = url;
+  $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
+  $("copyBtn").onclick = () => navigator.clipboard?.writeText(url);
+  renderPresets(); renderImgs(); renderClock();
+}
+
+/* ================= EMPAREJAMIENTOS ================= */
+let parsed = null;
+const P1WIN=[1,8], P2WIN=[2,10], TIE=[3], DBLLOSS=[4], BYE=[5];
+
+function parseTdf(xmlText){
+  const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+  if (doc.querySelector("parsererror")) throw new Error("XML inválido");
+  const name = doc.querySelector("data > name")?.textContent || "Torneo";
+  const roundtime = doc.querySelector("data > roundtime")?.textContent || "";
+
+  const names = {};
+  doc.querySelectorAll("tournament > players > player").forEach(p => {
+    const full = ((p.querySelector("firstname")?.textContent||"")+" "+
+                  (p.querySelector("lastname")?.textContent||"")).trim();
+    if (full) names[p.getAttribute("userid")] = full;
+  });
+  if (!Object.keys(names).length) throw new Error("no encontré la lista de jugadores");
+
+  const rec = {}; Object.keys(names).forEach(id => rec[id]={w:0,l:0,t:0});
+  const snapRec = id => { const r=rec[id]||{w:0,l:0,t:0};
+    return {w:r.w,l:r.l,t:r.t,pts:r.w*3+r.t}; };
+
+  const rounds = [];
+  doc.querySelectorAll("pods > pod > rounds > round").forEach(r => {
+    const raw = [];
+    r.querySelectorAll("matches > match").forEach(m => raw.push({
+      out: parseInt(m.getAttribute("outcome")||"0",10),
+      p1: m.querySelector("player1")?.getAttribute("userid") || null,
+      p2: m.querySelector("player2")?.getAttribute("userid") || null,
+      solo: m.querySelector("player")?.getAttribute("userid") || null,
+      table: parseInt(m.querySelector("tablenumber")?.textContent||"0",10)
+    }));
+    const matches = raw.map(m => {
+      const n1 = names[m.p1 || m.solo] || "?";
+      const n2 = m.p2 ? (names[m.p2] || "?") : null;
+      let result = "";
+      if (P1WIN.includes(m.out)) result = "Gana " + n1;
+      else if (P2WIN.includes(m.out)) result = "Gana " + n2;
+      else if (TIE.includes(m.out)) result = "Empate";
+      else if (DBLLOSS.includes(m.out)) result = "Doble derrota";
+      else if (BYE.includes(m.out)) result = "Bye";
+      return { table:m.table, p1:n1, p1rec:snapRec(m.p1||m.solo),
+               p2:n2, p2rec: m.p2 ? snapRec(m.p2) : null, result };
+    }).sort((a,b)=>a.table-b.table);
+
+    raw.forEach(m => {
+      const A=rec[m.p1], B=rec[m.p2], S=rec[m.solo];
+      if (BYE.includes(m.out) && S) S.w++;
+      else if (P1WIN.includes(m.out) && A && B){ A.w++; B.l++; }
+      else if (P2WIN.includes(m.out) && A && B){ B.w++; A.l++; }
+      else if (TIE.includes(m.out) && A && B){ A.t++; B.t++; }
+      else if (DBLLOSS.includes(m.out) && A && B){ A.l++; B.l++; }
+    });
+    rounds.push({ number: parseInt(r.getAttribute("number"),10), matches });
+  });
+  if (!rounds.length) throw new Error("el archivo no contiene rondas emparejadas");
+
+  const lastR = rounds[rounds.length-1];
+  const pendientes = lastR.matches.filter(m => m.p2 && !m.result).length;
+  const phase = pendientes === 0 ? "results" : "paired";
+
+  const oficial = [...doc.querySelectorAll('standings pod[type="finished"] player')];
+  let standings;
+  if (oficial.length){
+    standings = oficial.map(p => ({ place: parseInt(p.getAttribute("place"),10),
+      name: names[p.getAttribute("id")]||"?", ...snapRec(p.getAttribute("id")) }))
+      .sort((a,b)=>a.place-b.place);
+  } else {
+    standings = Object.keys(names).map(id => ({ name: names[id], ...snapRec(id) }))
+      .sort((a,b)=> b.pts-a.pts || b.w-a.w).map((s,i)=>({ place:i+1, ...s }));
+  }
+  return { name, roundtime, rounds, standings, phase, lastRound: lastR.number,
+           pendientes, updatedAt: Date.now() };
+}
+
+const recTxt = r => r ? ` (${r.w}-${r.l}-${r.t} · ${r.pts} pts)` : "";
+
+function showPreview(d){
+  const last = d.rounds[d.rounds.length-1];
+  let html = `<div style="margin-top:10px"><b>${d.name}</b> — se publicará hasta la <b>ronda ${last.number}</b>`;
+  if (d.standings.length) html += ` + tabla de posiciones`;
+  html += `</div><div style="margin-top:6px;font-size:12.5px">` + (d.phase==="results"
+    ? '<span class="ok">Todos los resultados de esta ronda están cargados</span> — los jugadores verán el aviso para revisarlos.'
+    : '<span class="warnc">Faltan '+d.pendientes+' resultado(s)</span> — se publicará como ronda en juego.') +
+    `</div><table><tr><th>Mesa</th><th>Jugador 1</th><th>Jugador 2</th><th>Resultado</th></tr>`;
+  last.matches.forEach(m => {
+    html += `<tr><td>${m.p2?m.table:"—"}</td>
+      <td>${m.p1}<span class="rec">${recTxt(m.p1rec)}</span></td>
+      <td>${m.p2? m.p2+'<span class="rec">'+recTxt(m.p2rec)+'</span>' : "<i>BYE</i>"}</td>
+      <td>${m.p2? m.result : "Bye"}</td></tr>`;
+  });
+  html += `</table>`;
+  if (d.standings.length){
+    html += `<div style="margin-top:14px;font-size:13px"><b>Posiciones</b></div>
+      <table><tr><th>#</th><th>Jugador</th><th>V-D-E</th><th>Puntos</th></tr>`;
+    d.standings.forEach(s => html += `<tr><td>${s.place}</td><td>${s.name}</td><td>${s.w}-${s.l}-${s.t}</td><td>${s.pts}</td></tr>`);
+    html += `</table>`;
+  }
+  $("preview").innerHTML = html;
+}
+
+function handleFile(f){
+  if (!f) return;
+  if (!/\.(tdf|xml)$/i.test(f.name)){
+    $("parseMsg").innerHTML = '<span class="err">Ese no parece un archivo .tdf</span>'; return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      parsed = parseTdf(ev.target.result); showPreview(parsed);
+      $("publishBtn").disabled = false;
+      $("parseMsg").innerHTML = '<span class="ok">'+f.name+' leído ✓</span>';
+      if ($("autoPub").checked) publishPairings();
+    } catch(err){
+      parsed=null; $("publishBtn").disabled=true; $("preview").innerHTML="";
+      $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+err.message+'</span>';
+    }
+  };
+  reader.readAsText(f);
+}
+$("tdf").onchange = e => { handleFile(e.target.files[0]); e.target.value=""; };
+const drop = $("drop");
+drop.onclick = () => $("tdf").click();
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); drop.classList.add("over"); }));
+["dragleave","dragend"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => {
+  e.preventDefault(); e.stopPropagation(); drop.classList.remove("over");
+  handleFile(e.dataTransfer.files && e.dataTransfer.files[0]);
+});
+["dragover","drop"].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
+
+async function publishPairings(){
+  if (!parsed) return;
+  $("pubMsg").textContent = "Publicando…";
+  drop.classList.add("busy");
+  try {
+    await set(ref(db,"pairings"), parsed);
+    const hora = new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+    $("pubMsg").innerHTML = '<span class="ok">Publicado ✓ ronda '+parsed.lastRound+' — '+hora+'</span>';
+  } catch(e){ $("pubMsg").innerHTML = '<span class="err">Error: '+(e.code||e.message)+'</span>'; }
+  drop.classList.remove("busy");
+}
+$("publishBtn").onclick = publishPairings;
+</script>
+</body>
+</html>

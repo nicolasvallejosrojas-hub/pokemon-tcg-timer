@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Torneo — Inicio</title>
+<style>
+  :root{--surface:#232532;--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);}
+  body{margin:0;background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;
+       min-height:100vh;box-sizing:border-box;padding:32px 20px;display:flex;flex-direction:column;align-items:center;}
+  h1{font-size:20px;font-weight:500;margin:0 0 4px;}
+  .sub{font-size:13px;opacity:.55;margin-bottom:26px;text-align:center;}
+  .grid{display:grid;gap:12px;width:100%;max-width:420px;}
+  a.card{display:block;text-decoration:none;color:var(--text);background:var(--surface);
+    border:1px solid var(--divider);border-radius:12px;padding:16px 18px;}
+  a.card:hover{border-color:var(--accent);}
+  .t{font-size:16px;font-weight:500;margin-bottom:3px;}
+  .d{font-size:12.5px;opacity:.6;line-height:1.45;}
+  .tag{display:inline-block;font-size:10.5px;border:1px solid var(--divider);border-radius:20px;
+    padding:2px 9px;margin-bottom:7px;opacity:.75;}
+  .tag.pub{border-color:var(--accent);color:var(--accent);}
+</style>
+</head>
+<body>
+  <h1>Torneo</h1>
+  <div class="sub">Timer y emparejamientos</div>
+  <div class="grid">
+    <a class="card" href="admin.html">
+      <span class="tag">Solo organizador</span>
+      <div class="t">Panel de control</div>
+      <div class="d">Timer y emparejamientos en un solo lugar, con pestañas. Requiere iniciar sesión.</div>
+    </a>
+    <a class="card" href="timer-view.html">
+      <span class="tag pub">Jugadores · QR</span>
+      <div class="t">Vista de los jugadores</div>
+      <div class="d">Cuenta regresiva y emparejamientos, sin controles.</div>
+    </a>
+  </div>
+</body>
+</html>

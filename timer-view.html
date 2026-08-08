@@ -48,8 +48,12 @@
   .pl{flex:1;font-size:15px;line-height:1.5;}
   .res{font-size:11px;opacity:.55;white-space:nowrap;text-align:right;}
   .hl{outline:2px solid var(--accent);}
-  .stand{display:flex;gap:12px;padding:9px 12px;border-bottom:1px solid var(--divider);font-size:14px;}
-  .stand b{min-width:30px;color:var(--accent);}
+  #tstand{border-collapse:collapse;width:100%;font-size:14px;}
+  #tstand th,#tstand td{border-bottom:1px solid var(--divider);padding:9px 8px;text-align:left;}
+  #tstand th{font-weight:500;font-size:12px;opacity:.6;}
+  #tstand td:first-child{color:var(--accent);font-weight:600;width:34px;}
+  #tstand td:nth-child(3),#tstand td:nth-child(4){white-space:nowrap;opacity:.85;}
+  #tstand tr.hlrow td{background:rgba(145,132,217,.18);}
   .rec{opacity:.55;font-size:11.5px;white-space:nowrap;}
   .pts{opacity:.8;font-size:12px;white-space:nowrap;min-width:52px;text-align:right;}
   #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
@@ -203,13 +207,13 @@ function renderPair(){
   const list=$("list"); list.innerHTML="";
   const q=$("q").value.trim().toLowerCase();
   if (showStand){
+    let h = `<table id="tstand"><tr><th>#</th><th>Jugador</th><th>V-D-E</th><th>Puntos</th></tr>`;
     P.standings.forEach(s=>{
-      const d=document.createElement("div"); d.className="stand";
-      if (q && s.name.toLowerCase().includes(q)) d.classList.add("hl");
-      d.innerHTML=`<b>${s.place}º</b><span style="flex:1">${s.name}</span>
-        <span class="rec">${s.w}-${s.l}-${s.t}</span><span class="pts">${s.pts} pts</span>`;
-      list.appendChild(d);
+      const hit = q && s.name.toLowerCase().includes(q);
+      h += `<tr${hit?' class="hlrow"':''}><td>${s.place}</td><td>${s.name}</td>
+            <td>${s.w}-${s.l}-${s.t}</td><td>${s.pts}</td></tr>`;
     });
+    list.innerHTML = h + `</table>`;
     return;
   }
   const round=P.rounds.find(r=>r.number===sel);
