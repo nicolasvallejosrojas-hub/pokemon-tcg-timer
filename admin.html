@@ -97,7 +97,15 @@
 
 <div class="card">
   <div style="font-size:14px">Apariencia</div>
-  <label>Logo del evento <input type="file" id="logoFile" accept="image/*"></label>
+  <div style="font-size:12px;margin-top:10px">Logo del evento</div>
+  <input type="file" id="logoFile" accept="image/*" style="margin-top:4px">
+  <div class="row" style="margin-top:6px">
+    <div id="logoPrev" style="display:none;padding:8px;border:1px solid var(--divider);border-radius:6px;background:#0e0f18">
+      <img id="logoImg" style="max-height:46px;max-width:180px;display:block">
+    </div>
+    <button id="clearLogo" class="small sec" style="display:none">Quitar logo</button>
+    <span id="logoInfo" class="muted"></span>
+  </div>
   <label>Fondo
     <select id="bgType">
       <option value="color">Color</option>
@@ -122,9 +130,14 @@
     <label>Color timer <input type="color" id="timerColor" value="#e9e9ed"></label>
     <label>Color en negativo <input type="color" id="negativeColor" value="#e05a5a"></label>
   </div>
-  <label>Sonido al pasar a negativo (suena en este equipo)
-    <input type="file" id="alarmFile" accept="audio/*"></label>
-  <div id="alarmName" class="muted"></div>
+  <div style="margin-top:12px;font-size:12px">Sonido al pasar a negativo (suena en este equipo)</div>
+  <input type="file" id="alarmFile" accept="audio/*" style="margin-top:4px">
+  <div class="row" style="margin-top:6px">
+    <button id="testSound" class="small sec">Probar sonido</button>
+    <button id="clearSound" class="small sec">Quitar pista</button>
+    <span id="alarmName" class="muted"></span>
+  </div>
+  <div id="audioWarn" class="muted" style="margin-top:6px"></div>
 </div>
 
 <div class="card">
@@ -203,7 +216,8 @@ let st = {
   presetMin: 32, customPresets: [], remaining: 32*60, paused: true, endTime: null,
   name1:"", name2:"", logo:"", bgType:"color", bgColor1:"#161826", bgColor2:"#2b2741",
   bgDir:"to right", bgImage:"", bgBrightness:100, bgOpacity:100,
-  timerColor:"#e9e9ed", negativeColor:"#e05a5a", imgBoxes:[], nextId:1
+  timerColor:"#e9e9ed", negativeColor:"#e05a5a", imgBoxes:[], nextId:1,
+  alarmData:"", alarmName:""
 };
 try { Object.assign(st, JSON.parse(localStorage.getItem("timer-control")||"{}")); } catch(e){}
 let offset = 0, alarmURL = "", alarmFired = false, audioCtx = null;
@@ -265,10 +279,31 @@ function commitEdit(){
 $("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); };
 $("clockEdit").onblur = commitEdit;
 
+let alarmEl = null;
 function ensureAudio(){
   if (!audioCtx){ const C=window.AudioContext||window.webkitAudioContext; if (C) audioCtx=new C(); }
   if (audioCtx?.state==="suspended") audioCtx.resume();
+  // El navegador solo permite reproducir tras un clic: dejamos el audio "desbloqueado"
+  if (alarmEl && !alarmEl.dataset.unlocked){
+    alarmEl.play().then(()=>{ alarmEl.pause(); alarmEl.currentTime=0; alarmEl.dataset.unlocked="1"; })
+      .catch(()=>{});
+  }
 }
+function loadAlarm(dataUrl){
+  if (!dataUrl){ alarmEl=null; return; }
+  alarmEl = new Audio(dataUrl);
+  alarmEl.preload = "auto";
+  alarmEl.load();
+}
+function playAlarm(){
+  if (alarmEl){
+    alarmEl.currentTime = 0;
+    alarmEl.play().catch(() => { $("audioWarn").innerHTML =
+      '<span class="warnc">El navegador bloqueó el audio. Pulsa "Probar sonido" una vez.</span>';
+      tripleBeep(); });
+  } else tripleBeep();
+}
+function tripleBeep(){ ensureAudio(); beep(880,.35); setTimeout(()=>beep(880,.35),420); setTimeout(()=>beep(880,.5),840); }
 function beep(f,d){ try{
   const o=audioCtx.createOscillator(), g=audioCtx.createGain();
   o.frequency.value=f; g.gain.setValueAtTime(.0001,audioCtx.currentTime);
@@ -276,17 +311,15 @@ function beep(f,d){ try{
   g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);
   o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d+.02);
 }catch(e){} }
+let lastBeepSec = null;
 function renderClock(){
   const sec=currentSec(), c=$("clock");
   c.textContent=fmt(sec);
   c.style.color = sec<0 ? st.negativeColor : st.timerColor;
   $("toggleBtn").textContent = st.paused ? "Iniciar" : "Pausar";
-  if (!st.paused){
-    if (sec<=0 && !alarmFired){
-      alarmFired=true;
-      if (alarmURL){ new Audio(alarmURL).play().catch(()=>beep(880,.4)); } else beep(880,.4);
-    } else if (sec<=10 && sec>0) beep(660,.12);
-  }
+  if (st.paused){ lastBeepSec=null; return; }
+  if (sec<=0 && !alarmFired){ alarmFired=true; playAlarm(); }
+  else if (sec<=10 && sec>0 && sec!==lastBeepSec){ lastBeepSec=sec; ensureAudio(); beep(660,.12); }
 }
 setInterval(renderClock, 250);
 
@@ -314,10 +347,47 @@ $("bgType").value = st.bgType;
 $("bgType").onchange = e => { st.bgType=e.target.value;
   $("bgImgLabel").style.display = st.bgType==="image"?"block":"none"; publishTimer(); };
 $("bgImgLabel").style.display = st.bgType==="image"?"block":"none";
-$("logoFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f,400,.85,d=>{st.logo=d;publishTimer();}); };
+$("logoFile").onchange = e => {
+  const f=e.target.files[0]; if(!f) return;
+  compressImage(f,600,.9,d=>{ st.logo=d; renderLogo(f.name, d); publishTimer(); });
+};
+$("clearLogo").onclick = () => { st.logo=""; renderLogo(); publishTimer(); };
+function renderLogo(fname, data){
+  const has = !!st.logo;
+  $("logoPrev").style.display = has ? "block" : "none";
+  $("clearLogo").style.display = has ? "inline-block" : "none";
+  if (has){
+    $("logoImg").src = st.logo;
+    const kb = Math.round((st.logo.length*0.75)/1024);
+    $("logoInfo").textContent = (fname? fname+" · " : "") + kb + " KB" +
+      (kb>700 ? " — pesado, puede tardar en llegar a los celulares" : "");
+  } else $("logoInfo").textContent = "";
+}
 $("bgImageFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f,1600,.7,d=>{st.bgImage=d;publishTimer();},true); };
-$("alarmFile").onchange = e => { const f=e.target.files[0]; if(!f) return;
-  alarmURL=URL.createObjectURL(f); $("alarmName").textContent="Pista: "+f.name; };
+$("alarmFile").onchange = e => {
+  const f=e.target.files[0]; if(!f) return;
+  if (f.size > 4*1024*1024){
+    $("audioWarn").innerHTML = '<span class="err">La pista pesa más de 4 MB. Usa un archivo más corto.</span>';
+    return;
+  }
+  const r=new FileReader();
+  r.onload = ev => {
+    st.alarmData = ev.target.result; st.alarmName = f.name;
+    try { localStorage.setItem("timer-alarm", JSON.stringify({d:st.alarmData,n:st.alarmName})); } catch(err){
+      $("audioWarn").innerHTML='<span class="warnc">La pista es muy grande para guardarla; se usará solo en esta sesión.</span>'; }
+    loadAlarm(st.alarmData); renderAlarm();
+  };
+  r.readAsDataURL(f);
+};
+$("testSound").onclick = () => { ensureAudio(); $("audioWarn").textContent=""; playAlarm(); };
+$("clearSound").onclick = () => {
+  st.alarmData=""; st.alarmName=""; alarmEl=null;
+  try { localStorage.removeItem("timer-alarm"); } catch(e){}
+  renderAlarm();
+};
+function renderAlarm(){
+  $("alarmName").textContent = st.alarmName ? "Pista: "+st.alarmName : "Sin pista: se usa un tono triple";
+}
 
 $("addImg").onclick = () => { st.imgBoxes.push({id:st.nextId++,x:480,y:230,w:150,h:200,src:"",flip:false});
   renderImgs(); publishTimer(); };
@@ -358,7 +428,10 @@ function renderAll(){
   $("shareUrl").value = url;
   $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
   $("copyBtn").onclick = () => navigator.clipboard?.writeText(url);
-  renderPresets(); renderImgs(); renderClock();
+  try { const a=JSON.parse(localStorage.getItem("timer-alarm")||"null");
+    if (a?.d){ st.alarmData=a.d; st.alarmName=a.n; loadAlarm(a.d); } } catch(e){}
+  renderPresets(); renderImgs(); renderClock(); renderAlarm(); renderLogo();
+  document.addEventListener("click", ensureAudio, { once:false });
 }
 
 /* ================= EMPAREJAMIENTOS ================= */
