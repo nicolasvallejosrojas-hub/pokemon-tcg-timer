@@ -269,15 +269,20 @@ function renderClock(){
 setInterval(renderClock, 250);
 
 // ---------- Apariencia ----------
-function compressImage(file, maxW, quality, cb){
+function compressImage(file, maxW, quality, cb, forceJpeg){
   const img = new Image();
   img.onload = () => {
     const scale = Math.min(1, maxW/img.width);
     const cv = document.createElement("canvas");
-    cv.width = img.width*scale; cv.height = img.height*scale;
-    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
-    cb(cv.toDataURL("image/jpeg", quality));
+    cv.width = Math.round(img.width*scale); cv.height = Math.round(img.height*scale);
+    const ctx = cv.getContext("2d");
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    // PNG/GIF/WEBP pueden tener fondo transparente: JPEG lo pintaria de negro.
+    const keepAlpha = !forceJpeg && /png|gif|webp|svg/i.test(file.type || file.name);
+    cb(keepAlpha ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg", quality));
+    URL.revokeObjectURL(img.src);
   };
+  img.onerror = () => alert("No pude leer esa imagen. Prueba con otro archivo PNG o JPG.");
   img.src = URL.createObjectURL(file);
 }
 const bind = (id, field, ev="input") => { $(id).value = st[field] ?? $(id).value;
@@ -291,7 +296,7 @@ $("bgType").onchange = e => { st.bgType=e.target.value;
   $("bgImgLabel").style.display = st.bgType==="image"?"block":"none"; publish("bgType"); };
 $("bgImgLabel").style.display = st.bgType==="image"?"block":"none";
 $("logoFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f, 400, .85, d=>{ st.logo=d; publish("logo"); }); };
-$("bgImageFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f, 1600, .7, d=>{ st.bgImage=d; publish("bgImage"); }); };
+$("bgImageFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f, 1600, .7, d=>{ st.bgImage=d; publish("bgImage"); }, true); };
 $("alarmFile").onchange = e => { const f=e.target.files[0]; if(!f) return;
   alarmURL = URL.createObjectURL(f); $("alarmName").textContent = "Pista: "+f.name; };
 

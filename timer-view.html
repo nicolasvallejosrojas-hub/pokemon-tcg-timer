@@ -3,34 +3,81 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Timer del torneo</title>
+<title>Torneo — Timer y emparejamientos</title>
 <style>
-  :root{--text:#e9e9ed;--neg:#e05a5a;}
+  :root{--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);--surface:#232532;}
   html,body{margin:0;height:100%;}
   body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;
-       display:flex;flex-direction:column;align-items:center;justify-content:center;
        overflow:hidden;position:relative;}
-  #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none;}
-  #wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:4vh;
-        width:100%;padding:16px;box-sizing:border-box;text-align:center;}
-  #logo{max-height:9vh;max-width:60vw;object-fit:contain;display:none;}
-  #names{font-size:clamp(16px,3.5vw,28px);opacity:.9;display:none;gap:14px;align-items:baseline;justify-content:center;flex-wrap:wrap;}
+  #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none;transition:opacity .2s;}
+
+  #tabbar{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;gap:6px;justify-content:center;
+    padding:8px;background:rgba(14,15,24,.72);backdrop-filter:blur(6px);border-bottom:1px solid var(--divider);}
+  #tabbar button{border:1px solid var(--divider);background:transparent;color:var(--text);border-radius:20px;
+    padding:7px 18px;font-size:13.5px;font-family:inherit;cursor:pointer;}
+  #tabbar button.on{border-color:var(--accent);color:var(--accent);}
+  #dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:6px;visibility:hidden;}
+
+  .page{position:fixed;inset:0;box-sizing:border-box;z-index:1;}
+  .page.hide{display:none;}
+
+  #pTimer{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3vh;
+          text-align:center;padding:56px 14px 14px;}
+  #logo{max-height:8vh;max-width:60vw;object-fit:contain;display:none;}
+  #names{font-size:clamp(15px,3.4vw,26px);opacity:.9;display:none;gap:12px;align-items:baseline;justify-content:center;flex-wrap:wrap;}
   #names .vs{opacity:.45;font-size:.8em;}
-  #clock{font-weight:600;line-height:1;font-size:clamp(64px,22vw,220px);font-variant-numeric:tabular-nums;letter-spacing:.02em;}
-  #status{font-size:clamp(12px,2.5vw,16px);opacity:.55;min-height:1.4em;}
-  .imgbox{position:fixed;z-index:1;pointer-events:none;}
+  #clock{font-weight:600;line-height:1;font-size:clamp(58px,20vw,210px);font-variant-numeric:tabular-nums;}
+  #tstatus{font-size:13px;opacity:.5;min-height:1.3em;}
+  .imgbox{position:fixed;z-index:0;pointer-events:none;}
   .imgbox img{width:100%;height:100%;object-fit:contain;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
   .warn{animation:pulse 1s ease-in-out infinite;}
+
+  #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
+  #tname{font-size:16px;font-weight:500;margin:0 0 2px;}
+  #tsub{font-size:11.5px;opacity:.55;margin-bottom:10px;}
+  #q{width:100%;box-sizing:border-box;background:#161826;border:1px solid var(--divider);border-radius:8px;
+     color:var(--text);padding:11px;font-size:16px;margin-bottom:10px;}
+  #rounds{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  #rounds button{border:1px solid var(--divider);background:transparent;color:var(--text);border-radius:8px;
+    padding:6px 13px;font-size:13px;font-family:inherit;cursor:pointer;}
+  #rounds button.on{border-color:var(--accent);color:var(--accent);}
+  .match{background:var(--surface);border:1px solid var(--divider);border-radius:10px;
+    padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+  .mesa{font-size:19px;font-weight:600;min-width:44px;text-align:center;color:var(--accent);}
+  .pl{flex:1;font-size:15px;line-height:1.5;}
+  .res{font-size:11px;opacity:.55;white-space:nowrap;text-align:right;}
+  .hl{outline:2px solid var(--accent);}
+  .stand{display:flex;gap:12px;padding:9px 12px;border-bottom:1px solid var(--divider);font-size:14px;}
+  .stand b{min-width:30px;color:var(--accent);}
+  #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
+  .banner{background:rgba(145,132,217,.14);border:1px solid var(--accent);border-radius:8px;
+    padding:9px 11px;font-size:12.5px;margin-bottom:10px;line-height:1.45;}
 </style>
 </head>
 <body>
 <img id="bg" alt="">
-<div id="wrap">
+
+<div id="tabbar">
+  <button id="tabT" class="on">Timer</button>
+  <button id="tabP">Emparejamientos<span id="dot"></span></button>
+</div>
+
+<div class="page" id="pTimer">
   <img id="logo" alt="">
   <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
   <div id="clock">--:--</div>
-  <div id="status">Conectando…</div>
+  <div id="tstatus">Conectando…</div>
+</div>
+
+<div class="page hide" id="pPair">
+  <h1 id="tname">Emparejamientos</h1>
+  <div id="tsub"></div>
+  <div id="banner" class="banner" style="display:none"></div>
+  <input id="q" placeholder="Busca tu nombre…">
+  <div id="rounds"></div>
+  <div id="list"></div>
+  <div id="pstatus">Conectando…</div>
 </div>
 
 <script src="config.js"></script>
@@ -40,80 +87,144 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10
 
 const app = initializeApp(FIREBASE_CONFIG);
 const db  = getDatabase(app);
+const $ = id => document.getElementById(id);
 
-let S = null;            // estado remoto del timer
-let offset = 0;          // corrección de reloj del dispositivo vs servidor
+let tab = "timer";
+function show(t){
+  tab = t;
+  $("pTimer").classList.toggle("hide", t!=="timer");
+  $("pPair").classList.toggle("hide", t!=="pair");
+  $("tabT").classList.toggle("on", t==="timer");
+  $("tabP").classList.toggle("on", t==="pair");
+  document.querySelectorAll(".imgbox").forEach(e => e.style.display = t==="timer" ? "block" : "none");
+  $("bg").style.opacity = t==="timer" ? "1" : "0";
+  if (t==="pair"){ $("dot").style.visibility="hidden"; seenStamp = P?.updatedAt || 0; }
+}
+$("tabT").onclick = () => show("timer");
+$("tabP").onclick = () => show("pair");
 
+let S = null, offset = 0;
 onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
 onValue(ref(db, "timer"), snap => {
   S = snap.val();
-  document.getElementById("status").textContent = S ? "" : "Esperando al organizador…";
+  $("tstatus").textContent = S ? "" : "Esperando al organizador…";
   applyTheme();
-}, () => {
-  document.getElementById("status").textContent = "Sin conexión — reintentando…";
-});
-
-const $ = id => document.getElementById(id);
+}, () => $("tstatus").textContent = "Sin conexión — reintentando…");
 
 function applyTheme(){
   if (!S) return;
-  const b = document.body;
   if (S.bgType === "image" && S.bgImage){
     $("bg").src = S.bgImage; $("bg").style.display = "block";
     $("bg").style.filter = `opacity(${S.bgOpacity??100}%) brightness(${S.bgBrightness??100}%)`;
-    b.style.background = "#0e0f18";
+    document.body.style.background = "#0e0f18";
   } else {
     $("bg").style.display = "none";
-    b.style.background = S.bgType === "gradient"
+    document.body.style.background = S.bgType === "gradient"
       ? `linear-gradient(${S.bgDir||"to right"}, ${S.bgColor1||"#161826"}, ${S.bgColor2||"#2b2741"})`
       : (S.bgColor1 || "#161826");
   }
-  if (S.logo){ $("logo").src = S.logo; $("logo").style.display = "block"; } else $("logo").style.display = "none";
-  const hasNames = (S.name1 || S.name2) && (S.name1 !== "Jugador 1" || S.name2 !== "Jugador 2");
+  if (S.logo){ $("logo").src = S.logo; $("logo").style.display = "block"; } else $("logo").style.display="none";
+  const hasNames = (S.name1||S.name2) && (S.name1!=="Jugador 1" || S.name2!=="Jugador 2");
   $("names").style.display = hasNames ? "flex" : "none";
-  $("n1").textContent = S.name1 || ""; $("n2").textContent = S.name2 || "";
+  $("n1").textContent = S.name1||""; $("n2").textContent = S.name2||"";
   document.querySelectorAll(".imgbox").forEach(e => e.remove());
-  (S.imgBoxes || []).forEach(box => {
+  (S.imgBoxes||[]).forEach(box => {
     if (!box.src) return;
-    const d = document.createElement("div");
-    d.className = "imgbox";
-    // posiciones guardadas sobre lienzo 1180x660 → porcentajes
-    d.style.left = (box.x/1180*100)+"vw"; d.style.top = (box.y/660*100)+"vh";
-    d.style.width = (box.w/1180*100)+"vw"; d.style.height = (box.h/660*100)+"vh";
-    const im = document.createElement("img");
-    im.src = box.src;
-    if (box.flip) im.style.transform = "scaleX(-1)";
+    const d = document.createElement("div"); d.className="imgbox";
+    d.style.left=(box.x/1180*100)+"vw"; d.style.top=(box.y/660*100)+"vh";
+    d.style.width=(box.w/1180*100)+"vw"; d.style.height=(box.h/660*100)+"vh";
+    d.style.display = tab==="timer" ? "block" : "none";
+    const im=document.createElement("img"); im.src=box.src;
+    if (box.flip) im.style.transform="scaleX(-1)";
     d.appendChild(im); document.body.appendChild(d);
   });
 }
-
-function fmt(sec){
-  const neg = sec < 0, a = Math.abs(sec);
-  return (neg?"-":"") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0");
-}
-
+function fmt(sec){ const n=sec<0,a=Math.abs(sec);
+  return (n?"-":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0"); }
 function tick(){
-  const c = $("clock");
-  if (!S){ requestAnimationFrame(tick); return; }
-  let sec;
-  if (S.paused || !S.endTime){
-    sec = Math.round(S.remaining ?? 0);
-  } else {
-    sec = Math.round((S.endTime - (Date.now()+offset)) / 1000);
+  if (S){
+    const sec = (S.paused || !S.endTime) ? Math.round(S.remaining??0)
+                                         : Math.round((S.endTime-(Date.now()+offset))/1000);
+    const c = $("clock");
+    c.textContent = fmt(sec);
+    c.style.color = sec<0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
+    c.classList.toggle("warn", !S.paused && sec<=10 && sec>=0);
   }
-  c.textContent = fmt(sec);
-  c.style.color = sec < 0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
-  c.classList.toggle("warn", !S.paused && sec <= 10 && sec >= 0);
   requestAnimationFrame(tick);
 }
 tick();
 
-// Mantener pantalla encendida si el navegador lo permite
+let P = null, sel = null, showStand = false, seenStamp = 0, first = true;
+onValue(ref(db,"pairings"), snap => {
+  P = snap.val();
+  if (!P){ $("pstatus").textContent = "Aún no hay emparejamientos publicados."; return; }
+  $("pstatus").textContent = "";
+  const lastNum = P.rounds[P.rounds.length-1].number;
+  if (sel === null || sel < lastNum) sel = lastNum;
+  if (!first && tab !== "pair" && P.updatedAt > seenStamp) $("dot").style.visibility = "visible";
+  first = false;
+  renderPair();
+}, () => $("pstatus").textContent = "Sin conexión — reintentando…");
+
+$("q").oninput = renderPair;
+
+function renderPair(){
+  if (!P) return;
+  $("tname").textContent = P.name;
+  $("tsub").textContent = (P.roundtime? "Rondas de "+P.roundtime+" min · ":"") +
+    "Actualizado " + new Date(P.updatedAt).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+
+  const b = $("banner");
+  if (P.phase === "results"){
+    b.style.display="block";
+    b.textContent = "Resultados de la ronda "+P.lastRound+" publicados. Revisa que el tuyo esté correcto y avisa al juez si hay algún error.";
+  } else if (P.phase === "paired"){
+    b.style.display="block";
+    b.textContent = "Ronda "+P.lastRound+" emparejada. Busca tu mesa.";
+  } else b.style.display="none";
+
+  const rb = $("rounds"); rb.innerHTML="";
+  P.rounds.forEach(r => {
+    const btn=document.createElement("button");
+    btn.textContent="R"+r.number;
+    btn.className=(!showStand && sel===r.number)?"on":"";
+    btn.onclick=()=>{sel=r.number;showStand=false;renderPair();};
+    rb.appendChild(btn);
+  });
+  if (P.standings?.length){
+    const btn=document.createElement("button");
+    btn.textContent="Posiciones"; btn.className=showStand?"on":"";
+    btn.onclick=()=>{showStand=true;renderPair();};
+    rb.appendChild(btn);
+  }
+
+  const list=$("list"); list.innerHTML="";
+  const q=$("q").value.trim().toLowerCase();
+  if (showStand){
+    P.standings.forEach(s=>{
+      const d=document.createElement("div"); d.className="stand";
+      if (q && s.name.toLowerCase().includes(q)) d.classList.add("hl");
+      d.innerHTML=`<b>${s.place}º</b><span>${s.name}</span>`;
+      list.appendChild(d);
+    });
+    return;
+  }
+  const round=P.rounds.find(r=>r.number===sel);
+  (round?.matches||[]).forEach(m=>{
+    const d=document.createElement("div"); d.className="match";
+    const hit=q && (m.p1.toLowerCase().includes(q) || (m.p2||"").toLowerCase().includes(q));
+    if (hit) d.classList.add("hl");
+    if (q && !hit) d.style.opacity=.35;
+    d.innerHTML=`<div class="mesa">${m.p2? "M"+m.table : "—"}</div>
+      <div class="pl">${m.p1}<br>${m.p2 ?? "<i style='opacity:.6'>BYE (descansa)</i>"}</div>
+      <div class="res">${m.p2? (m.result||"") : ""}</div>`;
+    list.appendChild(d);
+  });
+}
+
 try { navigator.wakeLock?.request("screen").catch(()=>{}); } catch(e){}
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible"){
-    try { navigator.wakeLock?.request("screen").catch(()=>{}); } catch(e){}
-  }
+  if (document.visibilityState==="visible"){ try{ navigator.wakeLock?.request("screen").catch(()=>{});}catch(e){} }
 });
 </script>
 </body>

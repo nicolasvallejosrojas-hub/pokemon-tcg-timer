@@ -129,19 +129,26 @@ function parseTdf(xmlText){
     rounds.push({ number: parseInt(r.getAttribute("number"),10), matches });
   });
   if (!rounds.length) throw new Error("el archivo no contiene rondas emparejadas");
+  const lastR = rounds[rounds.length-1];
+  const pendientes = lastR.matches.filter(m => m.p2 && !m.result).length;
+  const phase = pendientes === 0 ? "results" : "paired";
   // standings finales si existen
   const standings = [];
   doc.querySelectorAll('standings pod[type="finished"] player').forEach(p =>
     standings.push({ place: parseInt(p.getAttribute("place"),10), name: players[p.getAttribute("id")]||"?" }));
   standings.sort((a,b)=>a.place-b.place);
-  return { name, roundtime, rounds, standings, updatedAt: Date.now() };
+  return { name, roundtime, rounds, standings, phase, lastRound: lastR.number,
+           pendientes, updatedAt: Date.now() };
 }
 
 function showPreview(d){
   const last = d.rounds[d.rounds.length-1];
   let html = `<div style="margin-top:10px"><b>${d.name}</b> — se publicará hasta la <b>ronda ${last.number}</b>`;
   if (d.standings.length) html += ` + posiciones finales`;
-  html += `</div><table><tr><th>Mesa</th><th>Jugador 1</th><th>Jugador 2</th><th>Resultado</th></tr>`;
+  html += `</div><div style="margin-top:6px;font-size:12.5px">` + (d.phase === "results"
+    ? '<span class="ok">Todos los resultados de esta ronda están cargados</span> — los jugadores verán el aviso para revisarlos.'
+    : '<span style="color:#EF9F27">Faltan '+d.pendientes+' resultado(s)</span> — se publicará como ronda en juego.') +
+    `</div><table><tr><th>Mesa</th><th>Jugador 1</th><th>Jugador 2</th><th>Resultado</th></tr>`;
   last.matches.forEach(m => {
     html += `<tr><td>${m.p2?m.table:"—"}</td><td>${m.p1}</td><td>${m.p2??"<i>BYE</i>"}</td><td>${m.p2?m.result:"Bye"}</td></tr>`;
   });
