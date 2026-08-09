@@ -307,10 +307,11 @@
   <div style="font-size:14px;margin-bottom:6px">Cierre del torneo</div>
   <div class="muted" style="margin-bottom:8px">Cuando el torneo termin&oacute; de verdad, arch&iacute;valo aqu&iacute;.
     Reci&eacute;n entonces suma a la clasificaci&oacute;n mensual. TOM no avisa cu&aacute;l es la &uacute;ltima ronda, as&iacute; que el bot&oacute;n es manual.</div>
-  <div class="row">
+  <div class="row" style="align-items:center">
+    <label style="white-space:nowrap">Fecha del torneo <input type="date" id="archDate" style="width:auto"></label>
     <button id="archiveBtn" disabled>Archivar torneo</button>
-    <span id="archMsg" class="muted"></span>
   </div>
+  <div id="archMsg" class="muted" style="margin-top:6px"></div>
 </div>
 
 <div class="card">
@@ -858,11 +859,26 @@ function renderAll(){
 let parsed = null;
 const P1WIN=[1,8], P2WIN=[2,10], TIE=[3], DBLLOSS=[4], BYE=[5];
 
+/* TOM escribe la fecha al estilo de EE.UU. (mes/dia/anio). Devuelve aaaa-mm-dd
+   o cadena vacia si no logra entenderla; el organizador la confirma a mano. */
+function fechaISO(txt){
+  if (!txt) return "";
+  let m = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1]+"-"+m[2]+"-"+m[3];
+  m = txt.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m){
+    const a = m[3], mes = m[1].padStart(2,"0"), dia = m[2].padStart(2,"0");
+    if (+mes >= 1 && +mes <= 12 && +dia >= 1 && +dia <= 31) return a+"-"+mes+"-"+dia;
+  }
+  return "";
+}
+
 function parseTdf(xmlText){
   const doc = new DOMParser().parseFromString(xmlText, "text/xml");
   if (doc.querySelector("parsererror")) throw new Error("XML inválido");
   const name = doc.querySelector("data > name")?.textContent || "Torneo";
   const roundtime = doc.querySelector("data > roundtime")?.textContent || "";
+  const startdate = doc.querySelector("data > startdate")?.textContent?.trim() || "";
 
   const names = {};
   doc.querySelectorAll("tournament > players > player").forEach(p => {
@@ -925,7 +941,8 @@ function parseTdf(xmlText){
     standings = Object.keys(names).map(id => ({ name: names[id], ...snapRec(id) }))
       .sort((a,b)=> b.pts-a.pts || b.w-a.w).map((s,i)=>({ place:i+1, ...s }));
   }
-  return { name, roundtime, rounds, standings, phase, lastRound: lastR.number,
+  return { name, roundtime, startdate, fecha: fechaISO(startdate),
+           rounds, standings, phase, lastRound: lastR.number,
            pendientes, updatedAt: Date.now() };
 }
 
@@ -965,7 +982,11 @@ function handleFile(f){
     try {
       parsed = parseTdf(ev.target.result); showPreview(parsed);
       $("publishBtn").disabled = false;
-  $("archiveBtn").disabled = false;
+      $("archiveBtn").disabled = false;
+      $("archDate").value = parsed.fecha || new Date().toISOString().slice(0,10);
+      $("archMsg").innerHTML = parsed.fecha
+        ? 'Fecha le\u00edda del archivo: <b>'+fechaLarga(parsed.fecha)+'</b>. Corr\u00edgela si no calza.'
+        : '<span class="err">El archivo no trae fecha; se us\u00f3 la de hoy. Rev\u00edsala.</span>';
       $("parseMsg").innerHTML = '<span class="ok">'+f.name+' leído ✓</span>';
       if ($("autoPub").checked) publishPairings();
     } catch(err){
@@ -1024,6 +1045,12 @@ $("ptsSave").onclick = async () => {
   } catch(e){ $("ptsMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
 };
 
+const MESES_L = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                 "agosto","septiembre","octubre","noviembre","diciembre"];
+function fechaLarga(iso){
+  const [a,m,d] = iso.split("-");
+  return (+d) + " de " + MESES_L[+m-1] + " de " + a;
+}
 function mesDe(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
 
 async function archivarTorneo(){
@@ -1031,12 +1058,16 @@ async function archivarTorneo(){
   if (parsed.phase !== "results"){
     if (!confirm("Todav\u00eda hay mesas sin resultado en la ronda "+parsed.lastRound+".\n\u00bfArchivar igual?")) return;
   }
+  const f = $("archDate").value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f)){
+    $("archMsg").innerHTML = '<span class="err">Elige la fecha del torneo antes de archivar.</span>';
+    return;
+  }
   $("archMsg").textContent = "Archivando\u2026";
-  const hoy = new Date();
   const registro = {
     nombre: parsed.name,
-    fecha: hoy.toISOString().slice(0,10),
-    mes: mesDe(hoy),
+    fecha: f,
+    mes: f.slice(0,7),
     rondas: parsed.lastRound,
     jugadores: parsed.standings.length,
     standings: parsed.standings.map(p => ({ place:p.place, name:p.name, w:p.w, l:p.l, t:p.t, pts:p.pts })),
@@ -1044,7 +1075,8 @@ async function archivarTorneo(){
   };
   try {
     await push(R_HIST, registro);
-    $("archMsg").innerHTML = '<span class="ok">Archivado &#10003; ' + parsed.name + '</span>';
+    $("archMsg").innerHTML = '<span class="ok">Archivado &#10003; ' + parsed.name +
+                             ' &middot; ' + fechaLarga(f) + '</span>';
   } catch(e){ $("archMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
 }
 $("archiveBtn").onclick = archivarTorneo;
