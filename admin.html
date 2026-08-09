@@ -302,6 +302,33 @@
     <span id="pubMsg" class="muted"></span>
   </div>
 </div>
+
+<div class="card">
+  <div style="font-size:14px;margin-bottom:6px">Cierre del torneo</div>
+  <div class="muted" style="margin-bottom:8px">Cuando el torneo termin&oacute; de verdad, arch&iacute;valo aqu&iacute;.
+    Reci&eacute;n entonces suma a la clasificaci&oacute;n mensual. TOM no avisa cu&aacute;l es la &uacute;ltima ronda, as&iacute; que el bot&oacute;n es manual.</div>
+  <div class="row">
+    <button id="archiveBtn" disabled>Archivar torneo</button>
+    <span id="archMsg" class="muted"></span>
+  </div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px;margin-bottom:6px">Puntos por puesto</div>
+  <div class="muted" style="margin-bottom:8px">Puntos que gana cada puesto en la clasificaci&oacute;n mensual.
+    Separa con comas: el primer n&uacute;mero es el 1&ordm; lugar, el segundo el 2&ordm;, y as&iacute;.</div>
+  <div class="row">
+    <input id="ptsList" style="flex:1" placeholder="12, 10, 8, 7, 6, 5, 4, 3">
+    <label style="white-space:nowrap">Resto <input id="ptsRest" type="number" min="0" style="width:64px"></label>
+    <button id="ptsSave" class="small sec">Guardar</button>
+  </div>
+  <div id="ptsMsg" class="muted" style="margin-top:6px"></div>
+</div>
+
+<div class="card">
+  <div style="font-size:14px;margin-bottom:6px">Torneos archivados</div>
+  <div id="histList" class="muted">Cargando&hellip;</div>
+</div>
 </div>
 
 <!-- ============ QR (común) ============ -->
@@ -320,7 +347,7 @@
 <script src="config.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set, get, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const app  = initializeApp(FIREBASE_CONFIG);
@@ -938,10 +965,11 @@ function handleFile(f){
     try {
       parsed = parseTdf(ev.target.result); showPreview(parsed);
       $("publishBtn").disabled = false;
+  $("archiveBtn").disabled = false;
       $("parseMsg").innerHTML = '<span class="ok">'+f.name+' leído ✓</span>';
       if ($("autoPub").checked) publishPairings();
     } catch(err){
-      parsed=null; $("publishBtn").disabled=true; $("preview").innerHTML="";
+      parsed=null; $("publishBtn").disabled=true; $("archiveBtn").disabled=true; $("preview").innerHTML="";
       $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+err.message+'</span>';
     }
   };
@@ -972,6 +1000,77 @@ async function publishPairings(){
   drop.classList.remove("busy");
 }
 $("publishBtn").onclick = publishPairings;
+
+/* ================= HISTORIAL Y PUNTOS POR PUESTO ================= */
+const R_HIST = ref(db, BASE + "/historial");
+const R_CFG  = ref(db, BASE + "/config");
+const PTS_DEF = [12,10,8,7,6,5,4,3], PTS_REST_DEF = 1;
+let CFG = { puntos: PTS_DEF, resto: PTS_REST_DEF };
+
+onValue(R_CFG, snap => {
+  const v = snap.val();
+  if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? PTS_REST_DEF };
+  $("ptsList").value = CFG.puntos.join(", ");
+  $("ptsRest").value = CFG.resto;
+});
+
+$("ptsSave").onclick = async () => {
+  const arr = ($("ptsList").value||"").split(",").map(x=>parseInt(x.trim(),10)).filter(n=>!isNaN(n)&&n>=0);
+  if (!arr.length){ $("ptsMsg").innerHTML = '<span class="err">Escribe al menos un n&uacute;mero</span>'; return; }
+  const resto = Math.max(0, parseInt($("ptsRest").value,10) || 0);
+  try {
+    await set(R_CFG, { puntos: arr, resto });
+    $("ptsMsg").innerHTML = '<span class="ok">Guardado &#10003;</span>';
+  } catch(e){ $("ptsMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
+};
+
+function mesDe(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
+
+async function archivarTorneo(){
+  if (!parsed) return;
+  if (parsed.phase !== "results"){
+    if (!confirm("Todav\u00eda hay mesas sin resultado en la ronda "+parsed.lastRound+".\n\u00bfArchivar igual?")) return;
+  }
+  $("archMsg").textContent = "Archivando\u2026";
+  const hoy = new Date();
+  const registro = {
+    nombre: parsed.name,
+    fecha: hoy.toISOString().slice(0,10),
+    mes: mesDe(hoy),
+    rondas: parsed.lastRound,
+    jugadores: parsed.standings.length,
+    standings: parsed.standings.map(p => ({ place:p.place, name:p.name, w:p.w, l:p.l, t:p.t, pts:p.pts })),
+    creado: Date.now()
+  };
+  try {
+    await push(R_HIST, registro);
+    $("archMsg").innerHTML = '<span class="ok">Archivado &#10003; ' + parsed.name + '</span>';
+  } catch(e){ $("archMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
+}
+$("archiveBtn").onclick = archivarTorneo;
+
+onValue(R_HIST, snap => {
+  const v = snap.val() || {};
+  const items = Object.entries(v).sort((a,b)=> (b[1].creado||0)-(a[1].creado||0));
+  if (!items.length){ $("histList").textContent = "A\u00fan no hay torneos archivados."; return; }
+  $("histList").innerHTML = "";
+  items.forEach(([id, t]) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.cssText = "align-items:center;padding:6px 0;border-bottom:1px solid var(--divider)";
+    row.innerHTML = '<span style="flex:1">' + t.nombre + ' &middot; ' + t.fecha +
+                    ' &middot; ' + t.jugadores + ' jugadores</span>';
+    const b = document.createElement("button");
+    b.className = "small sec"; b.textContent = "Borrar";
+    b.onclick = async () => {
+      if (!confirm("\u00bfBorrar \"" + t.nombre + "\" del historial? Dejar\u00e1 de sumar a la clasificaci\u00f3n.")) return;
+      try { await remove(ref(db, BASE + "/historial/" + id)); } catch(e){}
+    };
+    row.appendChild(b);
+    $("histList").appendChild(row);
+  });
+});
+
 </script>
 </body>
 </html>

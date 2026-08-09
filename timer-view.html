@@ -67,6 +67,7 @@
 <div id="tabbar">
   <button id="tabT" class="on">Timer</button>
   <button id="tabP">Emparejamientos<span id="dot"></span></button>
+  <button id="tabC">Clasificación</button>
 </div>
 
 <div class="page" id="pTimer">
@@ -74,6 +75,15 @@
   <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
   <div id="clock">--:--</div>
   <div id="tstatus">Conectando…</div>
+</div>
+
+<div class="page hide" id="pClas">
+  <h1>Clasificaci&oacute;n</h1>
+  <div class="row" style="justify-content:center;margin:6px 0 10px">
+    <select id="mes"></select>
+  </div>
+  <div id="clasBox"></div>
+  <div id="cstatus">Conectando&hellip;</div>
 </div>
 
 <div class="page hide" id="pPair">
@@ -86,7 +96,81 @@
   <div id="pstatus">Conectando…</div>
 </div>
 
-<script src="config.js"></script>
+<script src="config.js">
+/* ================= CLASIFICACIÓN MENSUAL ================= */
+const esc = t => String(t==null?"":t).replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+
+let HIST = null, CFG = { puntos:[12,10,8,7,6,5,4,3], resto:1 }, mesSel = null;
+
+onValue(ref(db, BASE + "/config"), snap => {
+  const v = snap.val();
+  if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? 1 };
+  renderClas();
+});
+onValue(ref(db, BASE + "/historial"), snap => { HIST = snap.val() || {}; renderClas(); },
+        () => { $("cstatus").textContent = "No se pudo cargar la clasificaci\u00f3n."; });
+
+function puntosPorPuesto(place){
+  const p = CFG.puntos;
+  return (place >= 1 && place <= p.length) ? p[place-1] : (CFG.resto || 0);
+}
+
+$("mes").onchange = e => { mesSel = e.target.value; renderClas(true); };
+
+function renderClas(soloTabla){
+  if (!HIST) return;
+  const torneos = Object.values(HIST);
+  if (!torneos.length){
+    $("clasBox").innerHTML = "";
+    $("cstatus").textContent = "Todav\u00eda no hay torneos archivados.";
+    $("mes").style.display = "none";
+    return;
+  }
+  $("mes").style.display = "";
+
+  const meses = [...new Set(torneos.map(t => t.mes))].sort().reverse();
+  if (!mesSel || !meses.includes(mesSel)) mesSel = meses[0];
+  if (!soloTabla){
+    $("mes").innerHTML = meses.map(m =>
+      '<option value="'+m+'"'+(m===mesSel?' selected':'')+'>'+nombreMes(m)+'</option>').join("");
+  }
+
+  const delMes = torneos.filter(t => t.mes === mesSel);
+  const tabla = {};
+  delMes.forEach(t => (t.standings||[]).forEach(p => {
+    const k = p.name;
+    if (!tabla[k]) tabla[k] = { name:p.name, pts:0, torneos:0, mejor:99, w:0, l:0, e:0 };
+    const r = tabla[k];
+    r.pts += puntosPorPuesto(p.place);
+    r.torneos++;
+    r.mejor = Math.min(r.mejor, p.place);
+    r.w += p.w||0; r.l += p.l||0; r.e += p.t||0;
+  }));
+
+  const filas = Object.values(tabla)
+    .sort((a,b) => b.pts - a.pts || a.mejor - b.mejor || b.w - a.w || a.name.localeCompare(b.name));
+
+  let h = '<div class="sub" style="margin-bottom:8px">' + delMes.length +
+          (delMes.length === 1 ? ' torneo' : ' torneos') + ' en ' + nombreMes(mesSel) + '</div>';
+  h += '<table id="tstand"><tr><th>#</th><th>Jugador</th><th>Torneos</th><th>Mejor</th><th>Puntos</th></tr>';
+  filas.forEach((r,i) => {
+    h += '<tr><td>' + (i+1) + '</td><td>' + esc(r.name) + '</td><td>' + r.torneos +
+         '</td><td>' + r.mejor + '\u00ba</td><td><b>' + r.pts + '</b></td></tr>';
+  });
+  h += '</table>';
+  $("clasBox").innerHTML = h;
+  $("cstatus").textContent = "";
+}
+
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
+               "agosto","septiembre","octubre","noviembre","diciembre"];
+function nombreMes(m){
+  const [a,mm] = m.split("-");
+  return MESES[parseInt(mm,10)-1] + " " + a;
+}
+
+</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -105,14 +189,17 @@ function show(t){
   tab = t;
   $("pTimer").classList.toggle("hide", t!=="timer");
   $("pPair").classList.toggle("hide", t!=="pair");
+  $("pClas").classList.toggle("hide", t!=="clas");
   $("tabT").classList.toggle("on", t==="timer");
   $("tabP").classList.toggle("on", t==="pair");
+  $("tabC").classList.toggle("on", t==="clas");
   document.querySelectorAll(".imgbox").forEach(e => e.style.display = t==="timer" ? "block" : "none");
   $("bg").style.opacity = t==="timer" ? "1" : "0";
   if (t==="pair"){ $("dot").style.visibility="hidden"; seenStamp = P?.updatedAt || 0; }
 }
 $("tabT").onclick = () => show("timer");
 $("tabP").onclick = () => show("pair");
+$("tabC").onclick = () => show("clas");
 
 let S = null, TH = null, offset = 0;
 onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
