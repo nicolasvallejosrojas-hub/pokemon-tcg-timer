@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timer de torneo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0f18; --surface:#232532; --surface2:#1b1d29;
+    --text:#e9e9ed; --muted:rgba(233,233,237,.55);
+    --divider:rgba(233,233,237,.16);
+    --accent:#9184d9;
+    --radius-sm:6px; --radius-md:8px; --radius-lg:14px;
+    --shadow-lg:0 18px 50px rgba(0,0,0,.45);
+    --font:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--font);
+    display:flex; align-items:center; justify-content:center;
+    width:100vw; height:100vh; overflow:hidden;
+  }
+  button{font-family:var(--font)}
+  #scaler{transform-origin:center center}
+
+  #canvas{
+    position:relative; overflow:hidden;
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
+    display:flex; flex-direction:column;
+  }
+  #bgImg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0}
+
+  #topbar{
+    position:relative; z-index:1; display:flex; align-items:center; gap:14px;
+    padding:14px 22px; border-bottom:1px solid var(--divider);
+  }
+  #title{font-weight:500; font-size:16px; margin-right:auto}
+  #logo{max-height:28px; max-width:120px; object-fit:contain}
+  .tbtn{
+    border:1px solid var(--divider); background:transparent; color:var(--text);
+    border-radius:var(--radius-md); padding:6px 12px; font-size:12px;
+    cursor:pointer; white-space:nowrap; flex-shrink:0;
+  }
+  .tbtn:hover{border-color:var(--accent)}
+  .tbtn.on{border-color:var(--accent); color:var(--accent)}
+
+  #stage{
+    position:relative; z-index:1; flex:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px;
+  }
+  #clock{
+    cursor:pointer; font-weight:500; line-height:1; min-width:280px; text-align:center;
+    user-select:none;
+  }
+  #clockEdit{
+    font-weight:500; line-height:1; min-width:280px; text-align:center;
+    background:transparent; border:none; border-bottom:2px solid var(--accent);
+    outline:none; color:inherit; font-family:var(--font); display:none;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .pulsing{animation:pulse 1s ease-in-out infinite}
+
+  .mainbtn{
+    border:1px solid var(--accent); color:var(--accent); background:transparent;
+    border-radius:var(--radius-md); padding:9px 24px; font-size:14px; cursor:pointer;
+  }
+  .greybtn{
+    border:1px solid var(--divider); color:var(--text); background:transparent;
+    border-radius:var(--radius-md); padding:9px 24px; font-size:14px; cursor:pointer;
+  }
+  #presets{display:flex; gap:6px; flex-wrap:wrap; justify-content:center}
+  .preset{
+    border:1px solid var(--divider); color:var(--text); background:transparent;
+    border-radius:var(--radius-md); padding:5px 10px; font-size:12px; cursor:pointer;
+  }
+  .preset.sel{border-color:var(--accent); color:var(--accent)}
+  .presetX{border:none; background:transparent; color:var(--text); opacity:.5; cursor:pointer; font-size:14px}
+
+  /* ---- cajitas flotantes ---- */
+  .box{position:absolute; z-index:2; display:flex; flex-direction:column}
+  .boxbar{
+    height:16px; cursor:move; background:var(--surface);
+    border:1px solid var(--divider); border-bottom:none;
+    border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+  }
+  .boxbody{
+    flex:1; border-radius:0 0 var(--radius-md) var(--radius-md);
+    border:1px dashed var(--divider); position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .boxbody img{width:100%; height:100%; object-fit:contain}
+  .boxempty{font-size:11px; color:var(--muted); text-align:center; padding:4px}
+  .handle{position:absolute; background:transparent; z-index:3}
+
+  /* ---- menú de clic derecho ---- */
+  #menu{
+    position:fixed; z-index:60; display:none; min-width:190px; padding:5px;
+    background:var(--surface); border:1px solid var(--divider);
+    border-radius:var(--radius-md); box-shadow:var(--shadow-lg);
+  }
+  #menu button{
+    display:block; width:100%; text-align:left; border:none; background:transparent;
+    color:var(--text); font-size:13px; padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer;
+  }
+  #menu button:hover{background:rgba(145,132,217,.18)}
+  #menu hr{border:none; border-top:1px solid var(--divider); margin:4px 0}
+  #menu .danger{color:#e07a7a}
+
+  /* ---- ajustes ---- */
+  #settings{
+    position:absolute; inset:0; z-index:5; display:none; place-items:center; padding:16px;
+    background:rgba(14,15,24,.62);
+  }
+  #settings.open{display:grid}
+  #sheet{
+    width:min(440px,100%); max-height:100%; overflow:auto;
+    display:flex; flex-direction:column; gap:12px; padding:18px;
+    border-radius:var(--radius-lg); background:var(--surface); box-shadow:var(--shadow-lg);
+  }
+  #sheet h2{font-size:19px; font-weight:500}
+  .lab{font-size:12px; display:block}
+  .lab input[type=file]{display:block; margin-top:4px; font-size:12px; color:var(--text)}
+  .lab input[type=range]{display:block; width:100%; margin-top:4px}
+  .col{display:block; width:100%; height:32px; margin-top:4px; border:1px solid var(--divider);
+       border-radius:var(--radius-sm); background:transparent; cursor:pointer}
+  .seg{display:inline-flex; border:1px solid var(--divider); border-radius:var(--radius-md); overflow:hidden}
+  .seg button{padding:6px 12px; font-size:12px; border:none; background:transparent; color:var(--muted); cursor:pointer}
+  .seg button.on{color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)}
+  .row{display:flex; gap:12px}
+  .hint{font-size:11px; color:var(--muted); margin-top:4px; line-height:1.4}
+  #sheet input[type=text],#sheet input[type=number]{
+    background:var(--surface2); color:var(--text); border:1px solid var(--divider);
+    border-radius:var(--radius-sm); padding:6px 8px; font-size:12px; font-family:var(--font);
+  }
+</style>
+</head>
+<body>
+
+<div id="scaler">
+  <div id="canvas">
+    <img id="bgImg" alt="">
+
+    <div id="topbar">
+      <div id="title">Timer de torneo</div>
+      <img id="logo" alt="">
+      <button class="tbtn" id="btnDesktop">Computador</button>
+      <button class="tbtn" id="btnMobile">Celular</button>
+      <button class="tbtn" id="btnFull">Pantalla completa</button>
+      <button class="tbtn" id="btnSettings">Ajustes</button>
+    </div>
+
+    <div id="stage">
+      <div id="clock" title="Clic para editar el tiempo">32:00</div>
+      <input id="clockEdit" type="text">
+      <div style="display:flex; gap:8px">
+        <button class="mainbtn" id="btnToggle">Iniciar</button>
+        <button class="greybtn" id="btnReset">Reiniciar</button>
+      </div>
+      <div id="presets"></div>
+    </div>
+
+    <!-- cajitas flotantes se insertan aquí -->
+
+    <div id="settings">
+      <div id="sheet">
+        <h2>Ajustes</h2>
+
+        <label class="lab">Logo del evento
+          <input type="file" accept="image/*" id="fLogo">
+        </label>
+
+        <div>
+          <div style="font-size:12px; margin-bottom:4px">Fondo — <span id="bgWhich"></span></div>
+          <div class="seg">
+            <button id="bgTColor">Color</button>
+            <button id="bgTGrad">Gradiente</button>
+            <button id="bgTImg">Imagen</button>
+          </div>
+
+          <div id="bgColorWrap"><input type="color" class="col" id="bgC1"></div>
+
+          <div id="bgGradWrap" style="display:none">
+            <div class="row" style="margin-top:8px">
+              <input type="color" id="bgG1" style="flex:1; height:32px; border:1px solid var(--divider); border-radius:var(--radius-sm); background:transparent">
+              <input type="color" id="bgG2" style="flex:1; height:32px; border:1px solid var(--divider); border-radius:var(--radius-sm); background:transparent">
+              <select id="bgDir" style="flex:1; height:32px; background:var(--surface2); color:var(--text); border:1px solid var(--divider); border-radius:var(--radius-sm); font-size:12px">
+                <option value="to right">→</option>
+                <option value="to bottom">↓</option>
+                <option value="to bottom right">↘</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="bgImgWrap" style="display:none">
+            <input type="file" accept="image/*" id="fBg" style="display:block; margin-top:8px; font-size:12px; color:var(--text)">
+            <div class="hint" id="bgHint"></div>
+            <label class="lab" style="margin-top:8px">Brillo del fondo
+              <input type="range" min="20" max="150" id="bgBri">
+            </label>
+            <label class="lab" style="margin-top:8px">Opacidad del fondo
+              <input type="range" min="10" max="100" id="bgOpa">
+            </label>
+          </div>
+        </div>
+
+        <div class="row">
+          <label class="lab" style="flex:1">Color del timer
+            <input type="color" class="col" id="cTimer">
+          </label>
+          <label class="lab" style="flex:1">Color en negativo
+            <input type="color" class="col" id="cNeg">
+          </label>
+        </div>
+
+        <label class="lab">Tamaño del timer: <span id="szVal"></span>px
+          <input type="range" min="40" max="240" id="cSize">
+        </label>
+
+        <div>
+          <div style="font-size:12px; margin-bottom:4px">Agregar tiempo personalizado</div>
+          <div class="row">
+            <input type="number" id="newPreset" placeholder="minutos" style="flex:1">
+            <button class="tbtn" id="btnAddPreset">Agregar</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px; margin-bottom:4px">Sonido de alarma</div>
+          <input type="file" accept="audio/*" id="fAlarm" style="font-size:12px; color:var(--text)">
+          <div class="row" style="margin-top:6px; align-items:center">
+            <span class="hint" id="alarmName" style="flex:1; margin:0"></span>
+            <button class="tbtn" id="btnTestAlarm">Probar</button>
+            <button class="tbtn" id="btnClearAlarm">Quitar</button>
+          </div>
+        </div>
+
+        <div class="row" style="justify-content:flex-end; margin-top:4px">
+          <button class="tbtn" id="btnCloseSettings">Listo</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="menu"></div>
+
+<input type="file" accept="image/*" id="fBox" style="display:none">
+
+<script>
+/* ============================================================
+   Timer de torneo — versión HTML editable
+   Reconstruido a partir del original hecho en Claude Design.
+   ============================================================ */
+
+const PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const SIZES = { desktop:{w:1180,h:660}, mobile:{w:620,h:1100} };
+const LSKEY = 'timer-torneo-v2';
+
+function nuevaVista(){
+  return {
+    bgType:'color', bgColor1:'#161826', bgColor2:'#2b2741', bgDir:'to right',
+    bgImage:PX, bgBrightness:100, bgOpacity:100,
+    boxes:[], nextId:1
+  };
+}
+
+let S = {
+  view:'desktop',
+  timeLeft:32*60, running:false, endAt:0, preset:32, customPresets:[],
+  logo:PX, timerColor:'#e9e9ed', negativeColor:'#e05a5a', timerSize:96,
+  alarmSound:'', alarmName:'',
+  desktop:nuevaVista(), mobile:nuevaVista()
+};
+
+/* ---------- persistencia ---------- */
+function guardar(){
+  try{
+    const copia = JSON.parse(JSON.stringify(S));
+    copia.running = false; copia.endAt = 0;
+    localStorage.setItem(LSKEY, JSON.stringify(copia));
+  }catch(e){}
+}
+function cargar(){
+  try{
+    const raw = localStorage.getItem(LSKEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    S = Object.assign(S, d);
+    S.desktop = Object.assign(nuevaVista(), d.desktop||{});
+    S.mobile  = Object.assign(nuevaVista(), d.mobile||{});
+    S.running = false;
+  }catch(e){}
+}
+
+const $ = id => document.getElementById(id);
+const V = () => S[S.view];
+
+/* ---------- audio ---------- */
+let actx = null;
+function ensureAudio(){
+  if(!actx){ const C = window.AudioContext||window.webkitAudioContext; if(C) actx = new C(); }
+  if(actx && actx.state === 'suspended') actx.resume();
+}
+function tono(freq, dur){
+  try{
+    if(!actx) return;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = freq; o.type = 'sine';
+    g.gain.setValueAtTime(0.0001, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.2, actx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime+dur+0.02);
+  }catch(e){}
+}
+function alarma(){
+  if(S.alarmSound){
+    try{ new Audio(S.alarmSound).play().catch(()=>{}); return; }catch(e){}
+  }
+  tono(880,0.4); setTimeout(()=>tono(880,0.4),500); setTimeout(()=>tono(1046,0.6),1000);
+}
+
+/* ---------- reloj ---------- */
+function fmt(sec){
+  const neg = sec < 0, a = Math.abs(sec);
+  return (neg?'-':'') + String(Math.floor(a/60)).padStart(2,'0') + ':' + String(a%60).padStart(2,'0');
+}
+
+let ultimoSeg = null;
+function tick(){
+  if(S.running){
+    const nuevo = Math.round((S.endAt - Date.now())/1000);
+    if(nuevo !== S.timeLeft){
+      S.timeLeft = nuevo;
+      if(nuevo === 0) alarma();
+      else if(nuevo > 0 && nuevo <= 10 && nuevo !== ultimoSeg) tono(660,0.12);
+      ultimoSeg = nuevo;
+    }
+  }
+  pintarReloj();
+  requestAnimationFrame(tick);
+}
+
+function pintarReloj(){
+  const c = $('clock');
+  c.textContent = fmt(S.timeLeft);
+  c.style.fontSize = S.timerSize + 'px';
+  c.style.color = S.timeLeft < 0 ? S.negativeColor : S.timerColor;
+  c.classList.toggle('pulsing', S.running && S.timeLeft <= 10 && S.timeLeft >= 0);
+  $('clockEdit').style.fontSize = S.timerSize + 'px';
+  $('btnToggle').textContent = S.running ? 'Pausar' : 'Iniciar';
+}
+
+function toggle(){
+  ensureAudio();
+  if(S.running){ S.running = false; }
+  else { S.endAt = Date.now() + S.timeLeft*1000; S.running = true; }
+  guardar();
+}
+function reset(){ S.running = false; S.timeLeft = S.preset*60; guardar(); }
+function setPreset(m){ S.running = false; S.preset = m; S.timeLeft = m*60; pintarPresets(); guardar(); }
+
+function pintarPresets(){
+  const cont = $('presets'); cont.innerHTML = '';
+  const todos = [32,53,...S.customPresets];
+  todos.forEach(m=>{
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:inline-flex;align-items:center;gap:3px';
+    const b = document.createElement('button');
+    b.className = 'preset' + (S.preset===m?' sel':'');
+    b.textContent = m + ' min';
+    b.onclick = ()=>setPreset(m);
+    wrap.appendChild(b);
+    if(m!==32 && m!==53){
+      const x = document.createElement('button');
+      x.className = 'presetX'; x.textContent = '×';
+      x.onclick = ()=>{ S.customPresets = S.customPresets.filter(p=>p!==m); pintarPresets(); guardar(); };
+      wrap.appendChild(x);
+    }
+    cont.appendChild(wrap);
+  });
+}
+
+/* ---------- editar tiempo con clic ---------- */
+$('clock').onclick = ()=>{
+  S.running = false;
+  $('clock').style.display = 'none';
+  const e = $('clockEdit');
+  e.style.display = 'block';
+  e.value = fmt(S.timeLeft).replace('-','');
+  e.focus(); e.select();
+};
+function commitEdit(){
+  const raw = ($('clockEdit').value||'').trim();
+  let secs;
+  if(raw.includes(':')){
+    const [m,s] = raw.split(':');
+    secs = (parseInt(m,10)||0)*60 + (parseInt(s,10)||0);
+  } else {
+    const mins = parseFloat(raw);
+    secs = isNaN(mins) ? S.timeLeft : Math.round(mins*60);
+  }
+  S.timeLeft = Math.max(0, secs);
+  S.preset = Math.round(S.timeLeft/60) || S.preset;
+  S.running = false;
+  $('clockEdit').style.display = 'none';
+  $('clock').style.display = 'block';
+  pintarPresets(); guardar();
+}
+$('clockEdit').onblur = commitEdit;
+$('clockEdit').onkeydown = e=>{
+  if(e.key==='Enter') commitEdit();
+  if(e.key==='Escape'){ $('clockEdit').style.display='none'; $('clock').style.display='block'; }
+};
+
+/* ---------- fondo, logo, escala ---------- */
+function pintarFondo(){
+  const v = V(), c = $('canvas'), img = $('bgImg');
+  const dim = SIZES[S.view];
+  c.style.width = dim.w+'px'; c.style.height = dim.h+'px';
+
+  if(v.bgType === 'gradient') c.style.background = `linear-gradient(${v.bgDir}, ${v.bgColor1}, ${v.bgColor2})`;
+  else c.style.background = v.bgColor1;
+
+  const usaImg = v.bgType === 'image' && v.bgImage !== PX;
+  img.style.display = usaImg ? 'block' : 'none';
+  if(usaImg){
+    img.src = v.bgImage;
+    img.style.filter = `brightness(${v.bgBrightness}%) opacity(${v.bgOpacity}%)`;
+  }
+  $('logo').src = S.logo;
+  $('logo').style.display = S.logo === PX ? 'none' : 'block';
+  $('btnDesktop').classList.toggle('on', S.view==='desktop');
+  $('btnMobile').classList.toggle('on', S.view==='mobile');
+}
+
+function escalar(){
+  const dim = SIZES[S.view];
+  const k = Math.min(window.innerWidth/(dim.w+40), window.innerHeight/(dim.h+40), 1);
+  $('scaler').style.transform = 'scale('+k+')';
+  return k;
+}
+let escala = 1;
+window.addEventListener('resize', ()=>{ escala = escalar(); });
+
+/* ---------- cajitas flotantes ---------- */
+function pintarCajas(){
+  document.querySelectorAll('.box').forEach(e=>e.remove());
+  V().boxes.forEach(b=>{
+    const d = document.createElement('div');
+    d.className = 'box';
+    d.style.cssText = `left:${b.x}px; top:${b.y}px; width:${b.w}px; height:${b.h}px`;
+    d.dataset.id = b.id;
+
+    const bar = document.createElement('div');
+    bar.className = 'boxbar'; bar.title = 'Arrastrar para mover';
+    bar.addEventListener('mousedown', e=>arrastrar(b.id, e));
+
+    const body = document.createElement('div');
+    body.className = 'boxbody';
+    if(b.src === PX){
+      body.innerHTML = '<span class="boxempty">Clic para poner<br>imagen o GIF</span>';
+    } else {
+      const im = document.createElement('img');
+      im.src = b.src;
+      im.style.transform = `scaleX(${b.flip?-1:1})`;
+      body.appendChild(im);
+    }
+    body.onclick = ()=>pedirImagen(b.id);
+
+    d.appendChild(bar); d.appendChild(body);
+
+    HANDLES.forEach(h=>{
+      const k = document.createElement('div');
+      k.className = 'handle';
+      k.style.cssText = h.pos + 'cursor:'+h.cursor+';';
+      k.addEventListener('mousedown', e=>redimensionar(b.id, h.dir, e));
+      d.appendChild(k);
+    });
+
+    d.addEventListener('contextmenu', e=>{ e.preventDefault(); e.stopPropagation(); menuCaja(b.id, e); });
+    $('canvas').appendChild(d);
+  });
+}
+
+const HANDLES = [
+  {dir:'n', cursor:'ns-resize',   pos:'top:-4px;left:50%;transform:translateX(-50%);width:16px;height:8px;'},
+  {dir:'s', cursor:'ns-resize',   pos:'bottom:-4px;left:50%;transform:translateX(-50%);width:16px;height:8px;'},
+  {dir:'e', cursor:'ew-resize',   pos:'right:-4px;top:50%;transform:translateY(-50%);width:8px;height:16px;'},
+  {dir:'w', cursor:'ew-resize',   pos:'left:-4px;top:50%;transform:translateY(-50%);width:8px;height:16px;'},
+  {dir:'ne',cursor:'nesw-resize', pos:'top:-4px;right:-4px;width:12px;height:12px;'},
+  {dir:'nw',cursor:'nwse-resize', pos:'top:-4px;left:-4px;width:12px;height:12px;'},
+  {dir:'se',cursor:'nwse-resize', pos:'bottom:-4px;right:-4px;width:12px;height:12px;'},
+  {dir:'sw',cursor:'nesw-resize', pos:'bottom:-4px;left:-4px;width:12px;height:12px;'}
+];
+
+function caja(id){ return V().boxes.find(b=>b.id===id); }
+
+function agregarCaja(x, y){
+  const v = V(), id = v.nextId++;
+  const dim = SIZES[S.view];
+  v.boxes.push({
+    id,
+    x: Math.max(0, Math.min(x!=null?x:dim.w/2-75, dim.w-150)),
+    y: Math.max(0, Math.min(y!=null?y:dim.h/2-100, dim.h-200)),
+    w:150, h:200, src:PX, flip:false
+  });
+  pintarCajas(); guardar();
+  return id;
+}
+
+function arrastrar(id, e){
+  e.preventDefault();
+  const b = caja(id), x0 = e.clientX, y0 = e.clientY, ox = b.x, oy = b.y;
+  const dim = SIZES[S.view];
+  const mover = ev=>{
+    b.x = Math.max(0, Math.min(ox + (ev.clientX-x0)/escala, dim.w-20));
+    b.y = Math.max(0, Math.min(oy + (ev.clientY-y0)/escala, dim.h-20));
+    const el = document.querySelector('.box[data-id="'+id+'"]');
+    if(el){ el.style.left = b.x+'px'; el.style.top = b.y+'px'; }
+  };
+  const soltar = ()=>{
+    window.removeEventListener('mousemove', mover);
+    window.removeEventListener('mouseup', soltar);
+    guardar();
+  };
+  window.addEventListener('mousemove', mover);
+  window.addEventListener('mouseup', soltar);
+}
+
+function redimensionar(id, dir, e){
+  e.preventDefault(); e.stopPropagation();
+  const b = caja(id), o = {x:b.x, y:b.y, w:b.w, h:b.h};
+  const x0 = e.clientX, y0 = e.clientY;
+  const mover = ev=>{
+    const dx = (ev.clientX-x0)/escala, dy = (ev.clientY-y0)/escala;
+    let {x,y,w,h} = o;
+    if(dir.includes('e')) w = Math.max(50, o.w+dx);
+    if(dir.includes('s')) h = Math.max(50, o.h+dy);
+    if(dir.includes('w')){ w = Math.max(50, o.w-dx); x = o.x + (o.w-w); }
+    if(dir.includes('n')){ h = Math.max(50, o.h-dy); y = o.y + (o.h-h); }
+    Object.assign(b, {x,y,w,h});
+    const el = document.querySelector('.box[data-id="'+id+'"]');
+    if(el) el.style.cssText = `left:${x}px; top:${y}px; width:${w}px; height:${h}px`;
+  };
+  const soltar = ()=>{
+    window.removeEventListener('mousemove', mover);
+    window.removeEventListener('mouseup', soltar);
+    guardar();
+  };
+  window.addEventListener('mousemove', mover);
+  window.addEventListener('mouseup', soltar);
+}
+
+/* ---------- imagen dentro de una cajita ---------- */
+let cajaObjetivo = null;
+function pedirImagen(id){ cajaObjetivo = id; $('fBox').value=''; $('fBox').click(); }
+$('fBox').onchange = e=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f || cajaObjetivo==null) return;
+  const r = new FileReader();
+  r.onload = ev=>{ const b = caja(cajaObjetivo); if(b){ b.src = ev.target.result; pintarCajas(); guardar(); } };
+  r.readAsDataURL(f);
+};
+
+/* ---------- menú de clic derecho ---------- */
+function abrirMenu(x, y, items){
+  const m = $('menu');
+  m.innerHTML = '';
+  items.forEach(it=>{
+    if(it === '-'){ m.appendChild(document.createElement('hr')); return; }
+    const b = document.createElement('button');
+    b.textContent = it.label;
+    if(it.danger) b.className = 'danger';
+    b.onclick = ()=>{ cerrarMenu(); it.fn(); };
+    m.appendChild(b);
+  });
+  m.style.display = 'block';
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.min(x, window.innerWidth  - r.width  - 8) + 'px';
+  m.style.top  = Math.min(y, window.innerHeight - r.height - 8) + 'px';
+}
+function cerrarMenu(){ $('menu').style.display = 'none'; }
+window.addEventListener('click', cerrarMenu);
+window.addEventListener('scroll', cerrarMenu);
+
+function menuCaja(id, e){
+  const b = caja(id);
+  abrirMenu(e.clientX, e.clientY, [
+    {label: b.src===PX ? 'Poner imagen o GIF' : 'Cambiar imagen o GIF', fn:()=>pedirImagen(id)},
+    {label:'Voltear (espejo)', fn:()=>{ b.flip = !b.flip; pintarCajas(); guardar(); }},
+    '-',
+    {label:'Eliminar esta cajita', danger:true, fn:()=>{
+      V().boxes = V().boxes.filter(x=>x.id!==id); pintarCajas(); guardar();
+    }}
+  ]);
+}
+
+$('canvas').addEventListener('contextmenu', e=>{
+  if(e.target.closest('.box')) return;
+  if($('settings').classList.contains('open')) return;
+  e.preventDefault();
+  const r = $('canvas').getBoundingClientRect();
+  const x = (e.clientX - r.left)/escala, y = (e.clientY - r.top)/escala;
+  abrirMenu(e.clientX, e.clientY, [
+    {label:'Agregar cajita aquí', fn:()=>{ const id = agregarCaja(x-75, y-100); pedirImagen(id); }},
+    {label:'Agregar cajita vacía', fn:()=>agregarCaja(x-75, y-100)}
+  ]);
+});
+
+/* ---------- vistas computador / celular ---------- */
+function cambiarVista(v){
+  S.view = v;
+  pintarFondo(); pintarCajas(); escala = escalar(); refrescarAjustes();
+  guardar();
+}
+$('btnDesktop').onclick = ()=>cambiarVista('desktop');
+$('btnMobile').onclick  = ()=>cambiarVista('mobile');
+
+$('btnFull').onclick = ()=>{
+  const el = $('canvas');
+  if(!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+};
+
+/* ---------- ajustes ---------- */
+$('btnSettings').onclick = ()=>{ refrescarAjustes(); $('settings').classList.add('open'); };
+$('btnCloseSettings').onclick = ()=>$('settings').classList.remove('open');
+
+function refrescarAjustes(){
+  const v = V();
+  $('bgWhich').textContent = S.view==='desktop' ? 'vista computador' : 'vista celular';
+  $('bgHint').textContent = S.view==='desktop'
+    ? 'Recomendado: 1920×1080 (proporción 16:9, horizontal).'
+    : 'Recomendado: 1080×1920 (proporción 9:16, vertical).';
+  $('bgTColor').classList.toggle('on', v.bgType==='color');
+  $('bgTGrad').classList.toggle('on', v.bgType==='gradient');
+  $('bgTImg').classList.toggle('on', v.bgType==='image');
+  $('bgColorWrap').style.display = v.bgType==='color' ? 'block':'none';
+  $('bgGradWrap').style.display  = v.bgType==='gradient' ? 'block':'none';
+  $('bgImgWrap').style.display   = v.bgType==='image' ? 'block':'none';
+  $('bgC1').value = v.bgColor1; $('bgG1').value = v.bgColor1; $('bgG2').value = v.bgColor2;
+  $('bgDir').value = v.bgDir;
+  $('bgBri').value = v.bgBrightness; $('bgOpa').value = v.bgOpacity;
+  $('cTimer').value = S.timerColor; $('cNeg').value = S.negativeColor;
+  $('cSize').value = S.timerSize; $('szVal').textContent = S.timerSize;
+  $('alarmName').textContent = S.alarmName || 'Sin archivo: usa un tono triple.';
+}
+
+function setBgType(t){ V().bgType = t; pintarFondo(); refrescarAjustes(); guardar(); }
+$('bgTColor').onclick = ()=>setBgType('color');
+$('bgTGrad').onclick  = ()=>setBgType('gradient');
+$('bgTImg').onclick   = ()=>setBgType('image');
+
+$('bgC1').oninput = e=>{ V().bgColor1 = e.target.value; pintarFondo(); guardar(); };
+$('bgG1').oninput = e=>{ V().bgColor1 = e.target.value; pintarFondo(); guardar(); };
+$('bgG2').oninput = e=>{ V().bgColor2 = e.target.value; pintarFondo(); guardar(); };
+$('bgDir').onchange = e=>{ V().bgDir = e.target.value; pintarFondo(); guardar(); };
+$('bgBri').oninput = e=>{ V().bgBrightness = +e.target.value; pintarFondo(); guardar(); };
+$('bgOpa').oninput = e=>{ V().bgOpacity = +e.target.value; pintarFondo(); guardar(); };
+$('cTimer').oninput = e=>{ S.timerColor = e.target.value; guardar(); };
+$('cNeg').oninput = e=>{ S.negativeColor = e.target.value; guardar(); };
+$('cSize').oninput = e=>{ S.timerSize = +e.target.value; $('szVal').textContent = S.timerSize; guardar(); };
+
+/* comprime la imagen de fondo para no guardar archivos gigantes */
+function comprimir(file, maxLado, cb){
+  const r = new FileReader();
+  r.onload = ev=>{
+    const im = new Image();
+    im.onload = ()=>{
+      let {width:w, height:h} = im;
+      const k = Math.min(1, maxLado/Math.max(w,h));
+      w = Math.round(w*k); h = Math.round(h*k);
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(im, 0, 0, w, h);
+      const transparente = /png|gif|webp/i.test(file.type);
+      cb(transparente ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg', 0.85));
+    };
+    im.onerror = ()=>cb(ev.target.result);
+    im.src = ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+$('fLogo').onchange = e=>{
+  const f = e.target.files && e.target.files[0];
+  if(f) comprimir(f, 600, d=>{ S.logo = d; pintarFondo(); guardar(); });
+};
+$('fBg').onchange = e=>{
+  const f = e.target.files && e.target.files[0];
+  if(f) comprimir(f, 1600, d=>{ V().bgImage = d; V().bgType = 'image'; pintarFondo(); refrescarAjustes(); guardar(); });
+};
+$('fAlarm').onchange = e=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ev=>{ S.alarmSound = ev.target.result; S.alarmName = f.name; refrescarAjustes(); guardar(); };
+  r.readAsDataURL(f);
+};
+$('btnTestAlarm').onclick = ()=>{ ensureAudio(); alarma(); };
+$('btnClearAlarm').onclick = ()=>{ S.alarmSound=''; S.alarmName=''; refrescarAjustes(); guardar(); };
+
+$('btnAddPreset').onclick = ()=>{
+  const v = parseInt($('newPreset').value, 10);
+  if(!v || v<=0 || [32,53,...S.customPresets].includes(v)) return;
+  S.customPresets.push(v); $('newPreset').value=''; pintarPresets(); guardar();
+};
+
+$('btnToggle').onclick = toggle;
+$('btnReset').onclick = reset;
+document.addEventListener('click', ensureAudio, {once:true});
+
+/* ---------- arranque ---------- */
+cargar();
+pintarFondo(); pintarPresets(); pintarCajas(); refrescarAjustes();
+escala = escalar();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
