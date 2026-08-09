@@ -49,6 +49,67 @@
   #drop .ico{font-size:26px;opacity:.5;line-height:1;}
   .chk{display:flex;align-items:center;gap:7px;font-size:12.5px;opacity:.85;margin-top:10px;cursor:pointer;}
   #qr{width:190px;height:190px;background:#fff;padding:8px;border-radius:6px;}
+
+/* ===== lienzo del timer (estilo original) ===== */
+#stageWrap{width:100%;overflow:hidden;display:flex;justify-content:center}
+#scaler{transform-origin:top center}
+#canvas{position:relative;overflow:hidden;border-radius:14px;
+  box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;color:#e9e9ed}
+#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+#topbar{position:relative;z-index:1;display:flex;align-items:center;gap:12px;
+  padding:14px 22px;border-bottom:1px solid rgba(233,233,237,.16)}
+#ttitle{font-weight:500;font-size:16px;margin-right:auto}
+#logo{max-height:28px;max-width:120px;object-fit:contain}
+.tbtn{border:1px solid rgba(233,233,237,.16);background:transparent;color:#e9e9ed;
+  border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tbtn:hover{border-color:var(--accent)}
+.tbtn.on{border-color:var(--accent);color:var(--accent)}
+#stage{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px}
+#clock{cursor:pointer;font-weight:500;line-height:1;min-width:280px;text-align:center;user-select:none}
+#clockEdit{font-weight:500;line-height:1;min-width:280px;text-align:center;background:transparent;
+  border:none;border-bottom:2px solid var(--accent);outline:none;color:inherit;display:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.pulsing{animation:pulse 1s ease-in-out infinite}
+.mainbtn{border:1px solid var(--accent);color:var(--accent);background:transparent;
+  border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
+.greybtn{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
+  border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
+#presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.preset{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
+  border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
+.preset.sel{border-color:var(--accent);color:var(--accent)}
+.presetX{border:none;background:transparent;color:#e9e9ed;opacity:.5;cursor:pointer;font-size:14px}
+.box{position:absolute;z-index:2;display:flex;flex-direction:column}
+.boxbar{height:16px;cursor:move;background:#232532;border:1px solid rgba(233,233,237,.16);
+  border-bottom:none;border-radius:6px 6px 0 0}
+.boxbody{flex:1;border-radius:0 0 8px 8px;border:1px dashed rgba(233,233,237,.16);
+  position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.boxbody img{width:100%;height:100%;object-fit:contain}
+.boxempty{font-size:11px;color:rgba(233,233,237,.55);text-align:center;padding:4px}
+.handle{position:absolute;background:transparent;z-index:3}
+#menu{position:fixed;z-index:60;display:none;min-width:190px;padding:5px;background:#232532;
+  border:1px solid rgba(233,233,237,.16);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+#menu button{display:block;width:100%;text-align:left;border:none;background:transparent;color:#e9e9ed;
+  font-size:13px;padding:8px 12px;border-radius:6px;cursor:pointer}
+#menu button:hover{background:rgba(145,132,217,.18)}
+#menu hr{border:none;border-top:1px solid rgba(233,233,237,.16);margin:4px 0}
+#menu .danger{color:#e07a7a}
+#settings{position:absolute;inset:0;z-index:5;display:none;place-items:center;padding:16px;
+  background:rgba(14,15,24,.62)}
+#settings.open{display:grid}
+#sheet{width:min(440px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;
+  padding:18px;border-radius:14px;background:#232532;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+#sheet h2{font-size:19px;font-weight:500}
+.lab{font-size:12px;display:block}
+.lab input[type=range]{display:block;width:100%;margin-top:4px}
+.col{display:block;width:100%;height:32px;margin-top:4px;border:1px solid rgba(233,233,237,.16);
+  border-radius:6px;background:transparent;cursor:pointer}
+.seg{display:inline-flex;border:1px solid rgba(233,233,237,.16);border-radius:8px;overflow:hidden}
+.seg button{padding:6px 12px;font-size:12px;border:none;background:transparent;
+  color:rgba(233,233,237,.55);cursor:pointer}
+.seg button.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.hint{font-size:11px;color:rgba(233,233,237,.55);margin-top:4px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -60,11 +121,27 @@
     <input id="email" type="email" placeholder="correo" autocomplete="username">
     <input id="pass" type="password" placeholder="contraseña" autocomplete="current-password">
     <button id="loginBtn">Entrar</button>
+    <button id="signupBtn" class="sec">Crear cuenta</button>
   </div>
   <div id="loginMsg" class="muted" style="margin-top:8px"></div>
 </div>
 
 <div id="all" style="display:none">
+
+<div class="card" id="salaCard">
+  <div class="row">
+    <div style="font-size:14px">Sala: <b id="salaName"></b></div>
+    <span id="salaMsg" class="muted"></span>
+    <span style="flex:1"></span>
+    <button id="logoutBtn" class="small sec">Salir</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <input id="salaInput" placeholder="nombre-de-sala" style="max-width:220px">
+    <button id="salaGo" class="small sec">Cambiar de sala</button>
+    <span class="muted">Cada sala es un torneo independiente, con su propio QR.</span>
+  </div>
+</div>
+
 <div id="tabs">
   <button id="tabT" class="on">Timer</button>
   <button id="tabP">Emparejamientos</button>
@@ -72,79 +149,138 @@
 
 <!-- ============ TIMER ============ -->
 <div class="panel" id="panelT">
-<div class="card center">
-  <div id="clock">32:00</div>
-  <input id="clockEdit" placeholder="mm:ss">
-  <div class="row" style="justify-content:center">
-    <button id="toggleBtn">Iniciar</button>
-    <button id="resetBtn" class="sec">Reiniciar</button>
-  </div>
-  <div class="row" id="presets" style="justify-content:center;margin-top:12px"></div>
-  <div class="row" style="justify-content:center;margin-top:8px">
-    <input id="newPreset" type="number" min="1" placeholder="min" style="width:70px">
-    <button id="addPreset" class="small sec">Agregar preset</button>
-  </div>
-  <div id="syncMsg" class="muted" style="margin-top:10px"></div>
-</div>
 
-<div class="card">
-  <div style="font-size:14px;margin-bottom:4px">Jugadores (opcional, se muestra en la vista)</div>
-  <div class="row">
-    <input id="name1" placeholder="Jugador 1">
-    <input id="name2" placeholder="Jugador 2">
-  </div>
-</div>
+<div class="card" style="padding:12px">
+  <div id="stageWrap">
+    <div id="scaler">
+      <div id="canvas">
+        <img id="bgImg" alt="">
 
-<div class="card">
-  <div style="font-size:14px">Apariencia</div>
-  <div style="font-size:12px;margin-top:10px">Logo del evento</div>
-  <input type="file" id="logoFile" accept="image/*" style="margin-top:4px">
-  <div class="row" style="margin-top:6px">
-    <div id="logoPrev" style="display:none;padding:8px;border:1px solid var(--divider);border-radius:6px;background:#0e0f18">
-      <img id="logoImg" style="max-height:46px;max-width:180px;display:block">
+        <div id="topbar">
+          <div id="ttitle">Timer de torneo</div>
+          <img id="logo" alt="">
+          <button class="tbtn" id="btnDesktop">Computador</button>
+          <button class="tbtn" id="btnMobile">Celular</button>
+          <button class="tbtn" id="btnFull">Pantalla completa</button>
+          <button class="tbtn" id="btnSettings">Ajustes</button>
+        </div>
+
+        <div id="stage">
+          <div id="clock" title="Clic para editar el tiempo">32:00</div>
+          <input id="clockEdit" type="text">
+          <div style="display:flex; gap:8px">
+            <button class="mainbtn" id="toggleBtn">Iniciar</button>
+            <button class="greybtn" id="resetBtn">Reiniciar</button>
+          </div>
+          <div id="presets"></div>
+        </div>
+
+        <div id="settings">
+          <div id="sheet">
+            <h2>Ajustes</h2>
+
+            <label class="lab">Logo del evento
+              <input type="file" accept="image/*" id="fLogo">
+            </label>
+            <div class="row" style="align-items:center">
+              <span class="hint" id="stLogo" style="flex:1;margin:0"></span>
+              <button class="tbtn" id="btnDelLogo">Quitar</button>
+            </div>
+
+            <div>
+              <div style="font-size:12px; margin-bottom:4px">Fondo — <span id="bgWhich"></span></div>
+              <div class="seg">
+                <button id="bgTColor">Color</button>
+                <button id="bgTGrad">Gradiente</button>
+                <button id="bgTImg">Imagen</button>
+              </div>
+
+              <div id="bgColorWrap"><input type="color" class="col" id="bgC1"></div>
+
+              <div id="bgGradWrap" style="display:none">
+                <div class="row" style="margin-top:8px">
+                  <input type="color" id="bgG1" style="flex:1;height:32px;border:1px solid var(--divider);border-radius:6px;background:transparent">
+                  <input type="color" id="bgG2" style="flex:1;height:32px;border:1px solid var(--divider);border-radius:6px;background:transparent">
+                  <select id="bgDir" style="flex:1;height:32px">
+                    <option value="to right">&rarr;</option>
+                    <option value="to bottom">&darr;</option>
+                    <option value="to bottom right">&searr;</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="bgImgWrap" style="display:none">
+                <div style="margin-top:10px;padding:10px;border:1px solid var(--divider);border-radius:8px">
+                  <div style="font-size:12px">Imagen para computador <span class="muted">(horizontal 16:9)</span></div>
+                  <input type="file" accept="image/*" id="fBgDesktop" style="display:block;margin-top:4px;font-size:12px">
+                  <div class="row" style="margin-top:4px;align-items:center">
+                    <span class="hint" id="stDesktop" style="flex:1;margin:0"></span>
+                    <button class="tbtn" id="btnDelBgD">Quitar</button>
+                  </div>
+                </div>
+                <div style="margin-top:8px;padding:10px;border:1px solid var(--divider);border-radius:8px">
+                  <div style="font-size:12px">Imagen para celular <span class="muted">(vertical 9:16)</span></div>
+                  <input type="file" accept="image/*" id="fBgMobile" style="display:block;margin-top:4px;font-size:12px">
+                  <div class="row" style="margin-top:4px;align-items:center">
+                    <span class="hint" id="stMobile" style="flex:1;margin:0"></span>
+                    <button class="tbtn" id="btnDelBgM">Quitar</button>
+                  </div>
+                </div>
+                <div class="hint" id="bgHint" style="margin-top:8px"></div>
+                <label class="lab" style="margin-top:8px">Brillo del fondo
+                  <input type="range" min="20" max="150" id="bgBri">
+                </label>
+                <label class="lab" style="margin-top:8px">Opacidad del fondo
+                  <input type="range" min="10" max="100" id="bgOpa">
+                </label>
+              </div>
+            </div>
+
+            <div class="row">
+              <label class="lab" style="flex:1">Color del timer
+                <input type="color" class="col" id="cTimer">
+              </label>
+              <label class="lab" style="flex:1">Color en negativo
+                <input type="color" class="col" id="cNeg">
+              </label>
+            </div>
+
+            <label class="lab">Tama&ntilde;o del timer: <span id="szVal"></span>px
+              <input type="range" min="40" max="240" id="cSize">
+            </label>
+
+            <div>
+              <div style="font-size:12px;margin-bottom:4px">Agregar tiempo personalizado</div>
+              <div class="row">
+                <input type="number" id="newPreset" placeholder="minutos" style="flex:1">
+                <button class="tbtn" id="addPreset">Agregar</button>
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size:12px;margin-bottom:4px">Sonido de alarma <span class="muted">(suena en este equipo)</span></div>
+              <input type="file" accept="audio/*" id="fAlarm" style="font-size:12px">
+              <div class="row" style="margin-top:6px;align-items:center">
+                <span class="hint" id="alarmName" style="flex:1;margin:0"></span>
+                <button class="tbtn" id="testSound">Probar</button>
+                <button class="tbtn" id="clearSound">Quitar</button>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:flex-end;margin-top:4px">
+              <button class="tbtn" id="btnCloseSettings">Listo</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
-    <button id="clearLogo" class="small sec" style="display:none">Quitar logo</button>
-    <span id="logoInfo" class="muted"></span>
   </div>
-  <label>Fondo
-    <select id="bgType">
-      <option value="color">Color</option>
-      <option value="gradient">Gradiente</option>
-      <option value="image">Imagen</option>
-    </select>
-  </label>
-  <div class="row" style="margin-top:6px">
-    <input type="color" id="bgColor1" value="#161826">
-    <input type="color" id="bgColor2" value="#2b2741">
-    <select id="bgDir">
-      <option value="to right">→</option><option value="to bottom">↓</option><option value="to bottom right">↘</option>
-    </select>
-  </div>
-  <label id="bgImgLabel" style="display:none">Imagen de fondo <input type="file" id="bgImageFile" accept="image/*">
-    <span class="muted">Ideal 1920×1080. Lo importante, al centro.</span></label>
-  <div class="row">
-    <label>Brillo <input type="range" id="bgBrightness" min="20" max="150" value="100"></label>
-    <label>Opacidad <input type="range" id="bgOpacity" min="10" max="100" value="100"></label>
-  </div>
-  <div class="row">
-    <label>Color timer <input type="color" id="timerColor" value="#e9e9ed"></label>
-    <label>Color en negativo <input type="color" id="negativeColor" value="#e05a5a"></label>
-  </div>
-  <div style="margin-top:12px;font-size:12px">Sonido al pasar a negativo (suena en este equipo)</div>
-  <input type="file" id="alarmFile" accept="audio/*" style="margin-top:4px">
-  <div class="row" style="margin-top:6px">
-    <button id="testSound" class="small sec">Probar sonido</button>
-    <button id="clearSound" class="small sec">Quitar pista</button>
-    <span id="alarmName" class="muted"></span>
-  </div>
-  <div id="audioWarn" class="muted" style="margin-top:6px"></div>
-</div>
 
-<div class="card">
-  <div style="font-size:14px;margin-bottom:6px">Imágenes flotantes</div>
-  <button id="addImg" class="small sec">+ Agregar imagen</button>
-  <div id="imgList"></div>
-  <div class="muted" style="margin-top:6px">Posición X/Y y tamaño sobre un lienzo de 1180×660.</div>
+  <div class="row" style="margin-top:10px;align-items:center">
+    <span id="syncMsg" class="muted" style="flex:1"></span>
+    <span class="muted">Clic derecho sobre el lienzo para agregar cajitas.</span>
+  </div>
 </div>
 </div>
 
@@ -179,17 +315,26 @@
 </div>
 </div>
 
+<div id="menu"></div>
+<input type="file" accept="image/*" id="fBox" style="display:none">
 <script src="config.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const app  = initializeApp(FIREBASE_CONFIG);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 const $ = id => document.getElementById(id);
-const T = ref(db, "timer");
+
+/* ---- Sala: cada organizador tiene su propio espacio de datos ---- */
+const slug = v => (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+                   .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,24);
+const SALA = slug(new URLSearchParams(location.search).get("sala")) || "principal";
+const BASE = "salas/" + SALA;
+const T = ref(db, BASE + "/timer");
+const LS = k => "tt-" + SALA + "-" + k;
 
 /* ---------------- Login y pestañas ---------------- */
 $("loginBtn").onclick = async () => {
@@ -197,10 +342,44 @@ $("loginBtn").onclick = async () => {
   try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
   catch(e){ $("loginMsg").innerHTML = '<span class="err">Error: '+ e.code +'</span>'; }
 };
-onAuthStateChanged(auth, u => {
+$("signupBtn").onclick = async () => {
+  $("loginMsg").textContent = "Creando cuenta…";
+  try { await createUserWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
+  catch(e){ $("loginMsg").innerHTML = '<span class="err">'+
+    (e.code==="auth/weak-password" ? "La contraseña debe tener al menos 6 caracteres"
+     : e.code==="auth/email-already-in-use" ? "Ese correo ya tiene cuenta: usa Entrar"
+     : e.code)+'</span>'; }
+};
+$("logoutBtn").onclick = () => signOut(auth);
+$("salaGo").onclick = () => {
+  const v = slug($("salaInput").value);
+  if (!v) return;
+  location.search = "?sala=" + v;
+};
+
+let soyDueno = false;
+onAuthStateChanged(auth, async u => {
   $("loginCard").style.display = u ? "none" : "block";
   $("all").style.display = u ? "block" : "none";
-  if (u){ renderAll(); cleanAndPublish(); }
+  if (!u) return;
+  $("salaName").textContent = SALA;
+  $("salaInput").value = SALA;
+  // Quien publica primero en una sala vacía queda como su dueño
+  const ownerRef = ref(db, BASE + "/owner");
+  let owner = null;
+  try { owner = (await get(ownerRef)).val(); } catch(e){}
+  if (!owner){
+    try { await set(ownerRef, u.uid); owner = u.uid; } catch(e){}
+  }
+  soyDueno = owner === u.uid;
+  if (soyDueno){
+    $("salaMsg").innerHTML = '<span class="ok">Eres el organizador de esta sala</span>';
+    renderAll(); cleanAndPublish();
+  } else {
+    $("salaMsg").innerHTML = '<span class="err">Esta sala ya tiene organizador. Elige otro nombre de sala abajo.</span>';
+    $("tabs").style.display = "none";
+    document.querySelectorAll(".panel").forEach(e => e.style.display="none");
+  }
 });
 $("tabT").onclick = () => switchTab("t");
 $("tabP").onclick = () => switchTab("p");
@@ -212,257 +391,439 @@ function switchTab(t){
 }
 
 /* ================= TIMER ================= */
+const PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const SIZES = { desktop:{w:1180,h:660}, mobile:{w:620,h:1100} };
+
+function nuevaVista(){
+  return { bgType:"color", bgColor1:"#161826", bgColor2:"#2b2741", bgDir:"to right",
+           bgImage:"", bgBrightness:100, bgOpacity:100, boxes:[], nextId:1 };
+}
+
 let st = {
-  presetMin: 32, customPresets: [], remaining: 32*60, paused: true, endTime: null,
-  name1:"", name2:"", logo:"", bgType:"color", bgColor1:"#161826", bgColor2:"#2b2741",
-  bgDir:"to right", bgImage:"", bgBrightness:100, bgOpacity:100,
-  timerColor:"#e9e9ed", negativeColor:"#e05a5a", imgBoxes:[], nextId:1,
-  alarmData:"", alarmName:""
+  presetMin:32, customPresets:[], remaining:32*60, paused:true, endTime:null,
+  view:"desktop", logo:"", timerColor:"#e9e9ed", negativeColor:"#e05a5a", timerSize:96,
+  alarmData:"", alarmName:"",
+  desktop:nuevaVista(), mobile:nuevaVista()
 };
-try { Object.assign(st, JSON.parse(localStorage.getItem("timer-control")||"{}")); } catch(e){}
-let offset = 0, alarmURL = "", alarmFired = false, audioCtx = null;
+try {
+  const g = JSON.parse(localStorage.getItem(LS("control"))||"{}");
+  Object.assign(st, g);
+  st.desktop = Object.assign(nuevaVista(), g.desktop||{});
+  st.mobile  = Object.assign(nuevaVista(), g.mobile ||{});
+  st.paused = true; st.endTime = null;
+} catch(e){}
+
+let offset = 0, alarmURL = "", alarmFired = false, audioCtx = null, escala = 1;
 onValue(ref(db,".info/serverTimeOffset"), s => offset = s.val()||0);
+
+const V = () => st[st.view];
 
 /* El estado del reloj viaja SOLO (unos 100 bytes) para que iniciar/pausar
    llegue al instante. La apariencia (imagenes, colores) va por separado. */
-const R_STATE = ref(db, "timer/state");
-const R_THEME = ref(db, "timer/theme");
+const R_STATE = ref(db, BASE + "/timer/state");
+const R_THEME = ref(db, BASE + "/timer/theme");
 
 function snapState(){
   return { endTime: st.paused ? null : st.endTime, paused: st.paused,
            remaining: st.remaining, timerColor: st.timerColor,
-           negativeColor: st.negativeColor, updatedAt: Date.now() };
+           negativeColor: st.negativeColor, timerSize: st.timerSize,
+           updatedAt: Date.now() };
+}
+function vistaLimpia(v){
+  return { bgType:v.bgType, bgColor1:v.bgColor1, bgColor2:v.bgColor2, bgDir:v.bgDir,
+           bgImage:v.bgImage||"", bgBrightness:+v.bgBrightness, bgOpacity:+v.bgOpacity,
+           boxes:(v.boxes||[]).filter(b=>b.src) };
 }
 function snapTheme(){
-  return {
-    name1: st.name1, name2: st.name2, logo: st.logo,
-    bgType: st.bgType, bgColor1: st.bgColor1, bgColor2: st.bgColor2, bgDir: st.bgDir,
-    bgImage: st.bgImage, bgBrightness: +st.bgBrightness, bgOpacity: +st.bgOpacity,
-    imgBoxes: st.imgBoxes.filter(b=>b.src), updatedAt: Date.now()
-  };
+  return { logo: st.logo||"", desktop: vistaLimpia(st.desktop),
+           mobile: vistaLimpia(st.mobile), updatedAt: Date.now() };
 }
-function saveLocal(){ try { localStorage.setItem("timer-control", JSON.stringify(st)); } catch(e){} }
 
-// Iniciar / pausar / reiniciar: envio inmediato, sin espera
+function saveLocal(){ try { localStorage.setItem(LS("control"), JSON.stringify(st)); } catch(e){} }
+
 async function publishState(){
   saveLocal();
   const t0 = performance.now();
   try {
     await set(R_STATE, snapState());
-    $("syncMsg").innerHTML = '<span class="ok">Sincronizado ✓ ('+Math.round(performance.now()-t0)+' ms)</span>';
-  } catch(e){ $("syncMsg").innerHTML = '<span class="err">No se pudo sincronizar ('+(e.code||e.message)+')</span>'; }
+    $("syncMsg").innerHTML = '<span class="ok">Sincronizado &#10003; ('+Math.round(performance.now()-t0)+' ms)</span>';
+  } catch(e){
+    $("syncMsg").innerHTML = '<span class="err">Sin publicar: '+(e.code||e.message)+'</span>';
+  }
 }
-// Apariencia: se agrupa, porque los deslizadores disparan muchos cambios seguidos
+
 let themeTimer = null;
 function publishTheme(){
   saveLocal();
   clearTimeout(themeTimer);
   themeTimer = setTimeout(async () => {
-    try { await set(R_THEME, snapTheme()); $("syncMsg").innerHTML = '<span class="ok">Apariencia sincronizada ✓</span>'; }
-    catch(e){ $("syncMsg").innerHTML = '<span class="err">No se pudo sincronizar ('+(e.code||e.message)+')</span>'; }
+    try { await set(R_THEME, snapTheme()); } catch(e){}
   }, 400);
 }
-const publishTimer = publishTheme;   // compatibilidad con los controles de apariencia
 
-/* Al entrar, reescribe el nodo completo una sola vez: borra los datos con el
-   formato antiguo que quedaban sueltos y hacian pesar de mas cada actualizacion. */
 async function cleanAndPublish(){
-  try {
-    await set(T, { state: snapState(), theme: snapTheme() });
-    $("syncMsg").innerHTML = '<span class="ok">Sincronizado ✓</span>';
-  } catch(e){ $("syncMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
+  try { await set(T, { state: snapState(), theme: snapTheme() }); } catch(e){}
 }
+
+/* ---------- reloj ---------- */
 const now = () => Date.now() + offset;
 const currentSec = () => st.paused ? Math.round(st.remaining) : Math.round((st.endTime - now())/1000);
-function fmt(sec){ const n=sec<0,a=Math.abs(sec);
-  return (n?"-":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0"); }
+function fmt(sec){ const n=sec<0, a=Math.abs(sec);
+  return (n?"-":"") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0"); }
 
 function startPause(){
-  if (st.paused){
-    ensureAudio(); st.endTime = now() + st.remaining*1000; st.paused = false;
-    alarmFired = currentSec() < 0;
-  } else { st.remaining = currentSec(); st.paused = true; }
+  ensureAudio();
+  if (st.paused){ st.endTime = now() + st.remaining*1000; st.paused = false; alarmFired = false; }
+  else { st.remaining = currentSec(); st.endTime = null; st.paused = true; }
   publishState(); renderClock();
 }
-function reset(){ st.paused=true; st.remaining=st.presetMin*60; st.endTime=null; alarmFired=false;
-  publishState(); renderClock(); }
-function setPreset(m){ st.presetMin=m; reset(); renderPresets(); }
+function reset(){
+  st.paused = true; st.remaining = st.presetMin*60; st.endTime = null; alarmFired = false;
+  publishState(); renderClock();
+}
+function setPreset(m){ st.presetMin = m; reset(); renderPresets(); }
+
 $("toggleBtn").onclick = startPause;
 $("resetBtn").onclick = reset;
 $("addPreset").onclick = () => {
   const v = parseInt($("newPreset").value,10);
   if (!v || v<=0 || [32,53,...st.customPresets].includes(v)) return;
-  st.customPresets.push(v); $("newPreset").value=""; renderPresets(); publishState();
+  st.customPresets.push(v); $("newPreset").value=""; renderPresets(); saveLocal();
 };
+
 $("clock").onclick = () => {
   $("clock").style.display="none";
-  const e=$("clockEdit"); e.style.display="block"; e.value=fmt(currentSec()).replace("-",""); e.focus();
+  const e=$("clockEdit"); e.style.display="block";
+  e.value = fmt(currentSec()).replace("-",""); e.focus(); e.select();
 };
 function commitEdit(){
-  const e=$("clockEdit"), raw=e.value.trim(); let secs;
-  if (raw.includes(":")){ const [m,s]=raw.split(":"); secs=(parseInt(m)||0)*60+(parseInt(s)||0); }
-  else { const m=parseFloat(raw); secs=isNaN(m)?currentSec():Math.round(m*60); }
-  st.remaining=Math.max(0,secs); st.paused=true; st.endTime=null; alarmFired=false;
-  e.style.display="none"; $("clock").style.display="block";
-  publishState(); renderClock();
+  const raw = ($("clockEdit").value||"").trim();
+  let secs;
+  if (raw.includes(":")){ const [m,s]=raw.split(":"); secs=(parseInt(m,10)||0)*60+(parseInt(s,10)||0); }
+  else { const m=parseFloat(raw); secs = isNaN(m) ? currentSec() : Math.round(m*60); }
+  st.remaining = Math.max(0,secs); st.presetMin = Math.round(st.remaining/60) || st.presetMin;
+  st.paused = true; st.endTime = null; alarmFired = false;
+  $("clockEdit").style.display="none"; $("clock").style.display="block";
+  publishState(); renderPresets(); renderClock();
 }
-$("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); };
+$("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); if (e.key==="Escape"){ $("clockEdit").style.display="none"; $("clock").style.display="block"; } };
 $("clockEdit").onblur = commitEdit;
 
-let alarmEl = null;
+/* ---------- sonido ---------- */
 function ensureAudio(){
-  if (!audioCtx){ const C=window.AudioContext||window.webkitAudioContext; if (C) audioCtx=new C(); }
-  if (audioCtx?.state==="suspended") audioCtx.resume();
-  // El navegador solo permite reproducir tras un clic: dejamos el audio "desbloqueado"
-  if (alarmEl && !alarmEl.dataset.unlocked){
-    alarmEl.play().then(()=>{ alarmEl.pause(); alarmEl.currentTime=0; alarmEl.dataset.unlocked="1"; })
-      .catch(()=>{});
-  }
+  if (!audioCtx){ const C = window.AudioContext||window.webkitAudioContext; if (C) audioCtx = new C(); }
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
 }
-function loadAlarm(dataUrl){
-  if (!dataUrl){ alarmEl=null; return; }
-  alarmEl = new Audio(dataUrl);
-  alarmEl.preload = "auto";
-  alarmEl.load();
-}
+function loadAlarm(dataUrl){ alarmURL = dataUrl || ""; }
 function playAlarm(){
-  if (alarmEl){
-    alarmEl.currentTime = 0;
-    alarmEl.play().catch(() => { $("audioWarn").innerHTML =
-      '<span class="warnc">El navegador bloqueó el audio. Pulsa "Probar sonido" una vez.</span>';
-      tripleBeep(); });
-  } else tripleBeep();
+  if (alarmURL){ try { const a=new Audio(alarmURL); a.play().catch(()=>tripleBeep()); return; } catch(e){} }
+  tripleBeep();
 }
 function tripleBeep(){ ensureAudio(); beep(880,.35); setTimeout(()=>beep(880,.35),420); setTimeout(()=>beep(880,.5),840); }
 function beep(f,d){ try{
+  if(!audioCtx) return;
   const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-  o.frequency.value=f; g.gain.setValueAtTime(.0001,audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(.2,audioCtx.currentTime+.02);
+  o.frequency.value=f; o.type="sine";
+  g.gain.setValueAtTime(.0001,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.25,audioCtx.currentTime+.02);
   g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);
   o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d+.02);
 }catch(e){} }
-let lastBeepSec = null;
+
+let ultimoSeg = null;
 function renderClock(){
-  const sec=currentSec(), c=$("clock");
-  c.textContent=fmt(sec);
-  c.style.color = sec<0 ? st.negativeColor : st.timerColor;
+  const s = currentSec();
+  $("clock").textContent = fmt(s);
+  $("clock").style.fontSize = st.timerSize+"px";
+  $("clock").style.color = s<0 ? st.negativeColor : st.timerColor;
+  $("clockEdit").style.fontSize = st.timerSize+"px";
+  $("clock").classList.toggle("pulsing", !st.paused && s<=10 && s>=0);
   $("toggleBtn").textContent = st.paused ? "Iniciar" : "Pausar";
-  if (st.paused){ lastBeepSec=null; return; }
-  if (sec<=0 && !alarmFired){ alarmFired=true; playAlarm(); }
-  else if (sec<=10 && sec>0 && sec!==lastBeepSec){ lastBeepSec=sec; ensureAudio(); beep(660,.12); }
+  if (!st.paused){
+    if (s===0 && !alarmFired){ alarmFired = true; playAlarm(); }
+    else if (s>0 && s<=10 && s!==ultimoSeg){ ensureAudio(); beep(660,.12); }
+    ultimoSeg = s;
+  }
 }
 setInterval(renderClock, 250);
 
-function compressImage(file, maxW, quality, cb, forceJpeg){
-  const img = new Image();
-  img.onload = () => {
-    const scale = Math.min(1, maxW/img.width);
-    const cv = document.createElement("canvas");
-    cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
-    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
-    const keepAlpha = !forceJpeg && /png|gif|webp|svg/i.test(file.type || file.name);
-    cb(keepAlpha ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg", quality));
-    URL.revokeObjectURL(img.src);
+/* ---------- fondo / escala ---------- */
+function pintarFondo(){
+  const v = V(), c = $("canvas"), img = $("bgImg"), dim = SIZES[st.view];
+  c.style.width = dim.w+"px"; c.style.height = dim.h+"px";
+  c.style.background = v.bgType==="gradient"
+    ? `linear-gradient(${v.bgDir}, ${v.bgColor1}, ${v.bgColor2})` : v.bgColor1;
+  const usa = v.bgType==="image" && v.bgImage;
+  img.style.display = usa ? "block" : "none";
+  if (usa){ img.src = v.bgImage; img.style.filter = `brightness(${v.bgBrightness}%) opacity(${v.bgOpacity}%)`; }
+  $("logo").src = st.logo || PX;
+  $("logo").style.display = st.logo ? "block" : "none";
+  $("btnDesktop").classList.toggle("on", st.view==="desktop");
+  $("btnMobile").classList.toggle("on", st.view==="mobile");
+  escalar();
+}
+function escalar(){
+  const dim = SIZES[st.view];
+  const ancho = $("stageWrap").clientWidth || 900;
+  escala = Math.min(ancho/dim.w, 1);
+  $("scaler").style.transform = "scale("+escala+")";
+  $("stageWrap").style.height = (dim.h*escala)+"px";
+}
+window.addEventListener("resize", escalar);
+
+/* ---------- cajitas flotantes ---------- */
+const HANDLES = [
+  {dir:"n", cur:"ns-resize",   pos:"top:-4px;left:50%;transform:translateX(-50%);width:16px;height:8px;"},
+  {dir:"s", cur:"ns-resize",   pos:"bottom:-4px;left:50%;transform:translateX(-50%);width:16px;height:8px;"},
+  {dir:"e", cur:"ew-resize",   pos:"right:-4px;top:50%;transform:translateY(-50%);width:8px;height:16px;"},
+  {dir:"w", cur:"ew-resize",   pos:"left:-4px;top:50%;transform:translateY(-50%);width:8px;height:16px;"},
+  {dir:"ne",cur:"nesw-resize", pos:"top:-4px;right:-4px;width:12px;height:12px;"},
+  {dir:"nw",cur:"nwse-resize", pos:"top:-4px;left:-4px;width:12px;height:12px;"},
+  {dir:"se",cur:"nwse-resize", pos:"bottom:-4px;right:-4px;width:12px;height:12px;"},
+  {dir:"sw",cur:"nesw-resize", pos:"bottom:-4px;left:-4px;width:12px;height:12px;"}
+];
+const caja = id => V().boxes.find(b=>b.id===id);
+
+function renderImgs(){
+  document.querySelectorAll(".box").forEach(e=>e.remove());
+  V().boxes.forEach(b=>{
+    const d = document.createElement("div");
+    d.className = "box"; d.dataset.id = b.id;
+    d.style.cssText = `left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px`;
+
+    const bar = document.createElement("div");
+    bar.className = "boxbar"; bar.title = "Arrastrar para mover";
+    bar.addEventListener("mousedown", e=>arrastrar(b.id,e));
+
+    const body = document.createElement("div");
+    body.className = "boxbody";
+    if (!b.src) body.innerHTML = '<span class="boxempty">Clic para poner<br>imagen o GIF</span>';
+    else { const im=document.createElement("img"); im.src=b.src; im.style.transform=`scaleX(${b.flip?-1:1})`; body.appendChild(im); }
+    body.onclick = ()=>pedirImagen(b.id);
+
+    d.appendChild(bar); d.appendChild(body);
+    HANDLES.forEach(h=>{
+      const k=document.createElement("div"); k.className="handle";
+      k.style.cssText = h.pos+"cursor:"+h.cur+";";
+      k.addEventListener("mousedown", e=>redimensionar(b.id,h.dir,e));
+      d.appendChild(k);
+    });
+    d.addEventListener("contextmenu", e=>{ e.preventDefault(); e.stopPropagation(); menuCaja(b.id,e); });
+    $("canvas").appendChild(d);
+  });
+}
+
+function agregarCaja(x,y){
+  const v = V(), dim = SIZES[st.view], id = v.nextId++;
+  v.boxes.push({ id,
+    x: Math.max(0, Math.min(x!=null?x:dim.w/2-75, dim.w-150)),
+    y: Math.max(0, Math.min(y!=null?y:dim.h/2-100, dim.h-200)),
+    w:150, h:200, src:"", flip:false });
+  renderImgs(); publishTheme();
+  return id;
+}
+function arrastrar(id,e){
+  e.preventDefault();
+  const b=caja(id), x0=e.clientX, y0=e.clientY, ox=b.x, oy=b.y, dim=SIZES[st.view];
+  const mover = ev => {
+    b.x = Math.max(0, Math.min(ox+(ev.clientX-x0)/escala, dim.w-20));
+    b.y = Math.max(0, Math.min(oy+(ev.clientY-y0)/escala, dim.h-20));
+    const el = document.querySelector('.box[data-id="'+id+'"]');
+    if (el){ el.style.left=b.x+"px"; el.style.top=b.y+"px"; }
   };
-  img.onerror = () => alert("No pude leer esa imagen. Prueba con otro archivo PNG o JPG.");
-  img.src = URL.createObjectURL(file);
+  const soltar = ()=>{ window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
+  window.addEventListener("mousemove",mover); window.addEventListener("mouseup",soltar);
 }
-const bind = (id, field, ev="input") => { $(id).value = st[field] ?? $(id).value;
-  $(id).addEventListener(ev, e => { st[field]=e.target.value; publishTimer(); }); };
-bind("name1","name1"); bind("name2","name2");
-bind("bgColor1","bgColor1"); bind("bgColor2","bgColor2"); bind("bgDir","bgDir","change");
-bind("bgBrightness","bgBrightness"); bind("bgOpacity","bgOpacity");
-$("timerColor").value=st.timerColor; $("negativeColor").value=st.negativeColor;
-$("timerColor").addEventListener("input", e=>{st.timerColor=e.target.value;publishState();});
-$("negativeColor").addEventListener("input", e=>{st.negativeColor=e.target.value;publishState();});
-$("bgType").value = st.bgType;
-$("bgType").onchange = e => { st.bgType=e.target.value;
-  $("bgImgLabel").style.display = st.bgType==="image"?"block":"none"; publishTimer(); };
-$("bgImgLabel").style.display = st.bgType==="image"?"block":"none";
-$("logoFile").onchange = e => {
-  const f=e.target.files[0]; if(!f) return;
-  compressImage(f,600,.9,d=>{ st.logo=d; renderLogo(f.name, d); publishTimer(); });
+function redimensionar(id,dir,e){
+  e.preventDefault(); e.stopPropagation();
+  const b=caja(id), o={x:b.x,y:b.y,w:b.w,h:b.h}, x0=e.clientX, y0=e.clientY;
+  const mover = ev => {
+    const dx=(ev.clientX-x0)/escala, dy=(ev.clientY-y0)/escala;
+    let {x,y,w,h}=o;
+    if (dir.includes("e")) w=Math.max(50,o.w+dx);
+    if (dir.includes("s")) h=Math.max(50,o.h+dy);
+    if (dir.includes("w")){ w=Math.max(50,o.w-dx); x=o.x+(o.w-w); }
+    if (dir.includes("n")){ h=Math.max(50,o.h-dy); y=o.y+(o.h-h); }
+    Object.assign(b,{x,y,w,h});
+    const el=document.querySelector('.box[data-id="'+id+'"]');
+    if (el) el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+  };
+  const soltar = ()=>{ window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
+  window.addEventListener("mousemove",mover); window.addEventListener("mouseup",soltar);
+}
+
+let cajaObjetivo = null;
+function pedirImagen(id){ cajaObjetivo=id; $("fBox").value=""; $("fBox").click(); }
+$("fBox").onchange = e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f || cajaObjetivo==null) return;
+  compressImage(f, 700, .85, d => { const b=caja(cajaObjetivo); if(b){ b.src=d; renderImgs(); publishTheme(); } });
 };
-$("clearLogo").onclick = () => { st.logo=""; renderLogo(); publishTimer(); };
-function renderLogo(fname, data){
-  const has = !!st.logo;
-  $("logoPrev").style.display = has ? "block" : "none";
-  $("clearLogo").style.display = has ? "inline-block" : "none";
-  if (has){
-    $("logoImg").src = st.logo;
-    const kb = Math.round((st.logo.length*0.75)/1024);
-    $("logoInfo").textContent = (fname? fname+" · " : "") + kb + " KB" +
-      (kb>700 ? " — pesado, puede tardar en llegar a los celulares" : "");
-  } else $("logoInfo").textContent = "";
+
+/* ---------- menú de clic derecho ---------- */
+function abrirMenu(x,y,items){
+  const m=$("menu"); m.innerHTML="";
+  items.forEach(it=>{
+    if (it==="-"){ m.appendChild(document.createElement("hr")); return; }
+    const b=document.createElement("button");
+    b.textContent=it.label; if(it.danger) b.className="danger";
+    b.onclick=()=>{ cerrarMenu(); it.fn(); };
+    m.appendChild(b);
+  });
+  m.style.display="block";
+  const r=m.getBoundingClientRect();
+  m.style.left=Math.min(x, innerWidth-r.width-8)+"px";
+  m.style.top =Math.min(y, innerHeight-r.height-8)+"px";
 }
-$("bgImageFile").onchange = e => { const f=e.target.files[0]; if(f) compressImage(f,1600,.7,d=>{st.bgImage=d;publishTimer();},true); };
-$("alarmFile").onchange = e => {
+function cerrarMenu(){ $("menu").style.display="none"; }
+window.addEventListener("click", cerrarMenu);
+
+function menuCaja(id,e){
+  const b=caja(id);
+  abrirMenu(e.clientX,e.clientY,[
+    {label: b.src?"Cambiar imagen o GIF":"Poner imagen o GIF", fn:()=>pedirImagen(id)},
+    {label:"Voltear (espejo)", fn:()=>{ b.flip=!b.flip; renderImgs(); publishTheme(); }},
+    "-",
+    {label:"Eliminar esta cajita", danger:true, fn:()=>{ V().boxes=V().boxes.filter(x=>x.id!==id); renderImgs(); publishTheme(); }}
+  ]);
+}
+$("canvas").addEventListener("contextmenu", e=>{
+  if (e.target.closest(".box")) return;
+  if ($("settings").classList.contains("open")) return;
+  e.preventDefault();
+  const r=$("canvas").getBoundingClientRect();
+  const x=(e.clientX-r.left)/escala, y=(e.clientY-r.top)/escala;
+  abrirMenu(e.clientX,e.clientY,[
+    {label:"Agregar cajita aqu\u00ed", fn:()=>{ const id=agregarCaja(x-75,y-100); pedirImagen(id); }},
+    {label:"Agregar cajita vac\u00eda", fn:()=>agregarCaja(x-75,y-100)}
+  ]);
+});
+
+/* ---------- vistas ---------- */
+function cambiarVista(v){ st.view=v; pintarFondo(); renderImgs(); refrescarAjustes(); saveLocal(); }
+$("btnDesktop").onclick = ()=>cambiarVista("desktop");
+$("btnMobile").onclick  = ()=>cambiarVista("mobile");
+$("btnFull").onclick = () => {
+  const el=$("canvas");
+  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+};
+
+/* ---------- ajustes ---------- */
+$("btnSettings").onclick = ()=>{ refrescarAjustes(); $("settings").classList.add("open"); };
+$("btnCloseSettings").onclick = ()=>$("settings").classList.remove("open");
+
+function refrescarAjustes(){
+  const v = V();
+  $("bgWhich").textContent = st.view==="desktop" ? "vista computador" : "vista celular";
+  $("bgHint").textContent = "El brillo y la opacidad se aplican a la vista que est\u00e1s mirando ahora ("
+    + (st.view==="desktop"?"computador":"celular") + ").";
+  $("stDesktop").textContent = st.desktop.bgImage ? "Imagen cargada \u2713" : "Sin imagen cargada";
+  $("stMobile").textContent  = st.mobile.bgImage  ? "Imagen cargada \u2713" : "Sin imagen cargada";
+  $("stLogo").textContent    = st.logo ? "Logo cargado \u2713" : "Sin logo";
+  $("bgTColor").classList.toggle("on", v.bgType==="color");
+  $("bgTGrad").classList.toggle("on", v.bgType==="gradient");
+  $("bgTImg").classList.toggle("on", v.bgType==="image");
+  $("bgColorWrap").style.display = v.bgType==="color"?"block":"none";
+  $("bgGradWrap").style.display  = v.bgType==="gradient"?"block":"none";
+  $("bgImgWrap").style.display   = v.bgType==="image"?"block":"none";
+  $("bgC1").value=v.bgColor1; $("bgG1").value=v.bgColor1; $("bgG2").value=v.bgColor2;
+  $("bgDir").value=v.bgDir; $("bgBri").value=v.bgBrightness; $("bgOpa").value=v.bgOpacity;
+  $("cTimer").value=st.timerColor; $("cNeg").value=st.negativeColor;
+  $("cSize").value=st.timerSize; $("szVal").textContent=st.timerSize;
+  $("alarmName").textContent = st.alarmName || "Sin archivo: usa un tono triple.";
+}
+
+function setBgType(t){ V().bgType=t; pintarFondo(); refrescarAjustes(); publishTheme(); }
+$("bgTColor").onclick=()=>setBgType("color");
+$("bgTGrad").onclick =()=>setBgType("gradient");
+$("bgTImg").onclick  =()=>setBgType("image");
+$("bgC1").oninput = e=>{ V().bgColor1=e.target.value; pintarFondo(); publishTheme(); };
+$("bgG1").oninput = e=>{ V().bgColor1=e.target.value; pintarFondo(); publishTheme(); };
+$("bgG2").oninput = e=>{ V().bgColor2=e.target.value; pintarFondo(); publishTheme(); };
+$("bgDir").onchange = e=>{ V().bgDir=e.target.value; pintarFondo(); publishTheme(); };
+$("bgBri").oninput = e=>{ V().bgBrightness=+e.target.value; pintarFondo(); publishTheme(); };
+$("bgOpa").oninput = e=>{ V().bgOpacity=+e.target.value; pintarFondo(); publishTheme(); };
+$("cTimer").oninput = e=>{ st.timerColor=e.target.value; renderClock(); publishState(); };
+$("cNeg").oninput   = e=>{ st.negativeColor=e.target.value; renderClock(); publishState(); };
+$("cSize").oninput  = e=>{ st.timerSize=+e.target.value; $("szVal").textContent=st.timerSize; renderClock(); publishState(); };
+
+function compressImage(file, maxW, quality, cb, forceJpeg){
+  const r = new FileReader();
+  r.onload = ev => {
+    const im = new Image();
+    im.onload = () => {
+      let w=im.width, h=im.height;
+      const k=Math.min(1, maxW/Math.max(w,h));
+      w=Math.round(w*k); h=Math.round(h*k);
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+      cv.getContext("2d").drawImage(im,0,0,w,h);
+      const transp = !forceJpeg && /png|gif|webp/i.test(file.type);
+      cb(transp ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg", quality));
+    };
+    im.onerror = ()=>cb(ev.target.result);
+    im.src = ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+$("fLogo").onchange = e => { const f=e.target.files[0];
+  if (f) compressImage(f,600,.9,d=>{ st.logo=d; pintarFondo(); refrescarAjustes(); publishTheme(); }); };
+$("btnDelLogo").onclick = ()=>{ st.logo=""; pintarFondo(); refrescarAjustes(); publishTheme(); };
+
+function subirFondo(vista, f){
+  compressImage(f, 1600, .75, d => {
+    st[vista].bgImage = d; st[vista].bgType = "image";
+    pintarFondo(); refrescarAjustes(); publishTheme();
+  }, true);
+}
+$("fBgDesktop").onchange = e=>{ const f=e.target.files[0]; if(f) subirFondo("desktop",f); };
+$("fBgMobile").onchange  = e=>{ const f=e.target.files[0]; if(f) subirFondo("mobile",f); };
+$("btnDelBgD").onclick = ()=>{ st.desktop.bgImage=""; pintarFondo(); refrescarAjustes(); publishTheme(); };
+$("btnDelBgM").onclick = ()=>{ st.mobile.bgImage="";  pintarFondo(); refrescarAjustes(); publishTheme(); };
+
+$("fAlarm").onchange = e => {
   const f=e.target.files[0]; if(!f) return;
-  if (f.size > 4*1024*1024){
-    $("audioWarn").innerHTML = '<span class="err">La pista pesa más de 4 MB. Usa un archivo más corto.</span>';
-    return;
-  }
   const r=new FileReader();
   r.onload = ev => {
-    st.alarmData = ev.target.result; st.alarmName = f.name;
-    try { localStorage.setItem("timer-alarm", JSON.stringify({d:st.alarmData,n:st.alarmName})); } catch(err){
-      $("audioWarn").innerHTML='<span class="warnc">La pista es muy grande para guardarla; se usará solo en esta sesión.</span>'; }
-    loadAlarm(st.alarmData); renderAlarm();
+    st.alarmData=ev.target.result; st.alarmName=f.name; loadAlarm(st.alarmData);
+    try { localStorage.setItem(LS("alarm"), JSON.stringify({d:st.alarmData,n:st.alarmName})); } catch(err){}
+    refrescarAjustes();
   };
   r.readAsDataURL(f);
 };
-$("testSound").onclick = () => { ensureAudio(); $("audioWarn").textContent=""; playAlarm(); };
-$("clearSound").onclick = () => {
-  st.alarmData=""; st.alarmName=""; alarmEl=null;
-  try { localStorage.removeItem("timer-alarm"); } catch(e){}
-  renderAlarm();
-};
-function renderAlarm(){
-  $("alarmName").textContent = st.alarmName ? "Pista: "+st.alarmName : "Sin pista: se usa un tono triple";
+$("testSound").onclick = ()=>{ ensureAudio(); playAlarm(); };
+$("clearSound").onclick = ()=>{ st.alarmData=""; st.alarmName=""; alarmURL="";
+  try { localStorage.removeItem(LS("alarm")); } catch(e){} refrescarAjustes(); };
+
+function renderPresets(){
+  const c=$("presets"); c.innerHTML="";
+  [32,53,...st.customPresets].forEach(m=>{
+    const w=document.createElement("div");
+    w.style.cssText="display:inline-flex;align-items:center;gap:3px";
+    const b=document.createElement("button");
+    b.className="preset"+(st.presetMin===m?" sel":"");
+    b.textContent=m+" min"; b.onclick=()=>setPreset(m);
+    w.appendChild(b);
+    if (m!==32 && m!==53){
+      const x=document.createElement("button");
+      x.className="presetX"; x.textContent="\u00d7";
+      x.onclick=()=>{ st.customPresets=st.customPresets.filter(p=>p!==m); renderPresets(); saveLocal(); };
+      w.appendChild(x);
+    }
+    c.appendChild(w);
+  });
 }
 
-$("addImg").onclick = () => { st.imgBoxes.push({id:st.nextId++,x:480,y:230,w:150,h:200,src:"",flip:false});
-  renderImgs(); publishTimer(); };
-function renderImgs(){
-  const list=$("imgList"); list.innerHTML="";
-  st.imgBoxes.forEach(b => {
-    const row=document.createElement("div"); row.className="imgrow";
-    row.innerHTML=`<img src="${b.src||'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='}">
-      <input type="file" accept="image/*" style="max-width:190px">
-      X <input type="number" value="${b.x}" style="width:64px"> Y <input type="number" value="${b.y}" style="width:64px">
-      An <input type="number" value="${b.w}" style="width:64px"> Al <input type="number" value="${b.h}" style="width:64px">
-      <button class="small sec">⇋</button><button class="small sec">✕</button>`;
-    const [file,x,y,w,h]=row.querySelectorAll("input");
-    const [flip,del]=row.querySelectorAll("button");
-    file.onchange=e=>{const f=e.target.files[0]; if(f) compressImage(f,500,.85,d=>{b.src=d;renderImgs();publishTimer();});};
-    x.oninput=e=>{b.x=+e.target.value;publishTimer()}; y.oninput=e=>{b.y=+e.target.value;publishTimer()};
-    w.oninput=e=>{b.w=+e.target.value;publishTimer()}; h.oninput=e=>{b.h=+e.target.value;publishTimer()};
-    flip.onclick=()=>{b.flip=!b.flip;publishTimer()};
-    del.onclick=()=>{st.imgBoxes=st.imgBoxes.filter(o=>o.id!==b.id);renderImgs();publishTimer()};
-    list.appendChild(row);
-  });
-}
-function renderPresets(){
-  const box=$("presets"); box.innerHTML="";
-  [32,53,...st.customPresets].forEach(m => {
-    const btn=document.createElement("button");
-    btn.className="small preset"+(st.presetMin===m?" active":"");
-    btn.textContent=m+" min"; btn.onclick=()=>setPreset(m); box.appendChild(btn);
-    if (![32,53].includes(m)){
-      const x=document.createElement("button"); x.className="small sec"; x.textContent="×";
-      x.onclick=()=>{st.customPresets=st.customPresets.filter(p=>p!==m);renderPresets();publishTimer();};
-      box.appendChild(x);
-    }
-  });
-}
 function renderAll(){
-  const url = location.origin + location.pathname.replace(/admin\.html?$/,"") + "timer-view.html";
+  const url = location.origin + location.pathname.replace(/admin\.html?$/,"") + "timer-view.html"
+              + (SALA==="principal" ? "" : "?sala="+SALA);
   $("shareUrl").value = url;
   $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
   $("copyBtn").onclick = () => navigator.clipboard?.writeText(url);
-  try { const a=JSON.parse(localStorage.getItem("timer-alarm")||"null");
+  try { const a=JSON.parse(localStorage.getItem(LS("alarm"))||"null");
     if (a?.d){ st.alarmData=a.d; st.alarmName=a.n; loadAlarm(a.d); } } catch(e){}
-  renderPresets(); renderImgs(); renderClock(); renderAlarm(); renderLogo();
+  pintarFondo(); renderImgs(); renderPresets(); renderClock(); refrescarAjustes();
   document.addEventListener("click", ensureAudio, { once:false });
 }
 
@@ -604,7 +965,7 @@ async function publishPairings(){
   $("pubMsg").textContent = "Publicando…";
   drop.classList.add("busy");
   try {
-    await set(ref(db,"pairings"), parsed);
+    await set(ref(db, BASE + "/pairings"), parsed);
     const hora = new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
     $("pubMsg").innerHTML = '<span class="ok">Publicado ✓ ronda '+parsed.lastRound+' — '+hora+'</span>';
   } catch(e){ $("pubMsg").innerHTML = '<span class="err">Error: '+(e.code||e.message)+'</span>'; }

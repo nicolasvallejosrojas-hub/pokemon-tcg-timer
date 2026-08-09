@@ -95,6 +95,11 @@ const app = initializeApp(FIREBASE_CONFIG);
 const db  = getDatabase(app);
 const $ = id => document.getElementById(id);
 
+const slug = v => (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+                   .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,24);
+const SALA = slug(new URLSearchParams(location.search).get("sala")) || "principal";
+const BASE = "salas/" + SALA;
+
 let tab = "timer";
 function show(t){
   tab = t;
@@ -113,44 +118,57 @@ let S = null, TH = null, offset = 0;
 onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
 
 // El reloj llega por su propio canal (paquete diminuto = respuesta inmediata)
-onValue(ref(db, "timer/state"), snap => {
+onValue(ref(db, BASE + "/timer/state"), snap => {
   S = snap.val();
   $("tstatus").textContent = S ? "" : "Esperando al organizador…";
 }, () => $("tstatus").textContent = "Sin conexión — reintentando…");
 
 // La apariencia llega aparte y solo cuando el organizador la cambia
-onValue(ref(db, "timer/theme"), snap => { TH = snap.val(); applyTheme(); });
+onValue(ref(db, BASE + "/timer/theme"), snap => { TH = snap.val(); applyTheme(); });
 
+
+function vistaActual(){
+  return (window.innerHeight >= window.innerWidth) ? "mobile" : "desktop";
+}
 
 function applyTheme(){
-  const S = TH; // la apariencia vive en su propio nodo
-  if (!S) return;
-  if (S.bgType === "image" && S.bgImage){
-    $("bg").src = S.bgImage; $("bg").style.display = "block";
-    $("bg").style.filter = `opacity(${S.bgOpacity??100}%) brightness(${S.bgBrightness??100}%)`;
+  if (!TH) return;
+  const modo = vistaActual();
+  const V = TH[modo] || TH.desktop || TH;      // compatible con el formato anterior
+  const DIM = modo === "mobile" ? {w:620,h:1100} : {w:1180,h:660};
+
+  if (V.bgType === "image" && V.bgImage){
+    $("bg").src = V.bgImage; $("bg").style.display = "block";
+    $("bg").style.filter = `opacity(${V.bgOpacity??100}%) brightness(${V.bgBrightness??100}%)`;
     document.body.style.background = "#0e0f18";
   } else {
     $("bg").style.display = "none";
-    document.body.style.background = S.bgType === "gradient"
-      ? `linear-gradient(${S.bgDir||"to right"}, ${S.bgColor1||"#161826"}, ${S.bgColor2||"#2b2741"})`
-      : (S.bgColor1 || "#161826");
+    document.body.style.background = V.bgType === "gradient"
+      ? `linear-gradient(${V.bgDir||"to right"}, ${V.bgColor1||"#161826"}, ${V.bgColor2||"#2b2741"})`
+      : (V.bgColor1 || "#161826");
   }
-  if (S.logo){ $("logo").src = S.logo; $("logo").style.display = "block"; } else $("logo").style.display="none";
-  const hasNames = (S.name1||S.name2) && (S.name1!=="Jugador 1" || S.name2!=="Jugador 2");
-  $("names").style.display = hasNames ? "flex" : "none";
-  $("n1").textContent = S.name1||""; $("n2").textContent = S.name2||"";
+
+  if (TH.logo){ $("logo").src = TH.logo; $("logo").style.display = "block"; }
+  else $("logo").style.display = "none";
+  $("names").style.display = "none";
+
   document.querySelectorAll(".imgbox").forEach(e => e.remove());
-  (S.imgBoxes||[]).forEach(box => {
+  (V.boxes || V.imgBoxes || []).forEach(box => {
     if (!box.src) return;
-    const d = document.createElement("div"); d.className="imgbox";
-    d.style.left=(box.x/1180*100)+"vw"; d.style.top=(box.y/660*100)+"vh";
-    d.style.width=(box.w/1180*100)+"vw"; d.style.height=(box.h/660*100)+"vh";
-    d.style.display = tab==="timer" ? "block" : "none";
-    const im=document.createElement("img"); im.src=box.src;
-    if (box.flip) im.style.transform="scaleX(-1)";
+    const d = document.createElement("div"); d.className = "imgbox";
+    d.style.left   = (box.x / DIM.w * 100) + "vw";
+    d.style.top    = (box.y / DIM.h * 100) + "vh";
+    d.style.width  = (box.w / DIM.w * 100) + "vw";
+    d.style.height = (box.h / DIM.h * 100) + "vh";
+    d.style.display = tab === "timer" ? "block" : "none";
+    const im = document.createElement("img"); im.src = box.src;
+    if (box.flip) im.style.transform = "scaleX(-1)";
     d.appendChild(im); document.body.appendChild(d);
   });
 }
+window.addEventListener("resize", () => { if (TH) applyTheme(); });
+window.addEventListener("orientationchange", () => setTimeout(() => { if (TH) applyTheme(); }, 300));
+
 function fmt(sec){ const n=sec<0,a=Math.abs(sec);
   return (n?"-":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0"); }
 
@@ -162,13 +180,14 @@ function tick(){
     c.textContent = fmt(sec);
     c.style.color = sec<0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
     c.classList.toggle("warn", !S.paused && sec<=10 && sec>=0);
+    if (S.timerSize) c.style.fontSize = "min(" + S.timerSize + "px, 26vw)";
   }
   requestAnimationFrame(tick);
 }
 tick();
 
 let P = null, sel = null, showStand = false, seenStamp = 0, first = true;
-onValue(ref(db,"pairings"), snap => {
+onValue(ref(db, BASE + "/pairings"), snap => {
   P = snap.val();
   if (!P){ $("pstatus").textContent = "Aún no hay emparejamientos publicados."; return; }
   $("pstatus").textContent = "";
