@@ -301,6 +301,12 @@
     <button id="publishBtn" disabled>Publicar a los jugadores</button>
     <span id="pubMsg" class="muted"></span>
   </div>
+  <div class="row" style="margin-top:10px;align-items:center">
+    <button id="clearBtn" class="sec">Borrar emparejamientos</button>
+    <span id="clearMsg" class="muted"></span>
+  </div>
+  <div class="muted" style="margin-top:4px">Deja la pesta&ntilde;a de los jugadores en blanco y borra los nombres de Firebase.
+    &Uacute;salo al terminar un torneo o para limpiar una prueba. No afecta a los torneos ya archivados.</div>
 </div>
 
 <div class="card">
@@ -1103,6 +1109,21 @@ async function publishPairings(){
   drop.classList.remove("busy");
 }
 $("publishBtn").onclick = publishPairings;
+
+/* Borra lo publicado y deja la vista de los jugadores limpia.
+   Pide confirmacion porque no se puede deshacer. */
+$("clearBtn").onclick = async () => {
+  if (!confirm("\u00bfBorrar los emparejamientos publicados?\n\n" +
+               "La pesta\u00f1a de los jugadores queda en blanco y los nombres se " +
+               "eliminan de Firebase.\n\nLos torneos archivados NO se tocan."))
+    return;
+  $("clearMsg").textContent = "Borrando\u2026";
+  try {
+    await conTimeout(remove(ref(db, BASE + "/pairings")), 15000);
+    const hora = new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+    $("clearMsg").innerHTML = '<span class="ok">Borrado &#10003; ' + hora + '</span>';
+  } catch(e){ $("clearMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
+};
 
 /* ================= HISTORIAL Y PUNTOS POR PUESTO ================= */
 const R_HIST = ref(db, BASE + "/historial");

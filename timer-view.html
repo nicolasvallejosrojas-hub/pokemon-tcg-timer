@@ -289,7 +289,20 @@ if (TH) applyTheme();
 let P = null, sel = null, showStand = false, seenStamp = 0, first = true;
 onValue(ref(db, BASE + "/pairings"), snap => {
   P = snap.val();
-  if (!P){ $("pstatus").textContent = "Aún no hay emparejamientos publicados."; return; }
+  if (!P){
+    // El organizador borró lo publicado: hay que limpiar lo que quedó en pantalla,
+    // si no los nombres siguen visibles aunque ya no existan en Firebase.
+    $("tname").textContent = "Emparejamientos";
+    $("tsub").textContent  = "";
+    $("banner").style.display = "none";
+    $("rounds").innerHTML = "";
+    $("list").innerHTML   = "";
+    $("q").value = "";
+    sel = null; showStand = false; first = true;
+    $("dot").style.visibility = "hidden";
+    $("pstatus").textContent = "A\u00fan no hay emparejamientos publicados.";
+    return;
+  }
   $("pstatus").textContent = "";
   const lastNum = P.rounds[P.rounds.length-1].number;
   if (sel === null || sel < lastNum) sel = lastNum;
