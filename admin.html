@@ -974,6 +974,19 @@ function parseTdf(xmlText){
       solo: m.querySelector("player")?.getAttribute("userid") || null,
       table: parseInt(m.querySelector("tablenumber")?.textContent||"0",10)
     }));
+    // Primero se cuentan los resultados de esta ronda y despues se arma la
+    // tabla. Asi el record que ve el jugador YA incluye lo que acaba de pasar.
+    // Si la ronda todavia no tiene resultados, no suma nada y el record
+    // mostrado sigue siendo el previo, que es lo correcto en ese momento.
+    raw.forEach(m => {
+      const A=rec[m.p1], B=rec[m.p2], S=rec[m.solo];
+      if (BYE.includes(m.out) && S) S.w++;
+      else if (P1WIN.includes(m.out) && A && B){ A.w++; B.l++; }
+      else if (P2WIN.includes(m.out) && A && B){ B.w++; A.l++; }
+      else if (TIE.includes(m.out) && A && B){ A.t++; B.t++; }
+      else if (DBLLOSS.includes(m.out) && A && B){ A.l++; B.l++; }
+    });
+
     const matches = raw.map(m => {
       const n1 = names[m.p1 || m.solo] || "?";
       const n2 = m.p2 ? (names[m.p2] || "?") : null;
@@ -987,14 +1000,6 @@ function parseTdf(xmlText){
                p2:n2, p2rec: m.p2 ? snapRec(m.p2) : null, result };
     }).sort((a,b)=>a.table-b.table);
 
-    raw.forEach(m => {
-      const A=rec[m.p1], B=rec[m.p2], S=rec[m.solo];
-      if (BYE.includes(m.out) && S) S.w++;
-      else if (P1WIN.includes(m.out) && A && B){ A.w++; B.l++; }
-      else if (P2WIN.includes(m.out) && A && B){ B.w++; A.l++; }
-      else if (TIE.includes(m.out) && A && B){ A.t++; B.t++; }
-      else if (DBLLOSS.includes(m.out) && A && B){ A.l++; B.l++; }
-    });
     rounds.push({ number: parseInt(r.getAttribute("number"),10), matches });
   });
   rounds.sort((a,b) => a.number - b.number);
