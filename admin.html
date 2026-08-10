@@ -186,6 +186,7 @@
               <span class="hint" id="stLogo" style="flex:1;margin:0"></span>
               <button class="tbtn" id="btnDelLogo">Quitar</button>
             </div>
+            <div class="hint" id="stPeso" style="margin:0 0 4px"></div>
 
             <div>
               <div style="font-size:12px; margin-bottom:4px">Fondo — <span id="bgWhich"></span></div>
@@ -485,12 +486,15 @@ function publishTheme(){
   saveLocal();
   clearTimeout(themeTimer);
   themeTimer = setTimeout(async () => {
-    try { await set(R_THEME, snapTheme()); } catch(e){}
+    try {
+      await set(R_THEME, snapTheme());
+      await set(ref(db, BASE + "/timer/themeVersion"), Date.now());
+    } catch(e){}
   }, 400);
 }
 
 async function cleanAndPublish(){
-  try { await set(T, { state: snapState(), theme: snapTheme() }); } catch(e){}
+  try { await set(T, { state: snapState(), theme: snapTheme(), themeVersion: Date.now() }); } catch(e){}
 }
 
 /* ---------- reloj ---------- */
@@ -746,9 +750,13 @@ function refrescarAjustes(){
   $("bgWhich").textContent = st.view==="desktop" ? "vista computador" : "vista celular";
   $("bgHint").textContent = "El brillo y la opacidad se aplican a la vista que est\u00e1s mirando ahora ("
     + (st.view==="desktop"?"computador":"celular") + ").";
-  $("stDesktop").textContent = st.desktop.bgImage ? "Imagen cargada \u2713" : "Sin imagen cargada";
-  $("stMobile").textContent  = st.mobile.bgImage  ? "Imagen cargada \u2713" : "Sin imagen cargada";
-  $("stLogo").textContent    = st.logo ? "Logo cargado \u2713" : "Sin logo";
+  const kb = s => s ? " \u2014 " + Math.round(s.length*0.75/1024) + " KB" : "";
+  $("stDesktop").textContent = st.desktop.bgImage ? "Imagen cargada \u2713" + kb(st.desktop.bgImage) : "Sin imagen cargada";
+  $("stMobile").textContent  = st.mobile.bgImage  ? "Imagen cargada \u2713" + kb(st.mobile.bgImage)  : "Sin imagen cargada";
+  $("stLogo").textContent    = st.logo ? "Logo cargado \u2713" + kb(st.logo) : "Sin logo";
+  const totalKB = Math.round(JSON.stringify(snapTheme()).length*0.75/1024);
+  $("stPeso").textContent = "Peso total que descarga cada jugador: " + totalKB + " KB"
+    + (totalKB > 600 ? "  \u26a0 conviene bajarlo" : "");
   $("bgTColor").classList.toggle("on", v.bgType==="color");
   $("bgTGrad").classList.toggle("on", v.bgType==="gradient");
   $("bgTImg").classList.toggle("on", v.bgType==="image");
@@ -785,8 +793,16 @@ function compressImage(file, maxW, quality, cb, forceJpeg){
       const k=Math.min(1, maxW/Math.max(w,h));
       w=Math.round(w*k); h=Math.round(h*k);
       const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
-      cv.getContext("2d").drawImage(im,0,0,w,h);
-      const transp = !forceJpeg && /png|gif|webp/i.test(file.type);
+      const cx=cv.getContext("2d"); cx.drawImage(im,0,0,w,h);
+      if (forceJpeg) return cb(cv.toDataURL("image/jpeg", quality));
+      // Los GIF se dejan intactos para que sigan animandose
+      if (/gif/i.test(file.type)) return cb(ev.target.result);
+      // PNG solo si de verdad tiene zonas transparentes; si no, JPEG (mucho mas liviano)
+      let transp = false;
+      try {
+        const px = cx.getImageData(0,0,w,h).data;
+        for (let i=3; i<px.length; i+=4){ if (px[i] < 250){ transp = true; break; } }
+      } catch(e){ transp = /png|webp/i.test(file.type); }
       cb(transp ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg", quality));
     };
     im.onerror = ()=>cb(ev.target.result);
@@ -800,7 +816,7 @@ $("fLogo").onchange = e => { const f=e.target.files[0];
 $("btnDelLogo").onclick = ()=>{ st.logo=""; pintarFondo(); refrescarAjustes(); publishTheme(); };
 
 function subirFondo(vista, f){
-  compressImage(f, 1600, .75, d => {
+  compressImage(f, 1280, .70, d => {
     st[vista].bgImage = d; st[vista].bgType = "image";
     pintarFondo(); refrescarAjustes(); publishTheme();
   }, true);

@@ -104,7 +104,7 @@
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const app = initializeApp(FIREBASE_CONFIG);
 const db  = getDatabase(app);
@@ -127,6 +127,7 @@ function show(t){
   document.querySelectorAll(".imgbox").forEach(e => e.style.display = t==="timer" ? "block" : "none");
   $("bg").style.opacity = t==="timer" ? "1" : "0";
   if (t==="pair"){ $("dot").style.visibility="hidden"; seenStamp = P?.updatedAt || 0; }
+  if (t==="clas") suscribirHistorial();
 }
 $("tabT").onclick = () => show("timer");
 $("tabP").onclick = () => show("pair");
@@ -141,8 +142,51 @@ onValue(ref(db, BASE + "/timer/state"), snap => {
   $("tstatus").textContent = S ? "" : "Esperando al organizador…";
 }, () => $("tstatus").textContent = "Sin conexión — reintentando…");
 
-// La apariencia llega aparte y solo cuando el organizador la cambia
-onValue(ref(db, BASE + "/timer/theme"), snap => { TH = snap.val(); applyTheme(); });
+/* La apariencia se guarda en el propio celular. Solo se vuelve a descargar
+   cuando el organizador la cambia de verdad (marca de version distinta). */
+const CK = "tv-theme-" + SALA;
+let themeVer = null, modoAntiguo = false;
+
+function temaDesdeCache(v){
+  try {
+    const c = JSON.parse(localStorage.getItem(CK) || "null");
+    if (c && c.v === v && c.t){ TH = c.t; applyTheme(); return true; }
+  } catch(e){}
+  return false;
+}
+async function bajarTema(v){
+  try {
+    const s = await get(ref(db, BASE + "/timer/theme"));
+    TH = s.val(); applyTheme();
+    try { localStorage.setItem(CK, JSON.stringify({ v, t: TH })); } catch(e){}
+  } catch(e){}
+}
+onValue(ref(db, BASE + "/timer/themeVersion"), s => {
+  const v = s.val();
+  if (v == null){                       // panel todavia sin actualizar
+    if (!modoAntiguo){
+      modoAntiguo = true;
+      onValue(ref(db, BASE + "/timer/theme"), sn => { TH = sn.val(); applyTheme(); });
+    }
+    return;
+  }
+  if (v === themeVer) return;
+  themeVer = v;
+  if (!temaDesdeCache(v)) bajarTema(v);
+});
+
+/* Soltar la conexion cuando el telefono se bloquea o se cambia de app.
+   El reloj sigue andando solo porque conoce la hora exacta de termino. */
+let dormido = false;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden){
+    dormido = true;
+    setTimeout(() => { if (dormido) { try { goOffline(db); } catch(e){} } }, 20000);
+  } else if (dormido){
+    dormido = false;
+    try { goOnline(db); } catch(e){}
+  }
+});
 
 
 function vistaActual(){
@@ -285,13 +329,20 @@ const esc = t => String(t==null?"":t).replace(/[&<>"]/g, c =>
 
 let HIST = null, CFG = { puntos:[12,10,8,7,6,5,4,3], resto:1 }, mesSel = null;
 
-onValue(ref(db, BASE + "/config"), snap => {
-  const v = snap.val();
-  if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? 1 };
-  renderClas();
-});
-onValue(ref(db, BASE + "/historial"), snap => { HIST = snap.val() || {}; renderClas(); },
-        () => { $("cstatus").textContent = "No se pudo cargar la clasificaci\u00f3n."; });
+/* El historial puede crecer bastante, asi que se descarga recien cuando
+   alguien abre la pestana, no al entrar a la pagina. */
+let histOn = false;
+function suscribirHistorial(){
+  if (histOn) return;
+  histOn = true;
+  onValue(ref(db, BASE + "/config"), snap => {
+    const v = snap.val();
+    if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? 1 };
+    renderClas();
+  });
+  onValue(ref(db, BASE + "/historial"), snap => { HIST = snap.val() || {}; renderClas(); },
+          () => { $("cstatus").textContent = "No se pudo cargar la clasificaci\u00f3n."; });
+}
 
 function puntosPorPuesto(place){
   const p = CFG.puntos;
