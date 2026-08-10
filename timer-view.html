@@ -134,34 +134,63 @@ $("tabP").onclick = () => show("pair");
 $("tabC").onclick = () => show("clas");
 
 let S = null, TH = null, offset = 0;
+
+/* Respaldo local: el reloj y el diseno quedan guardados en el propio telefono.
+   Si el jugador recarga la pagina sin senal, la vista igual aparece y el
+   reloj sigue correcto, porque lo que guardamos es la HORA DE TERMINO, no
+   los segundos que faltaban. */
+const RK = "tv-back-" + SALA;
+try {
+  const b = JSON.parse(localStorage.getItem(RK) || "null");
+  if (b){ S = b.S || null; TH = b.TH || null; }
+} catch(e){}
+
+let backTimer = null, backupWarned = false;
+function guardarRespaldo(){
+  clearTimeout(backTimer);
+  backTimer = setTimeout(() => {
+    try { localStorage.setItem(RK, JSON.stringify({ S, TH })); }
+    catch(e){ if (!backupWarned){ backupWarned = true; console.warn("Respaldo local no disponible:", e); } }
+  }, 500);
+}
+
 onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
+
+// Aviso discreto cuando la vista esta mostrando datos guardados
+onValue(ref(db, ".info/connected"), s => {
+  const online = s.val() === true;
+  $("tstatus").textContent = online ? (S ? "" : "Esperando al organizador\u2026")
+                                    : (S ? "Sin conexi\u00f3n \u2014 mostrando lo \u00faltimo recibido" : "Sin conexi\u00f3n\u2026");
+});
 
 // El reloj llega por su propio canal (paquete diminuto = respuesta inmediata)
 onValue(ref(db, BASE + "/timer/state"), snap => {
   S = snap.val();
-  $("tstatus").textContent = S ? "" : "Esperando al organizador…";
-}, () => $("tstatus").textContent = "Sin conexión — reintentando…");
+  $("tstatus").textContent = S ? "" : "Esperando al organizador\u2026";
+  guardarRespaldo();
+}, () => $("tstatus").textContent = "Sin conexi\u00f3n \u2014 reintentando\u2026");
 
-/* La apariencia se guarda en el propio celular. Solo se vuelve a descargar
-   cuando el organizador la cambia de verdad (marca de version distinta). */
-const CK = "tv-theme-" + SALA;
-let themeVer = null, modoAntiguo = false;
+/* Diseno (colores, posiciones): liviano, llega en vivo con cada cambio. */
+onValue(ref(db, BASE + "/timer/theme"), snap => { TH = snap.val(); applyTheme(); guardarRespaldo(); });
 
-function temaDesdeCache(v){
+/* Imagenes: pesadas. Se guardan en el propio celular y solo se vuelven a
+   descargar si el organizador cambia alguna de verdad. */
+const CK = "tv-media-" + SALA;
+let MED = null, medVer = null, modoAntiguo = false;
+
+try {
+  const c = JSON.parse(localStorage.getItem(CK) || "null");
+  if (c && c.m){ MED = c.m; medVer = c.v; }
+} catch(e){}
+
+async function bajarMedia(v){
   try {
-    const c = JSON.parse(localStorage.getItem(CK) || "null");
-    if (c && c.v === v && c.t){ TH = c.t; applyTheme(); return true; }
-  } catch(e){}
-  return false;
-}
-async function bajarTema(v){
-  try {
-    const s = await get(ref(db, BASE + "/timer/theme"));
-    TH = s.val(); applyTheme();
-    try { localStorage.setItem(CK, JSON.stringify({ v, t: TH })); } catch(e){}
+    const s = await get(ref(db, BASE + "/timer/media"));
+    MED = s.val(); medVer = v; applyTheme();
+    try { localStorage.setItem(CK, JSON.stringify({ v, m: MED })); } catch(e){}
   } catch(e){}
 }
-onValue(ref(db, BASE + "/timer/themeVersion"), s => {
+onValue(ref(db, BASE + "/timer/mediaVersion"), s => {
   const v = s.val();
   if (v == null){                       // panel todavia sin actualizar
     if (!modoAntiguo){
@@ -170,9 +199,8 @@ onValue(ref(db, BASE + "/timer/themeVersion"), s => {
     }
     return;
   }
-  if (v === themeVer) return;
-  themeVer = v;
-  if (!temaDesdeCache(v)) bajarTema(v);
+  if (v === medVer && MED) { applyTheme(); return; }
+  bajarMedia(v);
 });
 
 /* Soltar la conexion cuando el telefono se bloquea o se cambia de app.
@@ -197,10 +225,17 @@ function applyTheme(){
   if (!TH) return;
   const modo = vistaActual();
   const V = TH[modo] || TH.desktop || TH;      // compatible con el formato anterior
+  const M = (MED && (MED[modo] || MED.desktop)) || {};
+  const logoSrc = (MED && MED.logo) || TH.logo || "";
+  const bgSrc   = M.bgImage || V.bgImage || "";
+  const srcDe   = id => {
+    const b = (M.boxes || []).find(x => x.id === id);
+    return b ? b.src : null;
+  };
   const DIM = modo === "mobile" ? {w:620,h:1100} : {w:1180,h:660};
 
-  if (V.bgType === "image" && V.bgImage){
-    $("bg").src = V.bgImage; $("bg").style.display = "block";
+  if (V.bgType === "image" && bgSrc){
+    $("bg").src = bgSrc; $("bg").style.display = "block";
     $("bg").style.filter = `opacity(${V.bgOpacity??100}%) brightness(${V.bgBrightness??100}%)`;
     document.body.style.background = "#0e0f18";
   } else {
@@ -210,20 +245,21 @@ function applyTheme(){
       : (V.bgColor1 || "#161826");
   }
 
-  if (TH.logo){ $("logo").src = TH.logo; $("logo").style.display = "block"; }
+  if (logoSrc){ $("logo").src = logoSrc; $("logo").style.display = "block"; }
   else $("logo").style.display = "none";
   $("names").style.display = "none";
 
   document.querySelectorAll(".imgbox").forEach(e => e.remove());
   (V.boxes || V.imgBoxes || []).forEach(box => {
-    if (!box.src) return;
+    const src = box.src || srcDe(box.id);
+    if (!src) return;
     const d = document.createElement("div"); d.className = "imgbox";
     d.style.left   = (box.x / DIM.w * 100) + "vw";
     d.style.top    = (box.y / DIM.h * 100) + "vh";
     d.style.width  = (box.w / DIM.w * 100) + "vw";
     d.style.height = (box.h / DIM.h * 100) + "vh";
     d.style.display = tab === "timer" ? "block" : "none";
-    const im = document.createElement("img"); im.src = box.src;
+    const im = document.createElement("img"); im.src = src;
     if (box.flip) im.style.transform = "scaleX(-1)";
     d.appendChild(im); document.body.appendChild(d);
   });
@@ -247,6 +283,8 @@ function tick(){
   requestAnimationFrame(tick);
 }
 tick();
+// Si habia respaldo, la vista aparece de inmediato sin esperar a la red
+if (TH) applyTheme();
 
 let P = null, sel = null, showStand = false, seenStamp = 0, first = true;
 onValue(ref(db, BASE + "/pairings"), snap => {
@@ -298,7 +336,7 @@ function renderPair(){
     let h = `<table id="tstand"><tr><th>#</th><th>Jugador</th><th>V-D-E</th><th>Puntos</th></tr>`;
     P.standings.forEach(s=>{
       const hit = q && s.name.toLowerCase().includes(q);
-      h += `<tr${hit?' class="hlrow"':''}><td>${s.place}</td><td>${s.name}</td>
+      h += `<tr${hit?' class="hlrow"':''}><td>${s.place}</td><td>${esc(s.name)}</td>
             <td>${s.w}-${s.l}-${s.t}</td><td>${s.pts}</td></tr>`;
     });
     list.innerHTML = h + `</table>`;
@@ -310,10 +348,10 @@ function renderPair(){
     const hit=q && (m.p1.toLowerCase().includes(q) || (m.p2||"").toLowerCase().includes(q));
     if (hit) d.classList.add("hl");
     if (q && !hit) d.style.opacity=.35;
-    const line = (n,r) => n ? n + (r ? `<span class="rec"> ${r.w}-${r.l}-${r.t} · ${r.pts} pts</span>` : "") : "";
+    const line = (n,r) => n ? esc(n) + (r ? `<span class="rec"> ${r.w}-${r.l}-${r.t} · ${r.pts} pts</span>` : "") : "";
     d.innerHTML=`<div class="mesa">${m.p2? "M"+m.table : "—"}</div>
       <div class="pl">${line(m.p1,m.p1rec)}<br>${m.p2 ? line(m.p2,m.p2rec) : "<i style='opacity:.6'>BYE (descansa)</i>"}</div>
-      <div class="res">${m.p2? (m.result||"") : ""}</div>`;
+      <div class="res">${m.p2? esc(m.result||"") : ""}</div>`;
     list.appendChild(d);
   });
 }

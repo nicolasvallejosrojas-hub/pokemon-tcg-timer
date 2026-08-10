@@ -121,7 +121,6 @@
     <input id="email" type="email" placeholder="correo" autocomplete="username">
     <input id="pass" type="password" placeholder="contraseña" autocomplete="current-password">
     <button id="loginBtn">Entrar</button>
-    <button id="signupBtn" class="sec">Crear cuenta</button>
   </div>
   <div id="loginMsg" class="muted" style="margin-top:8px"></div>
 </div>
@@ -350,12 +349,14 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, get, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const app  = initializeApp(FIREBASE_CONFIG);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 const $ = id => document.getElementById(id);
+const esc = t => String(t==null?"":t).replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 /* ---- Sala: cada organizador tiene su propio espacio de datos ---- */
 const slug = v => (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
@@ -371,14 +372,6 @@ $("loginBtn").onclick = async () => {
   try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
   catch(e){ $("loginMsg").innerHTML = '<span class="err">Error: '+ e.code +'</span>'; }
 };
-$("signupBtn").onclick = async () => {
-  $("loginMsg").textContent = "Creando cuenta…";
-  try { await createUserWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
-  catch(e){ $("loginMsg").innerHTML = '<span class="err">'+
-    (e.code==="auth/weak-password" ? "La contraseña debe tener al menos 6 caracteres"
-     : e.code==="auth/email-already-in-use" ? "Ese correo ya tiene cuenta: usa Entrar"
-     : e.code)+'</span>'; }
-};
 $("logoutBtn").onclick = () => signOut(auth);
 $("salaGo").onclick = () => {
   const v = slug($("salaInput").value);
@@ -391,19 +384,30 @@ onAuthStateChanged(auth, async u => {
   $("loginCard").style.display = u ? "none" : "block";
   $("all").style.display = u ? "block" : "none";
   if (!u) return;
+  // Oculto pestañas y timer hasta confirmar que eres el dueño de la sala,
+  // para no mostrar por un instante controles que después se esconden.
+  $("tabs").style.display = "none";
+  $("panelT").style.display = "none";
   $("salaName").textContent = SALA;
   $("salaInput").value = SALA;
   // Quien publica primero en una sala vacía queda como su dueño
   const ownerRef = ref(db, BASE + "/owner");
   let owner = null;
   try { owner = (await get(ownerRef)).val(); } catch(e){}
+  const salaNueva = !owner;
   if (!owner){
     try { await set(ownerRef, u.uid); owner = u.uid; } catch(e){}
   }
   soyDueno = owner === u.uid;
   if (soyDueno){
     $("salaMsg").innerHTML = '<span class="ok">Eres el organizador de esta sala</span>';
-    renderAll(); cleanAndPublish();
+    $("tabs").style.display = ""; $("panelT").style.display = "";
+    renderAll();
+    // Solo la primera vez que se reclama la sala se publica todo (estado +
+    // diseño + medios). En recargas normales alcanza con el estado: el
+    // diseño y las imágenes ya están en Firebase de la sesión anterior,
+    // y publicarlos de nuevo forzaría a cada celular a re-descargarlos.
+    if (salaNueva) cleanAndPublish(); else publishState();
   } else {
     $("salaMsg").innerHTML = '<span class="err">Esta sala ya tiene organizador. Elige otro nombre de sala abajo.</span>';
     $("tabs").style.display = "none";
@@ -458,17 +462,38 @@ function snapState(){
            negativeColor: st.negativeColor, timerSize: st.timerSize,
            updatedAt: Date.now() };
 }
+/* El paquete va partido en dos:
+   - "theme"  = solo la disposicion (colores, posiciones, tamanos). Pesa bytes.
+   - "media"  = las imagenes. Pesa cientos de KB y casi nunca cambia.
+   Mover una cajita o tocar el brillo reenvia solo lo liviano. */
 function vistaLimpia(v){
   return { bgType:v.bgType, bgColor1:v.bgColor1, bgColor2:v.bgColor2, bgDir:v.bgDir,
-           bgImage:v.bgImage||"", bgBrightness:+v.bgBrightness, bgOpacity:+v.bgOpacity,
-           boxes:(v.boxes||[]).filter(b=>b.src) };
+           hasBg: !!v.bgImage, bgBrightness:+v.bgBrightness, bgOpacity:+v.bgOpacity,
+           boxes:(v.boxes||[]).filter(b=>b.src)
+                   .map(b=>({ id:b.id, x:b.x, y:b.y, w:b.w, h:b.h, flip:!!b.flip })) };
+}
+function vistaMedia(v){
+  return { bgImage: v.bgImage||"",
+           boxes:(v.boxes||[]).filter(b=>b.src).map(b=>({ id:b.id, src:b.src })) };
 }
 function snapTheme(){
-  return { logo: st.logo||"", desktop: vistaLimpia(st.desktop),
+  return { desktop: vistaLimpia(st.desktop),
            mobile: vistaLimpia(st.mobile), updatedAt: Date.now() };
 }
+function snapMedia(){
+  return { logo: st.logo||"", desktop: vistaMedia(st.desktop), mobile: vistaMedia(st.mobile) };
+}
 
-function saveLocal(){ try { localStorage.setItem(LS("control"), JSON.stringify(st)); } catch(e){} }
+let backupWarned = false;
+function saveLocal(){
+  try { localStorage.setItem(LS("control"), JSON.stringify(st)); }
+  catch(e){
+    if (!backupWarned){
+      backupWarned = true;
+      alert("Aviso: no se pudo guardar el respaldo local (memoria del navegador llena). El timer sigue funcionando en línea, pero no sobrevivirá a una recarga sin señal.");
+    }
+  }
+}
 
 async function publishState(){
   saveLocal();
@@ -486,15 +511,27 @@ function publishTheme(){
   saveLocal();
   clearTimeout(themeTimer);
   themeTimer = setTimeout(async () => {
-    try {
-      await set(R_THEME, snapTheme());
-      await set(ref(db, BASE + "/timer/themeVersion"), Date.now());
-    } catch(e){}
+    try { await set(R_THEME, snapTheme()); } catch(e){}
   }, 400);
 }
 
+/* Se llama SOLO al cambiar una imagen. Sube el paquete pesado y avisa a los
+   celulares con una marca nueva para que lo vuelvan a guardar. */
+let mediaTimer = null;
+function publishMedia(){
+  publishTheme();
+  clearTimeout(mediaTimer);
+  mediaTimer = setTimeout(async () => {
+    try {
+      await set(ref(db, BASE + "/timer/media"), snapMedia());
+      await set(ref(db, BASE + "/timer/mediaVersion"), Date.now());
+    } catch(e){}
+  }, 500);
+}
+
 async function cleanAndPublish(){
-  try { await set(T, { state: snapState(), theme: snapTheme(), themeVersion: Date.now() }); } catch(e){}
+  try { await set(T, { state: snapState(), theme: snapTheme(),
+                       media: snapMedia(), mediaVersion: Date.now() }); } catch(e){}
 }
 
 /* ---------- reloj ---------- */
@@ -516,7 +553,10 @@ function reset(){
 function setPreset(m){ st.presetMin = m; reset(); renderPresets(); }
 
 $("toggleBtn").onclick = startPause;
-$("resetBtn").onclick = reset;
+$("resetBtn").onclick = () => {
+  if (!st.paused && !confirm("El cronómetro está corriendo. ¿Reiniciarlo de todas formas?")) return;
+  reset();
+};
 $("addPreset").onclick = () => {
   const v = parseInt($("newPreset").value,10);
   if (!v || v<=0 || [32,53,...st.customPresets].includes(v)) return;
@@ -538,8 +578,11 @@ function commitEdit(){
   $("clockEdit").style.display="none"; $("clock").style.display="block";
   publishState(); renderPresets(); renderClock();
 }
-$("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); if (e.key==="Escape"){ $("clockEdit").style.display="none"; $("clock").style.display="block"; } };
-$("clockEdit").onblur = commitEdit;
+function cancelEdit(){ $("clockEdit").style.display="none"; $("clock").style.display="block"; }
+$("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); if (e.key==="Escape") cancelEdit(); };
+// Un clic afuera del campo (perder el foco) cancela en vez de aplicar: así un
+// clic accidental en el reloj no pausa ni retrocede el tiempo para todos.
+$("clockEdit").onblur = cancelEdit;
 
 /* ---------- sonido ---------- */
 function ensureAudio(){
@@ -689,7 +732,7 @@ function pedirImagen(id){ cajaObjetivo=id; $("fBox").value=""; $("fBox").click()
 $("fBox").onchange = e => {
   const f = e.target.files && e.target.files[0];
   if (!f || cajaObjetivo==null) return;
-  compressImage(f, 700, .85, d => { const b=caja(cajaObjetivo); if(b){ b.src=d; renderImgs(); publishTheme(); } });
+  compressImage(f, 700, .85, d => { const b=caja(cajaObjetivo); if(b){ b.src=d; renderImgs(); publishMedia(); } });
 };
 
 /* ---------- menú de clic derecho ---------- */
@@ -716,7 +759,7 @@ function menuCaja(id,e){
     {label: b.src?"Cambiar imagen o GIF":"Poner imagen o GIF", fn:()=>pedirImagen(id)},
     {label:"Voltear (espejo)", fn:()=>{ b.flip=!b.flip; renderImgs(); publishTheme(); }},
     "-",
-    {label:"Eliminar esta cajita", danger:true, fn:()=>{ V().boxes=V().boxes.filter(x=>x.id!==id); renderImgs(); publishTheme(); }}
+    {label:"Eliminar esta cajita", danger:true, fn:()=>{ V().boxes=V().boxes.filter(x=>x.id!==id); renderImgs(); publishMedia(); }}
   ]);
 }
 $("canvas").addEventListener("contextmenu", e=>{
@@ -812,19 +855,19 @@ function compressImage(file, maxW, quality, cb, forceJpeg){
 }
 
 $("fLogo").onchange = e => { const f=e.target.files[0];
-  if (f) compressImage(f,600,.9,d=>{ st.logo=d; pintarFondo(); refrescarAjustes(); publishTheme(); }); };
-$("btnDelLogo").onclick = ()=>{ st.logo=""; pintarFondo(); refrescarAjustes(); publishTheme(); };
+  if (f) compressImage(f,600,.9,d=>{ st.logo=d; pintarFondo(); refrescarAjustes(); publishMedia(); }); };
+$("btnDelLogo").onclick = ()=>{ st.logo=""; pintarFondo(); refrescarAjustes(); publishMedia(); };
 
 function subirFondo(vista, f){
   compressImage(f, 1280, .70, d => {
     st[vista].bgImage = d; st[vista].bgType = "image";
-    pintarFondo(); refrescarAjustes(); publishTheme();
+    pintarFondo(); refrescarAjustes(); publishMedia();
   }, true);
 }
 $("fBgDesktop").onchange = e=>{ const f=e.target.files[0]; if(f) subirFondo("desktop",f); };
 $("fBgMobile").onchange  = e=>{ const f=e.target.files[0]; if(f) subirFondo("mobile",f); };
-$("btnDelBgD").onclick = ()=>{ st.desktop.bgImage=""; pintarFondo(); refrescarAjustes(); publishTheme(); };
-$("btnDelBgM").onclick = ()=>{ st.mobile.bgImage="";  pintarFondo(); refrescarAjustes(); publishTheme(); };
+$("btnDelBgD").onclick = ()=>{ st.desktop.bgImage=""; pintarFondo(); refrescarAjustes(); publishMedia(); };
+$("btnDelBgM").onclick = ()=>{ st.mobile.bgImage="";  pintarFondo(); refrescarAjustes(); publishMedia(); };
 
 $("fAlarm").onchange = e => {
   const f=e.target.files[0]; if(!f) return;
@@ -860,10 +903,13 @@ function renderPresets(){
 }
 
 function renderAll(){
-  const url = location.origin + location.pathname.replace(/admin\.html?$/,"") + "timer-view.html"
+  // Netlify y otros servidores esconden el ".html", asi que cortamos por "/"
+  const carpeta = location.pathname.replace(/admin\/?$/, "").replace(/[^/]*$/, "");
+  const url = location.origin + carpeta + "timer-view.html"
               + (SALA==="principal" ? "" : "?sala="+SALA);
   $("shareUrl").value = url;
   $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
+  $("qr").onerror = () => { $("qr").style.opacity=".25"; $("qr").title="No se pudo generar el QR — usa el enlace de abajo"; };
   $("copyBtn").onclick = () => navigator.clipboard?.writeText(url);
   try { const a=JSON.parse(localStorage.getItem(LS("alarm"))||"null");
     if (a?.d){ st.alarmData=a.d; st.alarmName=a.n; loadAlarm(a.d); } } catch(e){}
@@ -908,8 +954,12 @@ function parseTdf(xmlText){
   const snapRec = id => { const r=rec[id]||{w:0,l:0,t:0};
     return {w:r.w,l:r.l,t:r.t,pts:r.w*3+r.t}; };
 
+  // Si el .tdf tiene más de un "pod" (por ejemplo, fase suiza + corte a Top X
+  // en un pod aparte), se usa solo el último: es la fase vigente del torneo.
+  const pods = [...doc.querySelectorAll("pods > pod")];
+  const podActivo = pods[pods.length-1] || null;
   const rounds = [];
-  doc.querySelectorAll("pods > pod > rounds > round").forEach(r => {
+  (podActivo ? podActivo.querySelectorAll("rounds > round") : []).forEach(r => {
     const raw = [];
     r.querySelectorAll("matches > match").forEach(m => raw.push({
       out: parseInt(m.getAttribute("outcome")||"0",10),
@@ -941,6 +991,7 @@ function parseTdf(xmlText){
     });
     rounds.push({ number: parseInt(r.getAttribute("number"),10), matches });
   });
+  rounds.sort((a,b) => a.number - b.number);
   if (!rounds.length) throw new Error("el archivo no contiene rondas emparejadas");
 
   const lastR = rounds[rounds.length-1];
@@ -966,7 +1017,7 @@ const recTxt = r => r ? ` (${r.w}-${r.l}-${r.t} · ${r.pts} pts)` : "";
 
 function showPreview(d){
   const last = d.rounds[d.rounds.length-1];
-  let html = `<div style="margin-top:10px"><b>${d.name}</b> — se publicará hasta la <b>ronda ${last.number}</b>`;
+  let html = `<div style="margin-top:10px"><b>${esc(d.name)}</b> — se publicará hasta la <b>ronda ${last.number}</b>`;
   if (d.standings.length) html += ` + tabla de posiciones`;
   html += `</div><div style="margin-top:6px;font-size:12.5px">` + (d.phase==="results"
     ? '<span class="ok">Todos los resultados de esta ronda están cargados</span> — los jugadores verán el aviso para revisarlos.'
@@ -974,15 +1025,15 @@ function showPreview(d){
     `</div><table><tr><th>Mesa</th><th>Jugador 1</th><th>Jugador 2</th><th>Resultado</th></tr>`;
   last.matches.forEach(m => {
     html += `<tr><td>${m.p2?m.table:"—"}</td>
-      <td>${m.p1}<span class="rec">${recTxt(m.p1rec)}</span></td>
-      <td>${m.p2? m.p2+'<span class="rec">'+recTxt(m.p2rec)+'</span>' : "<i>BYE</i>"}</td>
-      <td>${m.p2? m.result : "Bye"}</td></tr>`;
+      <td>${esc(m.p1)}<span class="rec">${recTxt(m.p1rec)}</span></td>
+      <td>${m.p2? esc(m.p2)+'<span class="rec">'+recTxt(m.p2rec)+'</span>' : "<i>BYE</i>"}</td>
+      <td>${m.p2? esc(m.result) : "Bye"}</td></tr>`;
   });
   html += `</table>`;
   if (d.standings.length){
     html += `<div style="margin-top:14px;font-size:13px"><b>Posiciones</b></div>
       <table><tr><th>#</th><th>Jugador</th><th>V-D-E</th><th>Puntos</th></tr>`;
-    d.standings.forEach(s => html += `<tr><td>${s.place}</td><td>${s.name}</td><td>${s.w}-${s.l}-${s.t}</td><td>${s.pts}</td></tr>`);
+    d.standings.forEach(s => html += `<tr><td>${s.place}</td><td>${esc(s.name)}</td><td>${s.w}-${s.l}-${s.t}</td><td>${s.pts}</td></tr>`);
     html += `</table>`;
   }
   $("preview").innerHTML = html;
@@ -1025,15 +1076,30 @@ drop.addEventListener("drop", e => {
 });
 ["dragover","drop"].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
 
+// Evita que un clic quede "colgado" para siempre si se corta la conexión a
+// mitad de una publicación: a los 15 s se avisa y se libera el botón para
+// reintentar (la escritura original puede igual llegar después, sola).
+function conTimeout(promesa, ms){
+  return Promise.race([
+    promesa,
+    new Promise((_,rej) => setTimeout(() => rej(new Error("sin-respuesta")), ms))
+  ]);
+}
+function mensajeConexion(e){
+  return e.message === "sin-respuesta"
+    ? "Sin conexión: no hubo respuesta en 15 s. Revisa el wifi e inténtalo de nuevo."
+    : "Error: " + (e.code || e.message);
+}
+
 async function publishPairings(){
   if (!parsed) return;
   $("pubMsg").textContent = "Publicando…";
   drop.classList.add("busy");
   try {
-    await set(ref(db, BASE + "/pairings"), parsed);
+    await conTimeout(set(ref(db, BASE + "/pairings"), parsed), 15000);
     const hora = new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
     $("pubMsg").innerHTML = '<span class="ok">Publicado ✓ ronda '+parsed.lastRound+' — '+hora+'</span>';
-  } catch(e){ $("pubMsg").innerHTML = '<span class="err">Error: '+(e.code||e.message)+'</span>'; }
+  } catch(e){ $("pubMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
   drop.classList.remove("busy");
 }
 $("publishBtn").onclick = publishPairings;
@@ -1090,10 +1156,10 @@ async function archivarTorneo(){
     creado: Date.now()
   };
   try {
-    await push(R_HIST, registro);
+    await conTimeout(push(R_HIST, registro), 15000);
     $("archMsg").innerHTML = '<span class="ok">Archivado &#10003; ' + parsed.name +
                              ' &middot; ' + fechaLarga(f) + '</span>';
-  } catch(e){ $("archMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
+  } catch(e){ $("archMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
 }
 $("archiveBtn").onclick = archivarTorneo;
 
@@ -1106,7 +1172,7 @@ onValue(R_HIST, snap => {
     const row = document.createElement("div");
     row.className = "row";
     row.style.cssText = "align-items:center;padding:6px 0;border-bottom:1px solid var(--divider)";
-    row.innerHTML = '<span style="flex:1">' + t.nombre + ' &middot; ' + t.fecha +
+    row.innerHTML = '<span style="flex:1">' + esc(t.nombre) + ' &middot; ' + esc(t.fecha) +
                     ' &middot; ' + t.jugadores + ' jugadores</span>';
     const b = document.createElement("button");
     b.className = "small sec"; b.textContent = "Borrar";
