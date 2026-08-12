@@ -361,7 +361,12 @@ function renderPair(){
     const hit=q && (m.p1.toLowerCase().includes(q) || (m.p2||"").toLowerCase().includes(q));
     if (hit) d.classList.add("hl");
     if (q && !hit) d.style.opacity=.35;
-    const line = (n,r) => n ? esc(n) + (r ? `<span class="rec"> ${r.w}-${r.l}-${r.t} · ${r.pts} pts</span>` : "") : "";
+    // El empate vale media victoria, igual que en el sistema oficial
+    const pct = r => {
+      const j = r.w + r.l + r.t;
+      return j ? " \u00b7 " + Math.round((r.w + r.t/2) / j * 100) + "%" : "";
+    };
+    const line = (n,r) => n ? esc(n) + (r ? `<span class="rec"> ${r.w}-${r.l}-${r.t} \u00b7 ${r.pts} pts${pct(r)}</span>` : "") : "";
     d.innerHTML=`<div class="mesa">${m.p2? "M"+m.table : "—"}</div>
       <div class="pl">${line(m.p1,m.p1rec)}<br>${m.p2 ? line(m.p2,m.p2rec) : "<i style='opacity:.6'>BYE (descansa)</i>"}</div>
       <div class="res">${m.p2? esc(m.result||"") : ""}</div>`;
@@ -435,12 +440,26 @@ function renderClas(soloTabla){
   const filas = Object.values(tabla)
     .sort((a,b) => b.pts - a.pts || a.mejor - b.mejor || b.w - a.w || a.name.localeCompare(b.name));
 
+  /* Porcentaje de victorias del mes: se suman TODAS las partidas de todos
+     los torneos y se divide una sola vez. Asi un torneo de 7 rondas pesa
+     mas que uno de 3, que es lo justo.
+     El empate vale media victoria, igual que en el sistema oficial. */
+  filas.forEach(r => {
+    const jugadas = r.w + r.l + r.e;
+    r.jugadas = jugadas;
+    r.wr = jugadas ? ((r.w + r.e/2) / jugadas * 100) : null;
+  });
+
   let h = '<div class="sub" style="margin-bottom:8px">' + delMes.length +
           (delMes.length === 1 ? ' torneo' : ' torneos') + ' en ' + nombreMes(mesSel) + '</div>';
-  h += '<table id="tstand"><tr><th>#</th><th>Jugador</th><th>Torneos</th><th>Mejor</th><th>Puntos</th></tr>';
+  h += '<table id="tstand"><tr><th>#</th><th>Jugador</th><th>Torneos</th><th>Mejor</th>'
+     + '<th>V-D-E</th><th>% vict.</th><th>Puntos</th></tr>';
   filas.forEach((r,i) => {
     h += '<tr><td>' + (i+1) + '</td><td>' + esc(r.name) + '</td><td>' + r.torneos +
-         '</td><td>' + r.mejor + '\u00ba</td><td><b>' + r.pts + '</b></td></tr>';
+         '</td><td>' + r.mejor + '\u00ba</td>' +
+         '<td>' + r.w + '-' + r.l + '-' + r.e + '</td>' +
+         '<td>' + (r.wr === null ? '\u2014' : r.wr.toFixed(0) + '%') + '</td>' +
+         '<td><b>' + r.pts + '</b></td></tr>';
   });
   h += '</table>';
   $("clasBox").innerHTML = h;

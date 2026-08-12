@@ -1024,7 +1024,9 @@ function parseTdf(xmlText){
            pendientes, updatedAt: Date.now() };
 }
 
-const recTxt = r => r ? ` (${r.w}-${r.l}-${r.t} · ${r.pts} pts)` : "";
+const pctTxt = r => { const j = r.w + r.l + r.t;
+  return j ? ` \u00b7 ${Math.round((r.w + r.t/2) / j * 100)}%` : ""; };
+const recTxt = r => r ? ` (${r.w}-${r.l}-${r.t} \u00b7 ${r.pts} pts${pctTxt(r)})` : "";
 
 function showPreview(d){
   const last = d.rounds[d.rounds.length-1];
