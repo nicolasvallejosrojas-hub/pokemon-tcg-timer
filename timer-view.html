@@ -40,25 +40,69 @@
   #cstatus{text-align:center;opacity:.6;font-size:12.5px;margin-top:14px;}
   #tname{font-size:16px;font-weight:500;margin:0 0 2px;}
   #tsub{font-size:11.5px;opacity:.55;margin-bottom:10px;}
+  .sub{font-size:12px;color:#8a8d9e;font-weight:500;}
   #q{width:100%;box-sizing:border-box;background:#161826;border:1px solid var(--divider);border-radius:8px;
      color:var(--text);padding:11px;font-size:16px;margin-bottom:10px;}
-  #rounds{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  /* ---- Buscador destacado: es lo primero que busca el jugador ---- */
+  #q{width:100%;box-sizing:border-box;height:52px;padding:0 14px;border-radius:12px;
+     border:1px solid rgba(145,132,217,.45);background:#171a26;color:var(--text);
+     font-size:17px;font-weight:600;font-family:inherit;outline:none;margin-bottom:12px;}
+  #q::placeholder{color:#6f7386;font-weight:500;}
+  #rounds{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;}
   #rounds button{border:1px solid var(--divider);background:transparent;color:var(--text);border-radius:8px;
-    padding:6px 13px;font-size:13px;font-family:inherit;cursor:pointer;}
-  #rounds button.on{border-color:var(--accent);color:var(--accent);}
-  .match{background:var(--surface);border:1px solid var(--divider);border-radius:10px;
-    padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
-  .mesa{font-size:19px;font-weight:600;min-width:44px;text-align:center;color:var(--accent);}
-  .pl{flex:1;font-size:15px;line-height:1.5;}
-  .res{font-size:11px;opacity:.55;white-space:nowrap;text-align:right;}
-  .hl{outline:2px solid var(--accent);}
-  #tstand{border-collapse:collapse;width:100%;font-size:14px;}
-  #tstand th,#tstand td{border-bottom:1px solid var(--divider);padding:9px 8px;text-align:left;}
-  #tstand th{font-weight:500;font-size:12px;opacity:.6;}
-  #tstand td:first-child{color:var(--accent);font-weight:600;width:34px;}
-  #tstand td:nth-child(3),#tstand td:nth-child(4){white-space:nowrap;opacity:.85;}
-  #tstand tr.hlrow td{background:rgba(145,132,217,.18);}
-  .rec{opacity:.55;font-size:11.5px;white-space:nowrap;}
+    padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  #rounds button.on{border-color:var(--accent);color:var(--accent);background:rgba(145,132,217,.12);}
+
+  /* ---- Tarjeta de mesa: el numero manda, el resto se lee despues ---- */
+  .match{background:var(--surface);border:1px solid var(--divider);border-radius:14px;
+    margin-bottom:9px;display:flex;align-items:stretch;overflow:hidden;}
+  .mnum{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-width:62px;background:rgba(145,132,217,.10);
+    border-right:1px solid var(--divider);padding:10px 6px;}
+  .mlbl{font-size:9px;letter-spacing:.12em;color:#6f7386;font-weight:600;}
+  .mval{font-size:25px;font-weight:700;color:var(--accent);line-height:1.1;
+    font-variant-numeric:tabular-nums;}
+  .mbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding:10px 12px;}
+  .prow{display:flex;align-items:center;gap:8px;}
+  .prow.won .pname{color:#c9c2f5;}
+  .pinfo{flex:1;min-width:0;}
+  .pname{font-size:16px;font-weight:600;line-height:1.25;}
+  .pmeta{font-size:12px;color:#8a8d9e;margin-top:2px;font-weight:500;}
+  .win{font-size:10px;font-weight:700;letter-spacing:.1em;color:#12131c;
+    background:var(--accent);border-radius:5px;padding:3px 7px;white-space:nowrap;}
+  .tie{font-size:10px;font-weight:700;letter-spacing:.1em;color:#8a8d9e;
+    border:1px solid var(--divider);border-radius:5px;padding:3px 7px;white-space:nowrap;}
+  .byetag{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;
+    padding:4px 9px;border-radius:6px;background:rgba(145,132,217,.14);
+    border:1px solid rgba(145,132,217,.3);font-size:11px;color:#8a8d9e;}
+  .byetag b{font-size:10px;letter-spacing:.1em;color:#b5abe8;}
+  .hl{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .vacio{padding:40px 8px;text-align:center;}
+  .vacio b{font-size:15px;}
+  .vacio div{font-size:13px;color:#8a8d9e;margin-top:6px;}
+
+  /* ---- Filas de posiciones y clasificacion ---- */
+  .secLabel,.chead{font-size:10px;letter-spacing:.12em;color:#6f7386;font-weight:600;
+    padding:0 2px 10px;display:flex;justify-content:space-between;}
+  .frow,.crow{display:flex;align-items:center;gap:12px;padding:11px 2px;
+    border-bottom:1px solid var(--divider);}
+  .crow{cursor:pointer;}
+  .crow.sel{background:rgba(145,132,217,.08);}
+  .fpos{min-width:26px;text-align:center;font-size:14px;font-weight:700;color:#6f7386;
+    font-variant-numeric:tabular-nums;}
+  .fpos.pod1{color:#e8c96a;} .fpos.pod2{color:#c6cbd8;} .fpos.pod3{color:#c99b6a;}
+  .fmid{flex:1;min-width:0;}
+  .fname{font-size:15.5px;font-weight:600;line-height:1.25;}
+  .fmeta{font-size:12px;color:#8a8d9e;margin-top:3px;font-weight:500;}
+  .fpts{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .hlrow{background:rgba(145,132,217,.18);border-radius:8px;}
+  .cdet{display:none;gap:22px;margin:0 0 4px 38px;padding:12px 0 4px;
+    border-bottom:1px solid var(--divider);}
+  .cdet.open{display:flex;}
+  .cdet span{display:block;font-size:10px;letter-spacing:.1em;color:#6f7386;font-weight:600;}
+  .cdet b{font-size:15px;font-weight:600;}
+  .cdet b.ac{color:#b5abe8;}
+  .chint{font-size:12px;color:#6f7386;padding:14px 4px 0;text-align:center;}
   .pts{opacity:.8;font-size:12px;white-space:nowrap;min-width:52px;text-align:right;}
   #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
   .banner{background:rgba(145,132,217,.14);border:1px solid var(--accent);border-radius:8px;
@@ -94,7 +138,7 @@
   <h1 id="tname">Emparejamientos</h1>
   <div id="tsub"></div>
   <div id="banner" class="banner" style="display:none"></div>
-  <input id="q" placeholder="Busca tu nombre…">
+  <input id="q" placeholder="Escribe tu nombre">
   <div id="rounds"></div>
   <div id="list"></div>
   <div id="pstatus">Conectando…</div>
@@ -346,33 +390,62 @@ function renderPair(){
   const list=$("list"); list.innerHTML="";
   const q=$("q").value.trim().toLowerCase();
   if (showStand){
-    let h = `<table id="tstand"><tr><th>#</th><th>Jugador</th><th>V-D-E</th><th>Puntos</th></tr>`;
+    let h = '<div class="secLabel">POSICIONES FINALES</div>';
     P.standings.forEach(s=>{
       const hit = q && s.name.toLowerCase().includes(q);
-      h += `<tr${hit?' class="hlrow"':''}><td>${s.place}</td><td>${esc(s.name)}</td>
-            <td>${s.w}-${s.l}-${s.t}</td><td>${s.pts}</td></tr>`;
+      const medalla = s.place<=3 ? " pod"+s.place : "";
+      h += `<div class="frow${hit?" hlrow":""}"${q&&!hit?' style="opacity:.35"':''}>
+              <span class="fpos${medalla}">${s.place}</span>
+              <div class="fmid"><div class="fname">${esc(s.name)}</div>
+                <div class="fmeta">${s.w}-${s.l}-${s.t}${pctTxt(s)}</div></div>
+              <span class="fpts">${s.pts}</span>
+            </div>`;
     });
-    list.innerHTML = h + `</table>`;
+    list.innerHTML = h;
     return;
   }
   const round=P.rounds.find(r=>r.number===sel);
-  (round?.matches||[]).forEach(m=>{
-    const d=document.createElement("div"); d.className="match";
+  const ms = round?.matches || [];
+  let mostradas = 0;
+  ms.forEach(m=>{
     const hit=q && (m.p1.toLowerCase().includes(q) || (m.p2||"").toLowerCase().includes(q));
+    if (q && !hit) return;              // con busqueda activa se ocultan las demas
+    mostradas++;
+    const d=document.createElement("div"); d.className="match";
     if (hit) d.classList.add("hl");
-    if (q && !hit) d.style.opacity=.35;
-    // El empate vale media victoria, igual que en el sistema oficial
-    const pct = r => {
-      const j = r.w + r.l + r.t;
-      return j ? " \u00b7 " + Math.round((r.w + r.t/2) / j * 100) + "%" : "";
+
+    // Quien gano, para marcarlo en su fila
+    const g1 = m.result && m.p1 && m.result === "Gana " + m.p1;
+    const g2 = m.result && m.p2 && m.result === "Gana " + m.p2;
+    const emp = m.result === "Empate";
+
+    const fila = (n, r, gana) => {
+      if (!n) return "";
+      const marca = gana ? '<span class="win">GANA</span>'
+                  : (emp ? '<span class="tie">EMPATE</span>' : "");
+      return `<div class="prow${gana?" won":""}">
+                <div class="pinfo"><div class="pname">${esc(n)}</div>
+                  <div class="pmeta">${r ? r.w+"-"+r.l+"-"+r.t+" \u00b7 "+r.pts+" pts"+pctTxt(r) : ""}</div></div>
+                ${marca}</div>`;
     };
-    const line = (n,r) => n ? esc(n) + (r ? `<span class="rec"> ${r.w}-${r.l}-${r.t} \u00b7 ${r.pts} pts${pct(r)}</span>` : "") : "";
-    d.innerHTML=`<div class="mesa">${m.p2? "M"+m.table : "—"}</div>
-      <div class="pl">${line(m.p1,m.p1rec)}<br>${m.p2 ? line(m.p2,m.p2rec) : "<i style='opacity:.6'>BYE (descansa)</i>"}</div>
-      <div class="res">${m.p2? esc(m.result||"") : ""}</div>`;
+
+    d.innerHTML = `
+      <div class="mnum"><span class="mlbl">MESA</span><span class="mval">${m.p2? m.table : "\u2014"}</span></div>
+      <div class="mbody">
+        ${fila(m.p1, m.p1rec, g1)}
+        ${m.p2 ? fila(m.p2, m.p2rec, g2)
+               : '<div class="byetag"><b>BYE</b> descansa esta ronda</div>'}
+      </div>`;
     list.appendChild(d);
   });
+  if (q && !mostradas)
+    list.innerHTML = '<div class="vacio"><b>Sin coincidencias</b>'
+      + '<div>Prueba con tu apellido o borra la b\u00fasqueda.</div></div>';
 }
+
+/* El empate vale media victoria, igual que en el sistema oficial */
+const pctTxt = r => { const j = (r.w||0) + (r.l||0) + (r.t||0);
+  return j ? " \u00b7 " + Math.round(((r.w||0) + (r.t||0)/2) / j * 100) + "%" : ""; };
 
 try { navigator.wakeLock?.request("screen").catch(()=>{}); } catch(e){}
 document.addEventListener("visibilitychange", () => {
@@ -450,19 +523,37 @@ function renderClas(soloTabla){
     r.wr = jugadas ? ((r.w + r.e/2) / jugadas * 100) : null;
   });
 
-  let h = '<div class="sub" style="margin-bottom:8px">' + delMes.length +
+  let h = '<div class="sub" style="margin-bottom:10px">' + delMes.length +
           (delMes.length === 1 ? ' torneo' : ' torneos') + ' en ' + nombreMes(mesSel) + '</div>';
-  h += '<table id="tstand"><tr><th>#</th><th>Jugador</th><th>Torneos</th><th>Mejor</th>'
-     + '<th>V-D-E</th><th>% vict.</th><th>Puntos</th></tr>';
+  h += '<div class="chead"><span>JUGADOR</span><span>PUNTOS</span></div>';
   filas.forEach((r,i) => {
-    h += '<tr><td>' + (i+1) + '</td><td>' + esc(r.name) + '</td><td>' + r.torneos +
-         '</td><td>' + r.mejor + '\u00ba</td>' +
-         '<td>' + r.w + '-' + r.l + '-' + r.e + '</td>' +
-         '<td>' + (r.wr === null ? '\u2014' : r.wr.toFixed(0) + '%') + '</td>' +
-         '<td><b>' + r.pts + '</b></td></tr>';
+    const pos = i+1, medalla = pos<=3 ? " pod"+pos : "";
+    h += `<div class="crow" data-i="${i}">
+            <span class="fpos${medalla}">${pos}</span>
+            <div class="fmid"><div class="fname">${esc(r.name)}</div>
+              <div class="fmeta">${r.torneos} ${r.torneos===1?'torneo':'torneos'}`
+       + (r.wr===null ? '' : ' \u00b7 ' + r.wr.toFixed(0) + '% vict.') + `</div></div>
+            <span class="fpts">${r.pts}</span>
+          </div>
+          <div class="cdet" data-d="${i}">
+            <div><span>TORNEOS</span><b>${r.torneos}</b></div>
+            <div><span>MEJOR PUESTO</span><b class="ac">${r.mejor}\u00ba</b></div>
+            <div><span>R\u00c9CORD</span><b>${r.w}-${r.l}-${r.e}</b></div>
+          </div>`;
   });
-  h += '</table>';
+  h += '<div class="chint">Toca una fila para ver el detalle.</div>';
   $("clasBox").innerHTML = h;
+  // Tocar una fila despliega su detalle y cierra el anterior
+  $("clasBox").querySelectorAll(".crow").forEach(row => {
+    row.onclick = () => {
+      const i = row.dataset.i;
+      const det = $("clasBox").querySelector('.cdet[data-d="'+i+'"]');
+      const abierto = det.classList.contains("open");
+      $("clasBox").querySelectorAll(".cdet.open").forEach(e=>e.classList.remove("open"));
+      $("clasBox").querySelectorAll(".crow.sel").forEach(e=>e.classList.remove("sel"));
+      if (!abierto){ det.classList.add("open"); row.classList.add("sel"); }
+    };
+  });
   $("cstatus").textContent = "";
 }
 
