@@ -5,22 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Torneo — Timer y emparejamientos</title>
 <style>
+  /* =========================================================
+     1. Base
+     ========================================================= */
   :root{--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);--surface:#232532;}
   html,body{margin:0;height:100%;}
   body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;
        overflow:hidden;position:relative;}
   #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none;transition:opacity .2s;}
 
+  .page{position:fixed;inset:0;box-sizing:border-box;z-index:1;}
+  .page.hide{display:none !important;}
+  .sub{font-size:12px;color:#8a8d9e;font-weight:500;}
+  .vacio{padding:40px 8px;text-align:center;}
+  .vacio b{font-size:15px;}
+  .vacio div{font-size:13px;color:#8a8d9e;margin-top:6px;}
+
+  /* =========================================================
+     2. Barra de pestañas
+     ========================================================= */
   #tabbar{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;gap:6px;justify-content:center;
-    padding:8px;background:rgba(14,15,24,.72);backdrop-filter:blur(6px);border-bottom:1px solid var(--divider);}
+    padding:8px;background:rgba(14,15,24,.72);backdrop-filter:blur(6px);border-bottom:1px solid var(--divider);
+    overflow-x:auto;scrollbar-width:none;}
+  #tabbar::-webkit-scrollbar{display:none;}
   #tabbar button{border:1px solid var(--divider);background:transparent;color:var(--text);border-radius:20px;
-    padding:7px 18px;font-size:13.5px;font-family:inherit;cursor:pointer;}
+    padding:7px 15px;font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;}
   #tabbar button.on{border-color:var(--accent);color:var(--accent);}
   #dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:6px;visibility:hidden;}
 
-  .page{position:fixed;inset:0;box-sizing:border-box;z-index:1;}
-  .page.hide{display:none !important;}
-
+  /* =========================================================
+     3. Pestaña Timer
+     ========================================================= */
   #pTimer{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3vh;
           text-align:center;padding:56px 14px 14px;}
   #logo{max-height:8vh;max-width:60vw;object-fit:contain;display:none;}
@@ -33,27 +48,27 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
   .warn{animation:pulse 1s ease-in-out infinite;}
 
+  /* =========================================================
+     4. Pestaña Emparejamientos
+     ========================================================= */
   #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
-  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
-  #mes{background:#1b1d29;color:var(--text);border:1px solid var(--divider);border-radius:8px;
-    padding:8px 12px;font-size:14px;font-family:inherit;min-width:180px;}
-  #cstatus{text-align:center;opacity:.6;font-size:12.5px;margin-top:14px;}
   #tname{font-size:16px;font-weight:500;margin:0 0 2px;}
   #tsub{font-size:11.5px;opacity:.55;margin-bottom:10px;}
-  .sub{font-size:12px;color:#8a8d9e;font-weight:500;}
-  #q{width:100%;box-sizing:border-box;background:#161826;border:1px solid var(--divider);border-radius:8px;
-     color:var(--text);padding:11px;font-size:16px;margin-bottom:10px;}
-  /* ---- Buscador destacado: es lo primero que busca el jugador ---- */
+  .banner{background:rgba(145,132,217,.14);border:1px solid var(--accent);border-radius:8px;
+    padding:9px 11px;font-size:12.5px;margin-bottom:10px;line-height:1.45;}
+
+  /* El buscador es lo primero que toca el jugador, por eso va grande */
   #q{width:100%;box-sizing:border-box;height:52px;padding:0 14px;border-radius:12px;
      border:1px solid rgba(145,132,217,.45);background:#171a26;color:var(--text);
      font-size:17px;font-weight:600;font-family:inherit;outline:none;margin-bottom:12px;}
   #q::placeholder{color:#6f7386;font-weight:500;}
+
   #rounds{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;}
   #rounds button{border:1px solid var(--divider);background:transparent;color:var(--text);border-radius:8px;
     padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;}
   #rounds button.on{border-color:var(--accent);color:var(--accent);background:rgba(145,132,217,.12);}
 
-  /* ---- Tarjeta de mesa: el numero manda, el resto se lee despues ---- */
+  /* Tarjeta de mesa: el número manda, el resto se lee después */
   .match{background:var(--surface);border:1px solid var(--divider);border-radius:14px;
     margin-bottom:9px;display:flex;align-items:stretch;overflow:hidden;}
   .mnum{display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -77,11 +92,17 @@
     border:1px solid rgba(145,132,217,.3);font-size:11px;color:#8a8d9e;}
   .byetag b{font-size:10px;letter-spacing:.1em;color:#b5abe8;}
   .hl{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
-  .vacio{padding:40px 8px;text-align:center;}
-  .vacio b{font-size:15px;}
-  .vacio div{font-size:13px;color:#8a8d9e;margin-top:6px;}
+  #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
 
-  /* ---- Filas de posiciones y clasificacion ---- */
+  /* =========================================================
+     5. Pestaña Clasificación
+     ========================================================= */
+  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
+  #mes{background:#1b1d29;color:var(--text);border:1px solid var(--divider);border-radius:8px;
+    padding:8px 12px;font-size:14px;font-family:inherit;min-width:180px;}
+  #cstatus{text-align:center;opacity:.6;font-size:12.5px;margin-top:14px;}
+
+  /* Filas de posiciones y de clasificación mensual */
   .secLabel,.chead{font-size:10px;letter-spacing:.12em;color:#6f7386;font-weight:600;
     padding:0 2px 10px;display:flex;justify-content:space-between;}
   .frow,.crow{display:flex;align-items:center;gap:12px;padding:11px 2px;
@@ -103,21 +124,39 @@
   .cdet b{font-size:15px;font-weight:600;}
   .cdet b.ac{color:#b5abe8;}
   .chint{font-size:12px;color:#6f7386;padding:14px 4px 0;text-align:center;}
-  .pts{opacity:.8;font-size:12px;white-space:nowrap;min-width:52px;text-align:right;}
-  #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
-  .banner{background:rgba(145,132,217,.14);border:1px solid var(--accent);border-radius:8px;
-    padding:9px 11px;font-size:12.5px;margin-bottom:10px;line-height:1.45;}
+
+  /* =========================================================
+     6. Pestaña Sorteo
+     ========================================================= */
+  #pSort{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;
+    display:flex;flex-direction:column;align-items:center;}
+  #rTitle{font-size:16px;font-weight:500;margin:0 0 12px;text-align:center;}
+  #rWrap{position:relative;width:min(86vw,420px);}
+  #rCanvas{width:100%;height:auto;display:block;}
+  /* La flecha marca el ganador: apunta hacia abajo, al borde de arriba */
+  #rPin{position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;
+    border-top:20px solid var(--accent);filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));}
+  #rWinner{margin-top:16px;text-align:center;min-height:2.6em;}
+  #rWinner .lbl{font-size:10px;letter-spacing:.12em;color:#6f7386;font-weight:600;}
+  #rWinner .who{font-size:24px;font-weight:700;color:#c9c2f5;line-height:1.25;margin-top:3px;}
+  #rList{width:100%;max-width:420px;margin-top:20px;}
+  #sstatus{font-size:13px;opacity:.6;text-align:center;margin-top:22px;}
 </style>
 </head>
 <body>
+
+<!-- ============ Fondo y barra de pestañas ============ -->
 <img id="bg" alt="">
 
 <div id="tabbar">
   <button id="tabT" class="on">Timer</button>
   <button id="tabP">Emparejamientos<span id="dot"></span></button>
   <button id="tabC">Clasificación</button>
+  <button id="tabS" style="display:none">Sorteo</button>
 </div>
 
+<!-- ============ Timer ============ -->
 <div class="page" id="pTimer">
   <img id="logo" alt="">
   <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
@@ -125,15 +164,7 @@
   <div id="tstatus">Conectando…</div>
 </div>
 
-<div class="page hide" id="pClas">
-  <h1>Clasificaci&oacute;n</h1>
-  <div class="row" style="justify-content:center;margin:6px 0 10px">
-    <select id="mes"></select>
-  </div>
-  <div id="clasBox"></div>
-  <div id="cstatus">Conectando&hellip;</div>
-</div>
-
+<!-- ============ Emparejamientos ============ -->
 <div class="page hide" id="pPair">
   <h1 id="tname">Emparejamientos</h1>
   <div id="tsub"></div>
@@ -144,45 +175,93 @@
   <div id="pstatus">Conectando…</div>
 </div>
 
-<script src="config.js">
-</script>
+<!-- ============ Clasificación mensual ============ -->
+<div class="page hide" id="pClas">
+  <h1>Clasificaci&oacute;n</h1>
+  <div class="row" style="justify-content:center;margin:6px 0 10px">
+    <select id="mes"></select>
+  </div>
+  <div id="clasBox"></div>
+  <div id="cstatus">Conectando&hellip;</div>
+</div>
+
+<!-- ============ Sorteo ============ -->
+<div class="page hide" id="pSort">
+  <h1 id="rTitle">Sorteo</h1>
+  <div id="rWrap">
+    <canvas id="rCanvas" width="440" height="440"></canvas>
+    <div id="rPin"></div>
+  </div>
+  <div id="rWinner"></div>
+  <div id="rList"></div>
+  <div id="sstatus"></div>
+</div>
+
+<script src="config.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+/* =========================================================
+   1. Arranque: Firebase, sala y utilidades
+   ========================================================= */
 const app = initializeApp(FIREBASE_CONFIG);
 const db  = getDatabase(app);
 const $ = id => document.getElementById(id);
 
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+
 const slug = v => (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
                    .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,24);
+
 const SALA = slug(new URLSearchParams(location.search).get("sala")) || "principal";
 const BASE = "salas/" + SALA;
 
+/* El empate vale media victoria, igual que en el sistema oficial */
+const pctTxt = r => {
+  const j = (r.w||0) + (r.l||0) + (r.t||0);
+  return j ? " · " + Math.round(((r.w||0) + (r.t||0)/2) / j * 100) + "%" : "";
+};
+
+let offset = 0;                                   // diferencia con la hora del servidor
+const ahora = () => Date.now() + offset;
+onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
+
+/* =========================================================
+   2. Navegación entre pestañas
+   ========================================================= */
 let tab = "timer";
 function show(t){
   tab = t;
   $("pTimer").classList.toggle("hide", t!=="timer");
-  $("pPair").classList.toggle("hide", t!=="pair");
-  $("pClas").classList.toggle("hide", t!=="clas");
+  $("pPair").classList.toggle("hide",  t!=="pair");
+  $("pClas").classList.toggle("hide",  t!=="clas");
+  $("pSort").classList.toggle("hide",  t!=="sorteo");
   $("tabT").classList.toggle("on", t==="timer");
   $("tabP").classList.toggle("on", t==="pair");
   $("tabC").classList.toggle("on", t==="clas");
+  $("tabS").classList.toggle("on", t==="sorteo");
   document.querySelectorAll(".imgbox").forEach(e => e.style.display = t==="timer" ? "block" : "none");
   $("bg").style.opacity = t==="timer" ? "1" : "0";
   if (t==="pair"){ $("dot").style.visibility="hidden"; seenStamp = P?.updatedAt || 0; }
   if (t==="clas") suscribirHistorial();
+  if (t==="sorteo") pintarRuleta();
 }
 $("tabT").onclick = () => show("timer");
 $("tabP").onclick = () => show("pair");
 $("tabC").onclick = () => show("clas");
+$("tabS").onclick = () => show("sorteo");
 
-let S = null, TH = null, offset = 0;
+/* =========================================================
+   3. Respaldo local
+   El reloj y el diseño quedan guardados en el propio teléfono. Si el jugador
+   recarga la página sin señal, la vista igual aparece y el reloj sigue
+   correcto, porque lo que guardamos es la HORA DE TÉRMINO, no los segundos
+   que faltaban.
+   ========================================================= */
+let S = null, TH = null;
 
-/* Respaldo local: el reloj y el diseno quedan guardados en el propio telefono.
-   Si el jugador recarga la pagina sin senal, la vista igual aparece y el
-   reloj sigue correcto, porque lo que guardamos es la HORA DE TERMINO, no
-   los segundos que faltaban. */
 const RK = "tv-back-" + SALA;
 try {
   const b = JSON.parse(localStorage.getItem(RK) || "null");
@@ -198,34 +277,89 @@ function guardarRespaldo(){
   }, 500);
 }
 
-onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
-
-// Aviso discreto cuando la vista esta mostrando datos guardados
+/* =========================================================
+   4. Conexión
+   ========================================================= */
 onValue(ref(db, ".info/connected"), s => {
   const online = s.val() === true;
-  $("tstatus").textContent = online ? (S ? "" : "Esperando al organizador\u2026")
-                                    : (S ? "Sin conexi\u00f3n \u2014 mostrando lo \u00faltimo recibido" : "Sin conexi\u00f3n\u2026");
+  $("tstatus").textContent = online ? (S ? "" : "Esperando al organizador…")
+                                    : (S ? "Sin conexión — mostrando lo último recibido" : "Sin conexión…");
 });
 
-// El reloj llega por su propio canal (paquete diminuto = respuesta inmediata)
+/* Soltar la conexión cuando el teléfono se bloquea o se cambia de app.
+   El reloj sigue andando solo porque conoce la hora exacta de término. */
+let dormirTimer = null;
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(dormirTimer);
+  if (document.hidden){
+    dormirTimer = setTimeout(() => { try { goOffline(db); } catch(e){} }, 20000);
+  } else {
+    // Se reconecta siempre al volver: si el teléfono cortó la conexión por su
+    // cuenta, goOnline es inofensivo y evita quedarse mirando datos viejos.
+    try { goOnline(db); } catch(e){}
+  }
+});
+
+/* =========================================================
+   5. Reloj
+   Llega por su propio canal (paquete diminuto = respuesta inmediata).
+   ========================================================= */
 onValue(ref(db, BASE + "/timer/state"), snap => {
   S = snap.val();
-  $("tstatus").textContent = S ? "" : "Esperando al organizador\u2026";
+  $("tstatus").textContent = S ? "" : "Esperando al organizador…";
   guardarRespaldo();
-}, () => $("tstatus").textContent = "Sin conexi\u00f3n \u2014 reintentando\u2026");
+  dibujarReloj();
+}, () => $("tstatus").textContent = "Sin conexión — reintentando…");
 
-/* Diseno (colores, posiciones): liviano, llega en vivo con cada cambio. */
-onValue(ref(db, BASE + "/timer/theme"), snap => { TH = snap.val(); applyTheme(); guardarRespaldo(); });
+function fmt(sec){
+  const n = sec < 0, a = Math.abs(sec);
+  return (n?"-":"") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0");
+}
 
-/* Imagenes: pesadas. Se guardan en el propio celular y solo se vuelven a
-   descargar si el organizador cambia alguna de verdad. */
+function dibujarReloj(){
+  if (!S) return;
+  const sec = (S.paused || !S.endTime) ? Math.round(S.remaining ?? 0)
+                                       : Math.round((S.endTime - ahora())/1000);
+  const c = $("clock");
+  c.textContent = fmt(sec);
+  c.style.color = sec < 0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
+  c.classList.toggle("warn", !S.paused && sec <= 10 && sec >= 0);
+  if (S.timerSize) c.style.fontSize = "min(" + S.timerSize + "px, 26vw)";
+}
+
+/* Antes esto giraba con requestAnimationFrame y ahí estaba el bug del reloj
+   detenido: basta que el navegador congele los frames al bloquear la pantalla
+   (o que se escape una excepción) para que el bucle no se vuelva a pedir nunca
+   más y el número quede clavado. Un intervalo no se muere, y como el reloj
+   muestra segundos enteros nadie nota la diferencia. */
+setInterval(() => { try { dibujarReloj(); } catch(e){} }, 250);
+
+// Al volver a primer plano se redibuja de inmediato, sin esperar el intervalo
+["visibilitychange","pageshow","focus","online"].forEach(ev =>
+  window.addEventListener(ev, () => { try { dibujarReloj(); } catch(e){} }));
+
+/* Mantener la pantalla encendida mientras corre la ronda */
+const pedirWakeLock = () => { try { navigator.wakeLock?.request("screen").catch(()=>{}); } catch(e){} };
+pedirWakeLock();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") pedirWakeLock();
+});
+
+/* =========================================================
+   6. Diseño e imágenes
+   "theme" es liviano y llega en vivo con cada cambio. Las imágenes son
+   pesadas: se guardan en el propio celular y solo se vuelven a descargar si
+   el organizador cambia alguna de verdad.
+   ========================================================= */
 const CK = "tv-media-" + SALA;
-let MED = null, medVer = null, modoAntiguo = false;
+let MED = null, medVer = null;
 
 try {
   const c = JSON.parse(localStorage.getItem(CK) || "null");
   if (c && c.m){ MED = c.m; medVer = c.v; }
 } catch(e){}
+
+onValue(ref(db, BASE + "/timer/theme"), snap => { TH = snap.val(); applyTheme(); guardarRespaldo(); });
 
 async function bajarMedia(v){
   try {
@@ -236,39 +370,17 @@ async function bajarMedia(v){
 }
 onValue(ref(db, BASE + "/timer/mediaVersion"), s => {
   const v = s.val();
-  if (v == null){                       // panel todavia sin actualizar
-    if (!modoAntiguo){
-      modoAntiguo = true;
-      onValue(ref(db, BASE + "/timer/theme"), sn => { TH = sn.val(); applyTheme(); });
-    }
-    return;
-  }
-  if (v === medVer && MED) { applyTheme(); return; }
+  if (v == null) return;                          // panel antiguo: las imágenes venían dentro del theme
+  if (v === medVer && MED){ applyTheme(); return; }
   bajarMedia(v);
 });
 
-/* Soltar la conexion cuando el telefono se bloquea o se cambia de app.
-   El reloj sigue andando solo porque conoce la hora exacta de termino. */
-let dormido = false;
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden){
-    dormido = true;
-    setTimeout(() => { if (dormido) { try { goOffline(db); } catch(e){} } }, 20000);
-  } else if (dormido){
-    dormido = false;
-    try { goOnline(db); } catch(e){}
-  }
-});
-
-
-function vistaActual(){
-  return (window.innerHeight >= window.innerWidth) ? "mobile" : "desktop";
-}
+const vistaActual = () => (window.innerHeight >= window.innerWidth) ? "mobile" : "desktop";
 
 function applyTheme(){
   if (!TH) return;
   const modo = vistaActual();
-  const V = TH[modo] || TH.desktop || TH;      // compatible con el formato anterior
+  const V = TH[modo] || TH.desktop || TH;         // compatible con el formato anterior
   const M = (MED && (MED[modo] || MED.desktop)) || {};
   const logoSrc = (MED && MED.logo) || TH.logo || "";
   const bgSrc   = M.bgImage || V.bgImage || "";
@@ -311,40 +423,34 @@ function applyTheme(){
 window.addEventListener("resize", () => { if (TH) applyTheme(); });
 window.addEventListener("orientationchange", () => setTimeout(() => { if (TH) applyTheme(); }, 300));
 
-function fmt(sec){ const n=sec<0,a=Math.abs(sec);
-  return (n?"-":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0"); }
-
-function tick(){
-  if (S){
-    const sec = (S.paused || !S.endTime) ? Math.round(S.remaining??0)
-                                         : Math.round((S.endTime-(Date.now()+offset))/1000);
-    const c = $("clock");
-    c.textContent = fmt(sec);
-    c.style.color = sec<0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
-    c.classList.toggle("warn", !S.paused && sec<=10 && sec>=0);
-    if (S.timerSize) c.style.fontSize = "min(" + S.timerSize + "px, 26vw)";
-  }
-  requestAnimationFrame(tick);
-}
-tick();
-// Si habia respaldo, la vista aparece de inmediato sin esperar a la red
+// Si había respaldo, la vista aparece de inmediato sin esperar a la red
 if (TH) applyTheme();
+dibujarReloj();
 
+/* =========================================================
+   7. Emparejamientos
+   ========================================================= */
 let P = null, sel = null, showStand = false, seenStamp = 0, first = true;
+
+function limpiarPair(msg){
+  $("tname").textContent = "Emparejamientos";
+  $("tsub").textContent  = "";
+  $("banner").style.display = "none";
+  $("rounds").innerHTML = "";
+  $("list").innerHTML   = "";
+  $("q").value = "";
+  sel = null; showStand = false; first = true;
+  $("dot").style.visibility = "hidden";
+  $("pstatus").textContent = msg;
+}
+
 onValue(ref(db, BASE + "/pairings"), snap => {
   P = snap.val();
-  if (!P){
-    // El organizador borró lo publicado: hay que limpiar lo que quedó en pantalla,
-    // si no los nombres siguen visibles aunque ya no existan en Firebase.
-    $("tname").textContent = "Emparejamientos";
-    $("tsub").textContent  = "";
-    $("banner").style.display = "none";
-    $("rounds").innerHTML = "";
-    $("list").innerHTML   = "";
-    $("q").value = "";
-    sel = null; showStand = false; first = true;
-    $("dot").style.visibility = "hidden";
-    $("pstatus").textContent = "A\u00fan no hay emparejamientos publicados.";
+  // El organizador borró lo publicado: hay que limpiar lo que quedó en pantalla,
+  // si no los nombres siguen visibles aunque ya no existan en Firebase.
+  if (!P || !P.rounds || !P.rounds.length){
+    P = null;
+    limpiarPair("Aún no hay emparejamientos publicados.");
     return;
   }
   $("pstatus").textContent = "";
@@ -360,40 +466,41 @@ $("q").oninput = renderPair;
 function renderPair(){
   if (!P) return;
   $("tname").textContent = P.name;
-  $("tsub").textContent = (P.roundtime? "Rondas de "+P.roundtime+" min · ":"") +
+  $("tsub").textContent = (P.roundtime ? "Rondas de "+P.roundtime+" min · " : "") +
     "Actualizado " + new Date(P.updatedAt).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
 
   const b = $("banner");
   if (P.phase === "results"){
-    b.style.display="block";
+    b.style.display = "block";
     b.textContent = "Resultados de la ronda "+P.lastRound+" publicados. Revisa que el tuyo esté correcto y avisa al juez si hay algún error.";
   } else if (P.phase === "paired"){
-    b.style.display="block";
+    b.style.display = "block";
     b.textContent = "Ronda "+P.lastRound+" emparejada. Busca tu mesa.";
-  } else b.style.display="none";
+  } else b.style.display = "none";
 
-  const rb = $("rounds"); rb.innerHTML="";
+  const rb = $("rounds"); rb.innerHTML = "";
   P.rounds.forEach(r => {
-    const btn=document.createElement("button");
-    btn.textContent="R"+r.number;
-    btn.className=(!showStand && sel===r.number)?"on":"";
-    btn.onclick=()=>{sel=r.number;showStand=false;renderPair();};
+    const btn = document.createElement("button");
+    btn.textContent = "R"+r.number;
+    btn.className = (!showStand && sel===r.number) ? "on" : "";
+    btn.onclick = () => { sel=r.number; showStand=false; renderPair(); };
     rb.appendChild(btn);
   });
   if (P.standings?.length){
-    const btn=document.createElement("button");
-    btn.textContent="Posiciones"; btn.className=showStand?"on":"";
-    btn.onclick=()=>{showStand=true;renderPair();};
+    const btn = document.createElement("button");
+    btn.textContent = "Posiciones"; btn.className = showStand ? "on" : "";
+    btn.onclick = () => { showStand=true; renderPair(); };
     rb.appendChild(btn);
   }
 
-  const list=$("list"); list.innerHTML="";
-  const q=$("q").value.trim().toLowerCase();
+  const list = $("list"); list.innerHTML = "";
+  const q = $("q").value.trim().toLowerCase();
+
   if (showStand){
     let h = '<div class="secLabel">POSICIONES FINALES</div>';
-    P.standings.forEach(s=>{
+    P.standings.forEach(s => {
       const hit = q && s.name.toLowerCase().includes(q);
-      const medalla = s.place<=3 ? " pod"+s.place : "";
+      const medalla = s.place <= 3 ? " pod"+s.place : "";
       h += `<div class="frow${hit?" hlrow":""}"${q&&!hit?' style="opacity:.35"':''}>
               <span class="fpos${medalla}">${s.place}</span>
               <div class="fmid"><div class="fname">${esc(s.name)}</div>
@@ -404,19 +511,20 @@ function renderPair(){
     list.innerHTML = h;
     return;
   }
-  const round=P.rounds.find(r=>r.number===sel);
+
+  const round = P.rounds.find(r => r.number === sel);
   const ms = round?.matches || [];
   let mostradas = 0;
-  ms.forEach(m=>{
-    const hit=q && (m.p1.toLowerCase().includes(q) || (m.p2||"").toLowerCase().includes(q));
-    if (q && !hit) return;              // con busqueda activa se ocultan las demas
+  ms.forEach(m => {
+    const hit = q && (m.p1.toLowerCase().includes(q) || (m.p2||"").toLowerCase().includes(q));
+    if (q && !hit) return;                        // con búsqueda activa se ocultan las demás
     mostradas++;
-    const d=document.createElement("div"); d.className="match";
+    const d = document.createElement("div"); d.className = "match";
     if (hit) d.classList.add("hl");
 
-    // Quien gano, para marcarlo en su fila
-    const g1 = m.result && m.p1 && m.result === "Gana " + m.p1;
-    const g2 = m.result && m.p2 && m.result === "Gana " + m.p2;
+    // Quién ganó, para marcarlo en su fila
+    const g1  = m.result && m.p1 && m.result === "Gana " + m.p1;
+    const g2  = m.result && m.p2 && m.result === "Gana " + m.p2;
     const emp = m.result === "Empate";
 
     const fila = (n, r, gana) => {
@@ -425,12 +533,12 @@ function renderPair(){
                   : (emp ? '<span class="tie">EMPATE</span>' : "");
       return `<div class="prow${gana?" won":""}">
                 <div class="pinfo"><div class="pname">${esc(n)}</div>
-                  <div class="pmeta">${r ? r.w+"-"+r.l+"-"+r.t+" \u00b7 "+r.pts+" pts"+pctTxt(r) : ""}</div></div>
+                  <div class="pmeta">${r ? r.w+"-"+r.l+"-"+r.t+" · "+r.pts+" pts"+pctTxt(r) : ""}</div></div>
                 ${marca}</div>`;
     };
 
     d.innerHTML = `
-      <div class="mnum"><span class="mlbl">MESA</span><span class="mval">${m.p2? m.table : "\u2014"}</span></div>
+      <div class="mnum"><span class="mlbl">MESA</span><span class="mval">${m.p2 ? m.table : "—"}</span></div>
       <div class="mbody">
         ${fila(m.p1, m.p1rec, g1)}
         ${m.p2 ? fila(m.p2, m.p2rec, g2)
@@ -438,29 +546,26 @@ function renderPair(){
       </div>`;
     list.appendChild(d);
   });
+
   if (q && !mostradas)
     list.innerHTML = '<div class="vacio"><b>Sin coincidencias</b>'
-      + '<div>Prueba con tu apellido o borra la b\u00fasqueda.</div></div>';
+      + '<div>Prueba con tu apellido o borra la búsqueda.</div></div>';
 }
 
-/* El empate vale media victoria, igual que en el sistema oficial */
-const pctTxt = r => { const j = (r.w||0) + (r.l||0) + (r.t||0);
-  return j ? " \u00b7 " + Math.round(((r.w||0) + (r.t||0)/2) / j * 100) + "%" : ""; };
+/* =========================================================
+   8. Clasificación mensual
+   El historial puede crecer bastante, así que se descarga recién cuando
+   alguien abre la pestaña, no al entrar a la página.
+   ========================================================= */
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
+               "agosto","septiembre","octubre","noviembre","diciembre"];
+function nombreMes(m){
+  const [a,mm] = m.split("-");
+  return MESES[parseInt(mm,10)-1] + " " + a;
+}
 
-try { navigator.wakeLock?.request("screen").catch(()=>{}); } catch(e){}
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState==="visible"){ try{ navigator.wakeLock?.request("screen").catch(()=>{});}catch(e){} }
-});
+let HIST = null, CFG = { puntos:[12,10,8,7,6,5,4,3], resto:1 }, mesSel = null, histOn = false;
 
-/* ================= CLASIFICACIÓN MENSUAL ================= */
-const esc = t => String(t==null?"":t).replace(/[&<>"]/g, c =>
-  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
-
-let HIST = null, CFG = { puntos:[12,10,8,7,6,5,4,3], resto:1 }, mesSel = null;
-
-/* El historial puede crecer bastante, asi que se descarga recien cuando
-   alguien abre la pestana, no al entrar a la pagina. */
-let histOn = false;
 function suscribirHistorial(){
   if (histOn) return;
   histOn = true;
@@ -470,7 +575,7 @@ function suscribirHistorial(){
     renderClas();
   });
   onValue(ref(db, BASE + "/historial"), snap => { HIST = snap.val() || {}; renderClas(); },
-          () => { $("cstatus").textContent = "No se pudo cargar la clasificaci\u00f3n."; });
+          () => { $("cstatus").textContent = "No se pudo cargar la clasificación."; });
 }
 
 function puntosPorPuesto(place){
@@ -485,7 +590,7 @@ function renderClas(soloTabla){
   const torneos = Object.values(HIST);
   if (!torneos.length){
     $("clasBox").innerHTML = "";
-    $("cstatus").textContent = "Todav\u00eda no hay torneos archivados.";
+    $("cstatus").textContent = "Todavía no hay torneos archivados.";
     $("mes").style.display = "none";
     return;
   }
@@ -513,10 +618,9 @@ function renderClas(soloTabla){
   const filas = Object.values(tabla)
     .sort((a,b) => b.pts - a.pts || a.mejor - b.mejor || b.w - a.w || a.name.localeCompare(b.name));
 
-  /* Porcentaje de victorias del mes: se suman TODAS las partidas de todos
-     los torneos y se divide una sola vez. Asi un torneo de 7 rondas pesa
-     mas que uno de 3, que es lo justo.
-     El empate vale media victoria, igual que en el sistema oficial. */
+  /* Porcentaje de victorias del mes: se suman TODAS las partidas de todos los
+     torneos y se divide una sola vez. Así un torneo de 7 rondas pesa más que
+     uno de 3, que es lo justo. El empate vale media victoria. */
   filas.forEach(r => {
     const jugadas = r.w + r.l + r.e;
     r.jugadas = jugadas;
@@ -527,44 +631,150 @@ function renderClas(soloTabla){
           (delMes.length === 1 ? ' torneo' : ' torneos') + ' en ' + nombreMes(mesSel) + '</div>';
   h += '<div class="chead"><span>JUGADOR</span><span>PUNTOS</span></div>';
   filas.forEach((r,i) => {
-    const pos = i+1, medalla = pos<=3 ? " pod"+pos : "";
+    const pos = i+1, medalla = pos <= 3 ? " pod"+pos : "";
     h += `<div class="crow" data-i="${i}">
             <span class="fpos${medalla}">${pos}</span>
             <div class="fmid"><div class="fname">${esc(r.name)}</div>
               <div class="fmeta">${r.torneos} ${r.torneos===1?'torneo':'torneos'}`
-       + (r.wr===null ? '' : ' \u00b7 ' + r.wr.toFixed(0) + '% vict.') + `</div></div>
+       + (r.wr===null ? '' : ' · ' + r.wr.toFixed(0) + '% vict.') + `</div></div>
             <span class="fpts">${r.pts}</span>
           </div>
           <div class="cdet" data-d="${i}">
             <div><span>TORNEOS</span><b>${r.torneos}</b></div>
-            <div><span>MEJOR PUESTO</span><b class="ac">${r.mejor}\u00ba</b></div>
-            <div><span>R\u00c9CORD</span><b>${r.w}-${r.l}-${r.e}</b></div>
+            <div><span>MEJOR PUESTO</span><b class="ac">${r.mejor}º</b></div>
+            <div><span>RÉCORD</span><b>${r.w}-${r.l}-${r.e}</b></div>
           </div>`;
   });
   h += '<div class="chint">Toca una fila para ver el detalle.</div>';
   $("clasBox").innerHTML = h;
+
   // Tocar una fila despliega su detalle y cierra el anterior
   $("clasBox").querySelectorAll(".crow").forEach(row => {
     row.onclick = () => {
       const i = row.dataset.i;
       const det = $("clasBox").querySelector('.cdet[data-d="'+i+'"]');
       const abierto = det.classList.contains("open");
-      $("clasBox").querySelectorAll(".cdet.open").forEach(e=>e.classList.remove("open"));
-      $("clasBox").querySelectorAll(".crow.sel").forEach(e=>e.classList.remove("sel"));
+      $("clasBox").querySelectorAll(".cdet.open").forEach(e => e.classList.remove("open"));
+      $("clasBox").querySelectorAll(".crow.sel").forEach(e => e.classList.remove("sel"));
       if (!abierto){ det.classList.add("open"); row.classList.add("sel"); }
     };
   });
   $("cstatus").textContent = "";
 }
 
-const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
-               "agosto","septiembre","octubre","noviembre","diciembre"];
-function nombreMes(m){
-  const [a,mm] = m.split("-");
-  return MESES[parseInt(mm,10)-1] + " " + a;
+/* =========================================================
+   9. Ruleta de sorteos
+   El organizador publica el giro con la hora exacta de partida, el ángulo
+   inicial y el final. Cada teléfono anima ESE mismo giro con la hora del
+   servidor, así todos ven la rueda frenar en el mismo nombre al mismo tiempo.
+   ========================================================= */
+const TAU = Math.PI * 2;
+const COLORES_RULETA = ["#9184d9","#5aa8e0","#7fd98a","#e0a95a","#d97f9c",
+                        "#8ad9d0","#c98be0","#b0b4c6"];
+const norm = a => ((a % TAU) + TAU) % TAU;
+const easeOut = t => 1 - Math.pow(1 - t, 4);
+
+function dibujarRueda(cv, items, rot){
+  const ctx = cv.getContext("2d");
+  const R = cv.width/2, cx = R, cy = R, N = items.length;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (!N) return;
+
+  const seg = TAU / N;
+  const fuente = Math.max(10, Math.min(20, 460/N));
+  for (let i = 0; i < N; i++){
+    const a0 = rot + i*seg;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R-4, a0, a0+seg);
+    ctx.closePath();
+    ctx.fillStyle = COLORES_RULETA[i % COLORES_RULETA.length];
+    ctx.fill();
+    ctx.strokeStyle = "rgba(14,15,24,.5)"; ctx.lineWidth = 2; ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a0 + seg/2);
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#12131c";
+    ctx.font = "600 " + fuente + "px Inter, system-ui, sans-serif";
+    const txt = items[i].length > 22 ? items[i].slice(0,21) + "…" : items[i];
+    ctx.fillText(txt, R - 16, 0);
+    ctx.restore();
+  }
+
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.13, 0, TAU);
+  ctx.fillStyle = "#0e0f18"; ctx.fill();
+  ctx.strokeStyle = "rgba(233,233,237,.28)"; ctx.lineWidth = 2; ctx.stroke();
 }
 
+let SORT = null, giroId = null, animando = false, rotActual = 0;
 
+onValue(ref(db, BASE + "/sorteo"), snap => {
+  SORT = snap.val();
+  // La pestaña solo aparece si hay algo que mostrar: participantes cargados o
+  // ganadores ya sorteados. Fuera de eso ni se nota que existe.
+  const hay = !!(SORT && ((SORT.items||[]).length || (SORT.ganadores||[]).length));
+  $("tabS").style.display = hay ? "" : "none";
+  if (!hay && tab === "sorteo"){ show("timer"); return; }
+  if (hay) arrancarGiro();
+  pintarRuleta();
+});
+
+function arrancarGiro(){
+  const g = SORT.giro;
+  if (!g || !g.id || g.id === giroId) return;
+  giroId = g.id;
+
+  // Quien abre la página después de que la rueda ya paró no ve el giro de
+  // nuevo: aparece directamente frenada en el ganador.
+  if (ahora() > g.startAt + g.dur){ animando = false; rotActual = g.to; return; }
+
+  animando = true;
+  const fin = () => { animando = false; rotActual = g.to; pintarRuleta(); };
+  const paso = () => {
+    if (!animando) return;
+    const t = Math.min(1, Math.max(0, (ahora() - g.startAt) / g.dur));
+    rotActual = g.from + (g.to - g.from) * easeOut(t);
+    pintarRuleta();
+    if (t < 1) requestAnimationFrame(paso); else fin();
+  };
+  requestAnimationFrame(paso);
+  // Red de seguridad: si el navegador congela los frames, la rueda igual
+  // termina en el nombre correcto en vez de quedarse a medio girar.
+  setTimeout(() => { if (animando) fin(); },
+             Math.max(0, g.startAt - ahora()) + g.dur + 600);
+}
+
+function pintarRuleta(){
+  if (!SORT || tab !== "sorteo") return;
+  $("rTitle").textContent = SORT.titulo || "Sorteo";
+
+  // Mientras haya un giro publicado se dibuja la rueda tal como estaba en ese
+  // giro, para que la flecha siga apuntando al ganador que todos vieron salir.
+  const g = SORT.giro;
+  const items = g?.items?.length ? g.items : (SORT.items || []);
+  dibujarRueda($("rCanvas"), items, rotActual);
+
+  const w = $("rWinner");
+  if (animando)          w.innerHTML = '<div class="lbl">GIRANDO…</div>';
+  else if (g?.ganador)   w.innerHTML = '<div class="lbl">GANADOR</div><div class="who">' + esc(g.ganador) + '</div>';
+  else                   w.innerHTML = '<div class="lbl">LISTO PARA GIRAR</div>';
+
+  const gs = SORT.ganadores || [];
+  $("rList").innerHTML = gs.length
+    ? '<div class="secLabel">GANADORES</div>' + gs.map((x,i) =>
+        `<div class="frow"><span class="fpos">${i+1}</span>
+           <div class="fmid"><div class="fname">${esc(x.nombre)}</div></div></div>`).join("")
+    : "";
+
+  const quedan = (SORT.items || []).length;
+  $("sstatus").textContent = quedan
+    ? quedan + (quedan === 1 ? " participante en la rueda" : " participantes en la rueda")
+    : "El organizador aún no cargó participantes.";
+}
+
+window.addEventListener("resize", () => { if (tab === "sorteo") pintarRuleta(); });
 </script>
 </body>
 </html>

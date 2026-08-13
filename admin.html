@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel del organizador</title>
 <style>
+  /* =========================================================
+     1. Base y controles comunes
+     ========================================================= */
   :root{--bg:#161826;--surface:#232532;--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);--radius:10px;}
   html,body{margin:0;min-height:100%;}
   body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;padding:18px;box-sizing:border-box;}
@@ -15,30 +18,98 @@
   button.sec{border-color:var(--divider);color:var(--text);}
   button.small{padding:5px 10px;font-size:12px;}
   button:disabled{opacity:.4;cursor:default;}
-  input,select{background:var(--bg);border:1px solid var(--divider);border-radius:6px;color:var(--text);
+  input,select,textarea{background:var(--bg);border:1px solid var(--divider);border-radius:6px;color:var(--text);
         padding:7px 9px;font-family:inherit;font-size:13px;box-sizing:border-box;}
   label{font-size:12px;display:block;margin-top:10px;}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .muted{font-size:12px;opacity:.6;} .ok{color:#7fd98a;} .err{color:#e05a5a;} .warnc{color:#EF9F27;}
   .center{display:flex;flex-direction:column;align-items:center;}
 
-  #tabs{display:flex;gap:8px;margin-bottom:16px;}
+  #tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
   #tabs button{border-radius:20px;padding:8px 22px;border-color:var(--divider);color:var(--text);}
   #tabs button.on{border-color:var(--accent);color:var(--accent);}
   .panel.hide{display:none;}
 
-  #clock{font-size:82px;font-weight:600;line-height:1;text-align:center;font-variant-numeric:tabular-nums;
-         cursor:pointer;margin:8px 0;}
-  #clockEdit{font-size:56px;width:280px;text-align:center;background:transparent;border:none;
-             border-bottom:2px solid var(--accent);color:var(--text);outline:none;margin:14px auto;display:none;}
-  .preset.active{border-color:var(--accent);color:var(--accent);}
-  .preset{border-color:var(--divider);color:var(--text);}
-  .imgrow{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;}
-  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:4px;background:var(--bg);}
-
   table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px;}
   td,th{border-bottom:1px solid var(--divider);padding:6px 8px;text-align:left;}
   .rec{opacity:.6;font-size:11.5px;}
+
+  /* =========================================================
+     2. Lienzo del timer
+     ========================================================= */
+  #stageWrap{width:100%;overflow:hidden;display:flex;justify-content:center}
+  #scaler{transform-origin:top center}
+  #canvas{position:relative;overflow:hidden;border-radius:14px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;color:#e9e9ed}
+  #bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+
+  #topbar{position:relative;z-index:1;display:flex;align-items:center;gap:12px;
+    padding:14px 22px;border-bottom:1px solid rgba(233,233,237,.16)}
+  #ttitle{font-weight:500;font-size:16px;margin-right:auto}
+  #logo{max-height:28px;max-width:120px;object-fit:contain}
+  .tbtn{border:1px solid rgba(233,233,237,.16);background:transparent;color:#e9e9ed;
+    border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .tbtn:hover{border-color:var(--accent)}
+  .tbtn.on{border-color:var(--accent);color:var(--accent)}
+
+  #stage{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px}
+  #clock{cursor:pointer;font-weight:500;line-height:1;min-width:280px;text-align:center;
+    font-variant-numeric:tabular-nums;user-select:none}
+  #clockEdit{font-weight:500;line-height:1;width:280px;text-align:center;background:transparent;
+    border:none;border-bottom:2px solid var(--accent);outline:none;color:inherit;display:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .pulsing{animation:pulse 1s ease-in-out infinite}
+  .mainbtn{border:1px solid var(--accent);color:var(--accent);background:transparent;
+    border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
+  .greybtn{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
+    border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
+  #presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .preset{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
+    border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
+  .preset.sel{border-color:var(--accent);color:var(--accent)}
+  .presetX{border:none;background:transparent;color:#e9e9ed;opacity:.5;cursor:pointer;font-size:14px}
+
+  /* Cajitas de imagen que se arrastran sobre el lienzo */
+  .box{position:absolute;z-index:2;display:flex;flex-direction:column}
+  .boxbar{height:16px;cursor:move;background:#232532;border:1px solid rgba(233,233,237,.16);
+    border-bottom:none;border-radius:6px 6px 0 0}
+  .boxbody{flex:1;border-radius:0 0 8px 8px;border:1px dashed rgba(233,233,237,.16);
+    position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .boxbody img{width:100%;height:100%;object-fit:contain}
+  .boxempty{font-size:11px;color:rgba(233,233,237,.55);text-align:center;padding:4px}
+  .handle{position:absolute;background:transparent;z-index:3}
+
+  #menu{position:fixed;z-index:60;display:none;min-width:190px;padding:5px;background:#232532;
+    border:1px solid rgba(233,233,237,.16);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  #menu button{display:block;width:100%;text-align:left;border:none;background:transparent;color:#e9e9ed;
+    font-size:13px;padding:8px 12px;border-radius:6px;cursor:pointer}
+  #menu button:hover{background:rgba(145,132,217,.18)}
+  #menu hr{border:none;border-top:1px solid rgba(233,233,237,.16);margin:4px 0}
+  #menu .danger{color:#e07a7a}
+
+  /* Hoja de ajustes del timer */
+  #settings{position:absolute;inset:0;z-index:5;display:none;place-items:center;padding:16px;
+    background:rgba(14,15,24,.62)}
+  #settings.open{display:grid}
+  #sheet{width:min(440px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;
+    padding:18px;border-radius:14px;background:#232532;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  #sheet h2{font-size:19px;font-weight:500}
+  .lab{font-size:12px;display:block}
+  .lab input[type=range]{display:block;width:100%;margin-top:4px}
+  .col{display:block;width:100%;height:32px;margin-top:4px;border:1px solid rgba(233,233,237,.16);
+    border-radius:6px;background:transparent;cursor:pointer}
+  .seg{display:inline-flex;border:1px solid rgba(233,233,237,.16);border-radius:8px;overflow:hidden}
+  .seg button{padding:6px 12px;font-size:12px;border:none;background:transparent;
+    color:rgba(233,233,237,.55);cursor:pointer}
+  .seg button.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .hint{font-size:11px;color:rgba(233,233,237,.55);margin-top:4px;line-height:1.4}
+  .imgrow{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;}
+  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:4px;background:var(--bg);}
+
+  /* =========================================================
+     3. Emparejamientos
+     ========================================================= */
   #drop{border:2px dashed var(--divider);border-radius:12px;padding:34px 16px;text-align:center;
     cursor:pointer;transition:border-color .15s, background .15s;}
   #drop:hover{border-color:var(--accent);}
@@ -48,73 +119,34 @@
   #drop .sm{font-size:12.5px;opacity:.6;}
   #drop .ico{font-size:26px;opacity:.5;line-height:1;}
   .chk{display:flex;align-items:center;gap:7px;font-size:12.5px;opacity:.85;margin-top:10px;cursor:pointer;}
-  #qr{width:190px;height:190px;background:#fff;padding:8px;border-radius:6px;}
 
-/* ===== lienzo del timer (estilo original) ===== */
-#stageWrap{width:100%;overflow:hidden;display:flex;justify-content:center}
-#scaler{transform-origin:top center}
-#canvas{position:relative;overflow:hidden;border-radius:14px;
-  box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;color:#e9e9ed}
-#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-#topbar{position:relative;z-index:1;display:flex;align-items:center;gap:12px;
-  padding:14px 22px;border-bottom:1px solid rgba(233,233,237,.16)}
-#ttitle{font-weight:500;font-size:16px;margin-right:auto}
-#logo{max-height:28px;max-width:120px;object-fit:contain}
-.tbtn{border:1px solid rgba(233,233,237,.16);background:transparent;color:#e9e9ed;
-  border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.tbtn:hover{border-color:var(--accent)}
-.tbtn.on{border-color:var(--accent);color:var(--accent)}
-#stage{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:16px}
-#clock{cursor:pointer;font-weight:500;line-height:1;min-width:280px;text-align:center;user-select:none}
-#clockEdit{font-weight:500;line-height:1;min-width:280px;text-align:center;background:transparent;
-  border:none;border-bottom:2px solid var(--accent);outline:none;color:inherit;display:none}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-.pulsing{animation:pulse 1s ease-in-out infinite}
-.mainbtn{border:1px solid var(--accent);color:var(--accent);background:transparent;
-  border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
-.greybtn{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
-  border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
-#presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-.preset{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
-  border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
-.preset.sel{border-color:var(--accent);color:var(--accent)}
-.presetX{border:none;background:transparent;color:#e9e9ed;opacity:.5;cursor:pointer;font-size:14px}
-.box{position:absolute;z-index:2;display:flex;flex-direction:column}
-.boxbar{height:16px;cursor:move;background:#232532;border:1px solid rgba(233,233,237,.16);
-  border-bottom:none;border-radius:6px 6px 0 0}
-.boxbody{flex:1;border-radius:0 0 8px 8px;border:1px dashed rgba(233,233,237,.16);
-  position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.boxbody img{width:100%;height:100%;object-fit:contain}
-.boxempty{font-size:11px;color:rgba(233,233,237,.55);text-align:center;padding:4px}
-.handle{position:absolute;background:transparent;z-index:3}
-#menu{position:fixed;z-index:60;display:none;min-width:190px;padding:5px;background:#232532;
-  border:1px solid rgba(233,233,237,.16);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
-#menu button{display:block;width:100%;text-align:left;border:none;background:transparent;color:#e9e9ed;
-  font-size:13px;padding:8px 12px;border-radius:6px;cursor:pointer}
-#menu button:hover{background:rgba(145,132,217,.18)}
-#menu hr{border:none;border-top:1px solid rgba(233,233,237,.16);margin:4px 0}
-#menu .danger{color:#e07a7a}
-#settings{position:absolute;inset:0;z-index:5;display:none;place-items:center;padding:16px;
-  background:rgba(14,15,24,.62)}
-#settings.open{display:grid}
-#sheet{width:min(440px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;
-  padding:18px;border-radius:14px;background:#232532;box-shadow:0 18px 50px rgba(0,0,0,.45)}
-#sheet h2{font-size:19px;font-weight:500}
-.lab{font-size:12px;display:block}
-.lab input[type=range]{display:block;width:100%;margin-top:4px}
-.col{display:block;width:100%;height:32px;margin-top:4px;border:1px solid rgba(233,233,237,.16);
-  border-radius:6px;background:transparent;cursor:pointer}
-.seg{display:inline-flex;border:1px solid rgba(233,233,237,.16);border-radius:8px;overflow:hidden}
-.seg button{padding:6px 12px;font-size:12px;border:none;background:transparent;
-  color:rgba(233,233,237,.55);cursor:pointer}
-.seg button.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.hint{font-size:11px;color:rgba(233,233,237,.55);margin-top:4px;line-height:1.4}
+  /* =========================================================
+     4. Ruleta de sorteos
+     ========================================================= */
+  #sortLayout{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+  #sortCol{flex:1;min-width:260px;}
+  #rItems{width:100%;height:190px;resize:vertical;font-size:13px;line-height:1.5;}
+  #rWrap{position:relative;width:340px;max-width:100%;flex-shrink:0;}
+  #rCanvas{width:100%;height:auto;display:block;}
+  #rPin{position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;
+    border-top:20px solid var(--accent);filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));}
+  #rWinner{text-align:center;margin-top:12px;min-height:2.6em;}
+  #rWinner .lbl{font-size:10px;letter-spacing:.12em;color:#6f7386;font-weight:600;}
+  #rWinner .who{font-size:22px;font-weight:700;color:#c9c2f5;line-height:1.25;margin-top:3px;}
+  #rGanadores{margin-top:12px;font-size:13px;}
+  #rGanadores div{padding:5px 0;border-bottom:1px solid var(--divider);}
+
+  /* =========================================================
+     5. QR
+     ========================================================= */
+  #qr{width:190px;height:190px;background:#fff;padding:8px;border-radius:6px;}
 </style>
 </head>
 <body>
 <h1>Panel del organizador</h1>
 
+<!-- ============ Login ============ -->
 <div class="card" id="loginCard">
   <div class="muted" style="margin-bottom:8px">Inicia sesión para controlar el timer y publicar emparejamientos.</div>
   <div class="row">
@@ -127,6 +159,7 @@
 
 <div id="all" style="display:none">
 
+<!-- ============ Sala ============ -->
 <div class="card" id="salaCard">
   <div class="row">
     <div style="font-size:14px">Sala: <b id="salaName"></b></div>
@@ -144,11 +177,13 @@
 <div id="tabs">
   <button id="tabT" class="on">Timer</button>
   <button id="tabP">Emparejamientos</button>
+  <button id="tabS">Sorteo</button>
 </div>
 
-<!-- ============ TIMER ============ -->
+<!-- ============================================================
+     TIMER
+     ============================================================ -->
 <div class="panel" id="panelT">
-
 <div class="card" style="padding:12px">
   <div id="stageWrap">
     <div id="scaler">
@@ -174,6 +209,7 @@
           <div id="presets"></div>
         </div>
 
+        <!-- Hoja de ajustes -->
         <div id="settings">
           <div id="sheet">
             <h2>Ajustes</h2>
@@ -284,7 +320,9 @@
 </div>
 </div>
 
-<!-- ============ EMPAREJAMIENTOS ============ -->
+<!-- ============================================================
+     EMPAREJAMIENTOS
+     ============================================================ -->
 <div class="panel hide" id="panelP">
 <div class="card">
   <div style="margin-bottom:10px">Carga el <b>.tdf</b> de TOM (el principal tras guardar, o un respaldo <code>_rN-begin</code> / <code>_rN-end</code>).</div>
@@ -338,9 +376,56 @@
 </div>
 </div>
 
-<!-- ============ QR (común) ============ -->
+<!-- ============================================================
+     SORTEO
+     ============================================================ -->
+<div class="panel hide" id="panelS">
+<div class="card">
+  <div id="sortLayout">
+
+    <div id="sortCol">
+      <label style="margin-top:0">T&iacute;tulo del sorteo
+        <input id="rTitulo" style="width:100%;margin-top:4px" placeholder="Sorteo">
+      </label>
+
+      <label>Participantes <span class="muted">(uno por l&iacute;nea)</span>
+        <textarea id="rItems" placeholder="Ana P&eacute;rez&#10;Beto Soto&#10;Carla D&iacute;az"></textarea>
+      </label>
+      <div class="row" style="margin-top:6px">
+        <button id="rDesdeTorneo" class="small sec">Traer jugadores del torneo</button>
+        <span id="rMsg" class="muted"></span>
+      </div>
+
+      <label class="chk" style="margin-top:12px">
+        <input type="checkbox" id="rQuitar" checked> Sacar al ganador de la rueda despu&eacute;s de girar
+      </label>
+
+      <div class="row" style="margin-top:14px">
+        <button id="rGirar">Girar</button>
+        <button id="rReset" class="sec small">Empezar de nuevo</button>
+        <button id="rBorrar" class="sec small">Quitar de la vista</button>
+      </div>
+
+      <div id="rGanadores"></div>
+    </div>
+
+    <div>
+      <div id="rWrap">
+        <canvas id="rCanvas" width="440" height="440"></canvas>
+        <div id="rPin"></div>
+      </div>
+      <div id="rWinner"></div>
+    </div>
+
+  </div>
+  <div class="muted" style="margin-top:14px">El giro se publica con la hora exacta de partida, as&iacute; que la rueda
+    frena en el mismo nombre y al mismo tiempo en el celular de todos los jugadores.</div>
+</div>
+</div>
+
+<!-- ============ QR (común a todas las pestañas) ============ -->
 <div class="card center">
-  <div style="font-size:14px;margin-bottom:8px">QR para los jugadores — timer y emparejamientos en una sola página</div>
+  <div style="font-size:14px;margin-bottom:8px">QR para los jugadores — timer, emparejamientos y sorteo en una sola página</div>
   <img id="qr" alt="QR">
   <div class="row" style="margin-top:8px;width:100%;max-width:460px">
     <input id="shareUrl" readonly style="flex:1">
@@ -351,28 +436,54 @@
 
 <div id="menu"></div>
 <input type="file" accept="image/*" id="fBox" style="display:none">
+
 <script src="config.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, get, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+/* =========================================================
+   1. Arranque: Firebase, sala y utilidades
+   ========================================================= */
 const app  = initializeApp(FIREBASE_CONFIG);
 const db   = getDatabase(app);
 const auth = getAuth(app);
+
 const $ = id => document.getElementById(id);
-const esc = t => String(t==null?"":t).replace(/[&<>"]/g, c =>
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
   ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
-/* ---- Sala: cada organizador tiene su propio espacio de datos ---- */
+/* Cada organizador tiene su propio espacio de datos */
 const slug = v => (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
                    .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,24);
 const SALA = slug(new URLSearchParams(location.search).get("sala")) || "principal";
 const BASE = "salas/" + SALA;
-const T = ref(db, BASE + "/timer");
+const T  = ref(db, BASE + "/timer");
 const LS = k => "tt-" + SALA + "-" + k;
 
-/* ---------------- Login y pestañas ---------------- */
+let offset = 0;                                   // diferencia con la hora del servidor
+const now = () => Date.now() + offset;
+onValue(ref(db, ".info/serverTimeOffset"), s => offset = s.val() || 0);
+
+/* Evita que un clic quede "colgado" para siempre si se corta la conexión a
+   mitad de una publicación: a los 15 s se avisa y se libera el botón para
+   reintentar (la escritura original puede igual llegar después, sola). */
+function conTimeout(promesa, ms){
+  return Promise.race([
+    promesa,
+    new Promise((_, rej) => setTimeout(() => rej(new Error("sin-respuesta")), ms))
+  ]);
+}
+function mensajeConexion(e){
+  return e.message === "sin-respuesta"
+    ? "Sin conexión: no hubo respuesta en 15 s. Revisa el wifi e inténtalo de nuevo."
+    : "Error: " + (e.code || e.message);
+}
+
+/* =========================================================
+   2. Login, sala y pestañas
+   ========================================================= */
 $("loginBtn").onclick = async () => {
   $("loginMsg").textContent = "Entrando…";
   try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
@@ -390,12 +501,14 @@ onAuthStateChanged(auth, async u => {
   $("loginCard").style.display = u ? "none" : "block";
   $("all").style.display = u ? "block" : "none";
   if (!u) return;
+
   // Oculto pestañas y timer hasta confirmar que eres el dueño de la sala,
   // para no mostrar por un instante controles que después se esconden.
   $("tabs").style.display = "none";
   $("panelT").style.display = "none";
   $("salaName").textContent = SALA;
   $("salaInput").value = SALA;
+
   // Quien publica primero en una sala vacía queda como su dueño
   const ownerRef = ref(db, BASE + "/owner");
   let owner = null;
@@ -405,31 +518,39 @@ onAuthStateChanged(auth, async u => {
     try { await set(ownerRef, u.uid); owner = u.uid; } catch(e){}
   }
   soyDueno = owner === u.uid;
+
   if (soyDueno){
     $("salaMsg").innerHTML = '<span class="ok">Eres el organizador de esta sala</span>';
     $("tabs").style.display = ""; $("panelT").style.display = "";
     renderAll();
     // Solo la primera vez que se reclama la sala se publica todo (estado +
-    // diseño + medios). En recargas normales alcanza con el estado: el
-    // diseño y las imágenes ya están en Firebase de la sesión anterior,
-    // y publicarlos de nuevo forzaría a cada celular a re-descargarlos.
+    // diseño + medios). En recargas normales alcanza con el estado: el diseño
+    // y las imágenes ya están en Firebase de la sesión anterior, y publicarlos
+    // de nuevo forzaría a cada celular a re-descargarlos.
     if (salaNueva) cleanAndPublish(); else publishState();
   } else {
     $("salaMsg").innerHTML = '<span class="err">Esta sala ya tiene organizador. Elige otro nombre de sala abajo.</span>';
     $("tabs").style.display = "none";
-    document.querySelectorAll(".panel").forEach(e => e.style.display="none");
+    document.querySelectorAll(".panel").forEach(e => e.style.display = "none");
   }
 });
+
 $("tabT").onclick = () => switchTab("t");
 $("tabP").onclick = () => switchTab("p");
+$("tabS").onclick = () => switchTab("s");
 function switchTab(t){
   $("panelT").classList.toggle("hide", t!=="t");
   $("panelP").classList.toggle("hide", t!=="p");
+  $("panelS").classList.toggle("hide", t!=="s");
   $("tabT").classList.toggle("on", t==="t");
   $("tabP").classList.toggle("on", t==="p");
+  $("tabS").classList.toggle("on", t==="s");
+  if (t === "s") pintarRuleta();
 }
 
-/* ================= TIMER ================= */
+/* =========================================================
+   3. Estado del timer
+   ========================================================= */
 const PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const SIZES = { desktop:{w:1180,h:660}, mobile:{w:620,h:1100} };
 
@@ -439,26 +560,47 @@ function nuevaVista(){
 }
 
 let st = {
-  presetMin:32, customPresets:[], remaining:32*60, paused:true, endTime:null,
+  presetMin:32, customPresets:[], resetSec:32*60, remaining:32*60, paused:true, endTime:null,
   view:"desktop", logo:"", timerColor:"#e9e9ed", negativeColor:"#e05a5a", timerSize:96,
   alarmData:"", alarmName:"",
   desktop:nuevaVista(), mobile:nuevaVista()
 };
-try {
-  const g = JSON.parse(localStorage.getItem(LS("control"))||"{}");
-  Object.assign(st, g);
-  st.desktop = Object.assign(nuevaVista(), g.desktop||{});
-  st.mobile  = Object.assign(nuevaVista(), g.mobile ||{});
-  st.paused = true; st.endTime = null;
-} catch(e){}
+let alarmURL = "", alarmFired = false, audioCtx = null, escala = 1;
 
-let offset = 0, alarmURL = "", alarmFired = false, audioCtx = null, escala = 1;
-onValue(ref(db,".info/serverTimeOffset"), s => offset = s.val()||0);
+try {
+  const g = JSON.parse(localStorage.getItem(LS("control")) || "{}");
+  Object.assign(st, g);
+  st.desktop  = Object.assign(nuevaVista(), g.desktop || {});
+  st.mobile   = Object.assign(nuevaVista(), g.mobile  || {});
+  st.resetSec = g.resetSec || (st.presetMin*60);
+
+  /* Aquí estaba el bug del timer paralizado: al recargar el panel se forzaba
+     el reloj a pausa y ese estado se publicaba enseguida, así que la ronda que
+     iba corriendo se congelaba en el celular de todos. Ahora, si la hora de
+     término todavía es de esta ronda, la cuenta se retoma donde iba. */
+  const RONDA_VIEJA = 2*60*60*1000;               // 2 h: eso ya no es la ronda de hoy
+  if (!g.paused && g.endTime && Date.now() - g.endTime < RONDA_VIEJA){
+    st.endTime   = g.endTime;
+    st.paused    = false;
+    st.remaining = Math.round((g.endTime - Date.now())/1000);
+    alarmFired   = st.remaining <= 0;
+  } else {
+    st.paused    = true;
+    st.endTime   = null;
+    st.remaining = g.paused === false ? st.resetSec : (g.remaining ?? st.resetSec);
+  }
+} catch(e){}
 
 const V = () => st[st.view];
 
-/* El estado del reloj viaja SOLO (unos 100 bytes) para que iniciar/pausar
-   llegue al instante. La apariencia (imagenes, colores) va por separado. */
+/* =========================================================
+   4. Publicación a Firebase
+   El estado del reloj viaja SOLO (unos 100 bytes) para que iniciar/pausar
+   llegue al instante. La apariencia va en dos paquetes aparte:
+     - "theme" = disposición (colores, posiciones, tamaños). Pesa bytes.
+     - "media" = las imágenes. Pesa cientos de KB y casi nunca cambia.
+   Mover una cajita o tocar el brillo reenvía solo lo liviano.
+   ========================================================= */
 const R_STATE = ref(db, BASE + "/timer/state");
 const R_THEME = ref(db, BASE + "/timer/theme");
 
@@ -468,23 +610,18 @@ function snapState(){
            negativeColor: st.negativeColor, timerSize: st.timerSize,
            updatedAt: Date.now() };
 }
-/* El paquete va partido en dos:
-   - "theme"  = solo la disposicion (colores, posiciones, tamanos). Pesa bytes.
-   - "media"  = las imagenes. Pesa cientos de KB y casi nunca cambia.
-   Mover una cajita o tocar el brillo reenvia solo lo liviano. */
 function vistaLimpia(v){
   return { bgType:v.bgType, bgColor1:v.bgColor1, bgColor2:v.bgColor2, bgDir:v.bgDir,
            hasBg: !!v.bgImage, bgBrightness:+v.bgBrightness, bgOpacity:+v.bgOpacity,
-           boxes:(v.boxes||[]).filter(b=>b.src)
-                   .map(b=>({ id:b.id, x:b.x, y:b.y, w:b.w, h:b.h, flip:!!b.flip })) };
+           boxes:(v.boxes||[]).filter(b => b.src)
+                   .map(b => ({ id:b.id, x:b.x, y:b.y, w:b.w, h:b.h, flip:!!b.flip })) };
 }
 function vistaMedia(v){
   return { bgImage: v.bgImage||"",
-           boxes:(v.boxes||[]).filter(b=>b.src).map(b=>({ id:b.id, src:b.src })) };
+           boxes:(v.boxes||[]).filter(b => b.src).map(b => ({ id:b.id, src:b.src })) };
 }
 function snapTheme(){
-  return { desktop: vistaLimpia(st.desktop),
-           mobile: vistaLimpia(st.mobile), updatedAt: Date.now() };
+  return { desktop: vistaLimpia(st.desktop), mobile: vistaLimpia(st.mobile), updatedAt: Date.now() };
 }
 function snapMedia(){
   return { logo: st.logo||"", desktop: vistaMedia(st.desktop), mobile: vistaMedia(st.mobile) };
@@ -540,11 +677,14 @@ async function cleanAndPublish(){
                        media: snapMedia(), mediaVersion: Date.now() }); } catch(e){}
 }
 
-/* ---------- reloj ---------- */
-const now = () => Date.now() + offset;
+/* =========================================================
+   5. Reloj
+   ========================================================= */
 const currentSec = () => st.paused ? Math.round(st.remaining) : Math.round((st.endTime - now())/1000);
-function fmt(sec){ const n=sec<0, a=Math.abs(sec);
-  return (n?"-":"") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0"); }
+function fmt(sec){
+  const n = sec < 0, a = Math.abs(sec);
+  return (n?"-":"") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0");
+}
 
 function startPause(){
   ensureAudio();
@@ -553,10 +693,10 @@ function startPause(){
   publishState(); renderClock();
 }
 function reset(){
-  st.paused = true; st.remaining = st.presetMin*60; st.endTime = null; alarmFired = false;
+  st.paused = true; st.remaining = st.resetSec; st.endTime = null; alarmFired = false;
   publishState(); renderClock();
 }
-function setPreset(m){ st.presetMin = m; reset(); renderPresets(); }
+function setPreset(m){ st.presetMin = m; st.resetSec = m*60; reset(); renderPresets(); }
 
 $("toggleBtn").onclick = startPause;
 $("resetBtn").onclick = () => {
@@ -564,83 +704,113 @@ $("resetBtn").onclick = () => {
   reset();
 };
 $("addPreset").onclick = () => {
-  const v = parseInt($("newPreset").value,10);
-  if (!v || v<=0 || [32,53,...st.customPresets].includes(v)) return;
-  st.customPresets.push(v); $("newPreset").value=""; renderPresets(); saveLocal();
+  const v = parseInt($("newPreset").value, 10);
+  if (!v || v <= 0 || [32,53,...st.customPresets].includes(v)) return;
+  st.customPresets.push(v); $("newPreset").value = ""; renderPresets(); saveLocal();
 };
 
+/* Editar el tiempo a mano tocando el reloj */
 $("clock").onclick = () => {
-  $("clock").style.display="none";
-  const e=$("clockEdit"); e.style.display="block";
+  $("clock").style.display = "none";
+  const e = $("clockEdit"); e.style.display = "block";
   e.value = fmt(currentSec()).replace("-",""); e.focus(); e.select();
 };
 function commitEdit(){
-  const raw = ($("clockEdit").value||"").trim();
+  const raw = ($("clockEdit").value || "").trim();
   let secs;
-  if (raw.includes(":")){ const [m,s]=raw.split(":"); secs=(parseInt(m,10)||0)*60+(parseInt(s,10)||0); }
-  else { const m=parseFloat(raw); secs = isNaN(m) ? currentSec() : Math.round(m*60); }
-  st.remaining = Math.max(0,secs); st.presetMin = Math.round(st.remaining/60) || st.presetMin;
+  if (raw.includes(":")){ const [m,s] = raw.split(":"); secs = (parseInt(m,10)||0)*60 + (parseInt(s,10)||0); }
+  else { const m = parseFloat(raw); secs = isNaN(m) ? currentSec() : Math.round(m*60); }
+  st.remaining = Math.max(0, secs);
+  st.resetSec  = st.remaining;                    // "Reiniciar" vuelve exactamente a esto
+  st.presetMin = st.remaining % 60 === 0 ? st.remaining/60 : null;
   st.paused = true; st.endTime = null; alarmFired = false;
-  $("clockEdit").style.display="none"; $("clock").style.display="block";
+  $("clockEdit").style.display = "none"; $("clock").style.display = "block";
   publishState(); renderPresets(); renderClock();
 }
-function cancelEdit(){ $("clockEdit").style.display="none"; $("clock").style.display="block"; }
+function cancelEdit(){ $("clockEdit").style.display = "none"; $("clock").style.display = "block"; }
 $("clockEdit").onkeydown = e => { if (e.key==="Enter") commitEdit(); if (e.key==="Escape") cancelEdit(); };
 // Un clic afuera del campo (perder el foco) cancela en vez de aplicar: así un
 // clic accidental en el reloj no pausa ni retrocede el tiempo para todos.
 $("clockEdit").onblur = cancelEdit;
-
-/* ---------- sonido ---------- */
-function ensureAudio(){
-  if (!audioCtx){ const C = window.AudioContext||window.webkitAudioContext; if (C) audioCtx = new C(); }
-  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
-}
-function loadAlarm(dataUrl){ alarmURL = dataUrl || ""; }
-function playAlarm(){
-  if (alarmURL){ try { const a=new Audio(alarmURL); a.play().catch(()=>tripleBeep()); return; } catch(e){} }
-  tripleBeep();
-}
-function tripleBeep(){ ensureAudio(); beep(880,.35); setTimeout(()=>beep(880,.35),420); setTimeout(()=>beep(880,.5),840); }
-function beep(f,d){ try{
-  if(!audioCtx) return;
-  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-  o.frequency.value=f; o.type="sine";
-  g.gain.setValueAtTime(.0001,audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(.25,audioCtx.currentTime+.02);
-  g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);
-  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d+.02);
-}catch(e){} }
 
 let ultimoSeg = null;
 function renderClock(){
   const s = currentSec();
   $("clock").textContent = fmt(s);
   $("clock").style.fontSize = st.timerSize+"px";
-  $("clock").style.color = s<0 ? st.negativeColor : st.timerColor;
+  $("clock").style.color = s < 0 ? st.negativeColor : st.timerColor;
   $("clockEdit").style.fontSize = st.timerSize+"px";
-  $("clock").classList.toggle("pulsing", !st.paused && s<=10 && s>=0);
+  $("clock").classList.toggle("pulsing", !st.paused && s <= 10 && s >= 0);
   $("toggleBtn").textContent = st.paused ? "Iniciar" : "Pausar";
   if (!st.paused){
-    if (s===0 && !alarmFired){ alarmFired = true; playAlarm(); }
-    else if (s>0 && s<=10 && s!==ultimoSeg){ ensureAudio(); beep(660,.12); }
+    // "s <= 0" y no "s === 0": si el navegador frena el intervalo (pestaña de
+    // fondo, equipo cargado) el cero puede pasar de largo y la alarma no sonaría.
+    if (s <= 0 && !alarmFired){ alarmFired = true; playAlarm(); }
+    else if (s > 0 && s <= 10 && s !== ultimoSeg){ ensureAudio(); beep(660,.12); }
     ultimoSeg = s;
   }
 }
-setInterval(renderClock, 250);
+setInterval(() => { try { renderClock(); } catch(e){} }, 250);
+// Al volver a la pestaña se redibuja de inmediato, sin esperar el intervalo
+["visibilitychange","pageshow","focus"].forEach(ev =>
+  window.addEventListener(ev, () => { try { renderClock(); } catch(e){} }));
 
-/* ---------- fondo / escala ---------- */
+/* =========================================================
+   6. Sonido
+   ========================================================= */
+function ensureAudio(){
+  if (!audioCtx){ const C = window.AudioContext || window.webkitAudioContext; if (C) audioCtx = new C(); }
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+}
+function loadAlarm(dataUrl){ alarmURL = dataUrl || ""; }
+function playAlarm(){
+  if (alarmURL){ try { const a = new Audio(alarmURL); a.play().catch(() => tripleBeep()); return; } catch(e){} }
+  tripleBeep();
+}
+function tripleBeep(){ ensureAudio(); beep(880,.35); setTimeout(()=>beep(880,.35),420); setTimeout(()=>beep(880,.5),840); }
+function beep(f,d){ try{
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.frequency.value = f; o.type = "sine";
+  g.gain.setValueAtTime(.0001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.25, audioCtx.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d+.02);
+}catch(e){} }
+
+$("fAlarm").onchange = e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    st.alarmData = ev.target.result; st.alarmName = f.name; loadAlarm(st.alarmData);
+    try { localStorage.setItem(LS("alarm"), JSON.stringify({ d:st.alarmData, n:st.alarmName })); } catch(err){}
+    refrescarAjustes();
+  };
+  r.readAsDataURL(f);
+};
+$("testSound").onclick  = () => { ensureAudio(); playAlarm(); };
+$("clearSound").onclick = () => {
+  st.alarmData = ""; st.alarmName = ""; alarmURL = "";
+  try { localStorage.removeItem(LS("alarm")); } catch(e){}
+  refrescarAjustes();
+};
+
+/* =========================================================
+   7. Fondo, escala y presets
+   ========================================================= */
 function pintarFondo(){
   const v = V(), c = $("canvas"), img = $("bgImg"), dim = SIZES[st.view];
   c.style.width = dim.w+"px"; c.style.height = dim.h+"px";
-  c.style.background = v.bgType==="gradient"
+  c.style.background = v.bgType === "gradient"
     ? `linear-gradient(${v.bgDir}, ${v.bgColor1}, ${v.bgColor2})` : v.bgColor1;
-  const usa = v.bgType==="image" && v.bgImage;
+  const usa = v.bgType === "image" && v.bgImage;
   img.style.display = usa ? "block" : "none";
   if (usa){ img.src = v.bgImage; img.style.filter = `brightness(${v.bgBrightness}%) opacity(${v.bgOpacity}%)`; }
   $("logo").src = st.logo || PX;
   $("logo").style.display = st.logo ? "block" : "none";
-  $("btnDesktop").classList.toggle("on", st.view==="desktop");
-  $("btnMobile").classList.toggle("on", st.view==="mobile");
+  $("btnDesktop").classList.toggle("on", st.view === "desktop");
+  $("btnMobile").classList.toggle("on", st.view === "mobile");
   escalar();
 }
 function escalar(){
@@ -652,7 +822,37 @@ function escalar(){
 }
 window.addEventListener("resize", escalar);
 
-/* ---------- cajitas flotantes ---------- */
+function renderPresets(){
+  const c = $("presets"); c.innerHTML = "";
+  [32,53,...st.customPresets].forEach(m => {
+    const w = document.createElement("div");
+    w.style.cssText = "display:inline-flex;align-items:center;gap:3px";
+    const b = document.createElement("button");
+    b.className = "preset" + (st.presetMin === m ? " sel" : "");
+    b.textContent = m+" min"; b.onclick = () => setPreset(m);
+    w.appendChild(b);
+    if (m !== 32 && m !== 53){
+      const x = document.createElement("button");
+      x.className = "presetX"; x.textContent = "×";
+      x.onclick = () => { st.customPresets = st.customPresets.filter(p => p !== m); renderPresets(); saveLocal(); };
+      w.appendChild(x);
+    }
+    c.appendChild(w);
+  });
+}
+
+function cambiarVista(v){ st.view = v; pintarFondo(); renderImgs(); refrescarAjustes(); saveLocal(); }
+$("btnDesktop").onclick = () => cambiarVista("desktop");
+$("btnMobile").onclick  = () => cambiarVista("mobile");
+$("btnFull").onclick = () => {
+  const el = $("canvas");
+  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+};
+
+/* =========================================================
+   8. Cajitas de imagen sobre el lienzo
+   ========================================================= */
 const HANDLES = [
   {dir:"n", cur:"ns-resize",   pos:"top:-4px;left:50%;transform:translateX(-50%);width:16px;height:8px;"},
   {dir:"s", cur:"ns-resize",   pos:"bottom:-4px;left:50%;transform:translateX(-50%);width:16px;height:8px;"},
@@ -663,33 +863,33 @@ const HANDLES = [
   {dir:"se",cur:"nwse-resize", pos:"bottom:-4px;right:-4px;width:12px;height:12px;"},
   {dir:"sw",cur:"nesw-resize", pos:"bottom:-4px;left:-4px;width:12px;height:12px;"}
 ];
-const caja = id => V().boxes.find(b=>b.id===id);
+const caja = id => V().boxes.find(b => b.id === id);
 
 function renderImgs(){
-  document.querySelectorAll(".box").forEach(e=>e.remove());
-  V().boxes.forEach(b=>{
+  document.querySelectorAll(".box").forEach(e => e.remove());
+  V().boxes.forEach(b => {
     const d = document.createElement("div");
     d.className = "box"; d.dataset.id = b.id;
     d.style.cssText = `left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px`;
 
     const bar = document.createElement("div");
     bar.className = "boxbar"; bar.title = "Arrastrar para mover";
-    bar.addEventListener("mousedown", e=>arrastrar(b.id,e));
+    bar.addEventListener("mousedown", e => arrastrar(b.id, e));
 
     const body = document.createElement("div");
     body.className = "boxbody";
     if (!b.src) body.innerHTML = '<span class="boxempty">Clic para poner<br>imagen o GIF</span>';
-    else { const im=document.createElement("img"); im.src=b.src; im.style.transform=`scaleX(${b.flip?-1:1})`; body.appendChild(im); }
-    body.onclick = ()=>pedirImagen(b.id);
+    else { const im = document.createElement("img"); im.src = b.src; im.style.transform = `scaleX(${b.flip?-1:1})`; body.appendChild(im); }
+    body.onclick = () => pedirImagen(b.id);
 
     d.appendChild(bar); d.appendChild(body);
-    HANDLES.forEach(h=>{
-      const k=document.createElement("div"); k.className="handle";
-      k.style.cssText = h.pos+"cursor:"+h.cur+";";
-      k.addEventListener("mousedown", e=>redimensionar(b.id,h.dir,e));
+    HANDLES.forEach(h => {
+      const k = document.createElement("div"); k.className = "handle";
+      k.style.cssText = h.pos + "cursor:" + h.cur + ";";
+      k.addEventListener("mousedown", e => redimensionar(b.id, h.dir, e));
       d.appendChild(k);
     });
-    d.addEventListener("contextmenu", e=>{ e.preventDefault(); e.stopPropagation(); menuCaja(b.id,e); });
+    d.addEventListener("contextmenu", e => { e.preventDefault(); e.stopPropagation(); menuCaja(b.id, e); });
     $("canvas").appendChild(d);
   });
 }
@@ -697,172 +897,167 @@ function renderImgs(){
 function agregarCaja(x,y){
   const v = V(), dim = SIZES[st.view], id = v.nextId++;
   v.boxes.push({ id,
-    x: Math.max(0, Math.min(x!=null?x:dim.w/2-75, dim.w-150)),
-    y: Math.max(0, Math.min(y!=null?y:dim.h/2-100, dim.h-200)),
+    x: Math.max(0, Math.min(x!=null ? x : dim.w/2-75, dim.w-150)),
+    y: Math.max(0, Math.min(y!=null ? y : dim.h/2-100, dim.h-200)),
     w:150, h:200, src:"", flip:false });
   renderImgs(); publishTheme();
   return id;
 }
-function arrastrar(id,e){
+function arrastrar(id, e){
   e.preventDefault();
-  const b=caja(id), x0=e.clientX, y0=e.clientY, ox=b.x, oy=b.y, dim=SIZES[st.view];
+  const b = caja(id), x0 = e.clientX, y0 = e.clientY, ox = b.x, oy = b.y, dim = SIZES[st.view];
   const mover = ev => {
     b.x = Math.max(0, Math.min(ox+(ev.clientX-x0)/escala, dim.w-20));
     b.y = Math.max(0, Math.min(oy+(ev.clientY-y0)/escala, dim.h-20));
     const el = document.querySelector('.box[data-id="'+id+'"]');
-    if (el){ el.style.left=b.x+"px"; el.style.top=b.y+"px"; }
+    if (el){ el.style.left = b.x+"px"; el.style.top = b.y+"px"; }
   };
-  const soltar = ()=>{ window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
-  window.addEventListener("mousemove",mover); window.addEventListener("mouseup",soltar);
+  const soltar = () => { window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
+  window.addEventListener("mousemove", mover); window.addEventListener("mouseup", soltar);
 }
-function redimensionar(id,dir,e){
+function redimensionar(id, dir, e){
   e.preventDefault(); e.stopPropagation();
-  const b=caja(id), o={x:b.x,y:b.y,w:b.w,h:b.h}, x0=e.clientX, y0=e.clientY;
+  const b = caja(id), o = {x:b.x,y:b.y,w:b.w,h:b.h}, x0 = e.clientX, y0 = e.clientY;
   const mover = ev => {
-    const dx=(ev.clientX-x0)/escala, dy=(ev.clientY-y0)/escala;
-    let {x,y,w,h}=o;
-    if (dir.includes("e")) w=Math.max(50,o.w+dx);
-    if (dir.includes("s")) h=Math.max(50,o.h+dy);
-    if (dir.includes("w")){ w=Math.max(50,o.w-dx); x=o.x+(o.w-w); }
-    if (dir.includes("n")){ h=Math.max(50,o.h-dy); y=o.y+(o.h-h); }
-    Object.assign(b,{x,y,w,h});
-    const el=document.querySelector('.box[data-id="'+id+'"]');
+    const dx = (ev.clientX-x0)/escala, dy = (ev.clientY-y0)/escala;
+    let {x,y,w,h} = o;
+    if (dir.includes("e")) w = Math.max(50, o.w+dx);
+    if (dir.includes("s")) h = Math.max(50, o.h+dy);
+    if (dir.includes("w")){ w = Math.max(50, o.w-dx); x = o.x+(o.w-w); }
+    if (dir.includes("n")){ h = Math.max(50, o.h-dy); y = o.y+(o.h-h); }
+    Object.assign(b, {x,y,w,h});
+    const el = document.querySelector('.box[data-id="'+id+'"]');
     if (el) el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
   };
-  const soltar = ()=>{ window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
-  window.addEventListener("mousemove",mover); window.addEventListener("mouseup",soltar);
+  const soltar = () => { window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
+  window.addEventListener("mousemove", mover); window.addEventListener("mouseup", soltar);
 }
 
 let cajaObjetivo = null;
-function pedirImagen(id){ cajaObjetivo=id; $("fBox").value=""; $("fBox").click(); }
+function pedirImagen(id){ cajaObjetivo = id; $("fBox").value = ""; $("fBox").click(); }
 $("fBox").onchange = e => {
   const f = e.target.files && e.target.files[0];
-  if (!f || cajaObjetivo==null) return;
-  compressImage(f, 700, .85, d => { const b=caja(cajaObjetivo); if(b){ b.src=d; renderImgs(); publishMedia(); } });
+  if (!f || cajaObjetivo == null) return;
+  compressImage(f, 700, .85, d => { const b = caja(cajaObjetivo); if (b){ b.src = d; renderImgs(); publishMedia(); } });
 };
 
-/* ---------- menú de clic derecho ---------- */
-function abrirMenu(x,y,items){
-  const m=$("menu"); m.innerHTML="";
-  items.forEach(it=>{
-    if (it==="-"){ m.appendChild(document.createElement("hr")); return; }
-    const b=document.createElement("button");
-    b.textContent=it.label; if(it.danger) b.className="danger";
-    b.onclick=()=>{ cerrarMenu(); it.fn(); };
+/* Menú de clic derecho */
+function abrirMenu(x, y, items){
+  const m = $("menu"); m.innerHTML = "";
+  items.forEach(it => {
+    if (it === "-"){ m.appendChild(document.createElement("hr")); return; }
+    const b = document.createElement("button");
+    b.textContent = it.label; if (it.danger) b.className = "danger";
+    b.onclick = () => { cerrarMenu(); it.fn(); };
     m.appendChild(b);
   });
-  m.style.display="block";
-  const r=m.getBoundingClientRect();
-  m.style.left=Math.min(x, innerWidth-r.width-8)+"px";
-  m.style.top =Math.min(y, innerHeight-r.height-8)+"px";
+  m.style.display = "block";
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.min(x, innerWidth-r.width-8)+"px";
+  m.style.top  = Math.min(y, innerHeight-r.height-8)+"px";
 }
-function cerrarMenu(){ $("menu").style.display="none"; }
+function cerrarMenu(){ $("menu").style.display = "none"; }
 window.addEventListener("click", cerrarMenu);
 
-function menuCaja(id,e){
-  const b=caja(id);
-  abrirMenu(e.clientX,e.clientY,[
-    {label: b.src?"Cambiar imagen o GIF":"Poner imagen o GIF", fn:()=>pedirImagen(id)},
-    {label:"Voltear (espejo)", fn:()=>{ b.flip=!b.flip; renderImgs(); publishTheme(); }},
+function menuCaja(id, e){
+  const b = caja(id);
+  abrirMenu(e.clientX, e.clientY, [
+    {label: b.src ? "Cambiar imagen o GIF" : "Poner imagen o GIF", fn: () => pedirImagen(id)},
+    {label: "Voltear (espejo)", fn: () => { b.flip = !b.flip; renderImgs(); publishTheme(); }},
     "-",
-    {label:"Eliminar esta cajita", danger:true, fn:()=>{ V().boxes=V().boxes.filter(x=>x.id!==id); renderImgs(); publishMedia(); }}
+    {label: "Eliminar esta cajita", danger:true,
+     fn: () => { V().boxes = V().boxes.filter(x => x.id !== id); renderImgs(); publishMedia(); }}
   ]);
 }
-$("canvas").addEventListener("contextmenu", e=>{
+$("canvas").addEventListener("contextmenu", e => {
   if (e.target.closest(".box")) return;
   if ($("settings").classList.contains("open")) return;
   e.preventDefault();
-  const r=$("canvas").getBoundingClientRect();
-  const x=(e.clientX-r.left)/escala, y=(e.clientY-r.top)/escala;
-  abrirMenu(e.clientX,e.clientY,[
-    {label:"Agregar cajita aqu\u00ed", fn:()=>{ const id=agregarCaja(x-75,y-100); pedirImagen(id); }},
-    {label:"Agregar cajita vac\u00eda", fn:()=>agregarCaja(x-75,y-100)}
+  const r = $("canvas").getBoundingClientRect();
+  const x = (e.clientX-r.left)/escala, y = (e.clientY-r.top)/escala;
+  abrirMenu(e.clientX, e.clientY, [
+    {label:"Agregar cajita aquí",  fn: () => { const id = agregarCaja(x-75, y-100); pedirImagen(id); }},
+    {label:"Agregar cajita vacía", fn: () => agregarCaja(x-75, y-100)}
   ]);
 });
 
-/* ---------- vistas ---------- */
-function cambiarVista(v){ st.view=v; pintarFondo(); renderImgs(); refrescarAjustes(); saveLocal(); }
-$("btnDesktop").onclick = ()=>cambiarVista("desktop");
-$("btnMobile").onclick  = ()=>cambiarVista("mobile");
-$("btnFull").onclick = () => {
-  const el=$("canvas");
-  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-  else if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
-};
-
-/* ---------- ajustes ---------- */
-$("btnSettings").onclick = ()=>{ refrescarAjustes(); $("settings").classList.add("open"); };
-$("btnCloseSettings").onclick = ()=>$("settings").classList.remove("open");
+/* =========================================================
+   9. Hoja de ajustes e imágenes
+   ========================================================= */
+$("btnSettings").onclick      = () => { refrescarAjustes(); $("settings").classList.add("open"); };
+$("btnCloseSettings").onclick = () => $("settings").classList.remove("open");
 
 function refrescarAjustes(){
   const v = V();
-  $("bgWhich").textContent = st.view==="desktop" ? "vista computador" : "vista celular";
-  $("bgHint").textContent = "El brillo y la opacidad se aplican a la vista que est\u00e1s mirando ahora ("
-    + (st.view==="desktop"?"computador":"celular") + ").";
-  const kb = s => s ? " \u2014 " + Math.round(s.length*0.75/1024) + " KB" : "";
-  $("stDesktop").textContent = st.desktop.bgImage ? "Imagen cargada \u2713" + kb(st.desktop.bgImage) : "Sin imagen cargada";
-  $("stMobile").textContent  = st.mobile.bgImage  ? "Imagen cargada \u2713" + kb(st.mobile.bgImage)  : "Sin imagen cargada";
-  $("stLogo").textContent    = st.logo ? "Logo cargado \u2713" + kb(st.logo) : "Sin logo";
+  $("bgWhich").textContent = st.view === "desktop" ? "vista computador" : "vista celular";
+  $("bgHint").textContent = "El brillo y la opacidad se aplican a la vista que estás mirando ahora ("
+    + (st.view === "desktop" ? "computador" : "celular") + ").";
+  const kb = s => s ? " — " + Math.round(s.length*0.75/1024) + " KB" : "";
+  $("stDesktop").textContent = st.desktop.bgImage ? "Imagen cargada ✓" + kb(st.desktop.bgImage) : "Sin imagen cargada";
+  $("stMobile").textContent  = st.mobile.bgImage  ? "Imagen cargada ✓" + kb(st.mobile.bgImage)  : "Sin imagen cargada";
+  $("stLogo").textContent    = st.logo ? "Logo cargado ✓" + kb(st.logo) : "Sin logo";
   const totalKB = Math.round(JSON.stringify(snapTheme()).length*0.75/1024);
   $("stPeso").textContent = "Peso total que descarga cada jugador: " + totalKB + " KB"
-    + (totalKB > 600 ? "  \u26a0 conviene bajarlo" : "");
-  $("bgTColor").classList.toggle("on", v.bgType==="color");
-  $("bgTGrad").classList.toggle("on", v.bgType==="gradient");
-  $("bgTImg").classList.toggle("on", v.bgType==="image");
-  $("bgColorWrap").style.display = v.bgType==="color"?"block":"none";
-  $("bgGradWrap").style.display  = v.bgType==="gradient"?"block":"none";
-  $("bgImgWrap").style.display   = v.bgType==="image"?"block":"none";
-  $("bgC1").value=v.bgColor1; $("bgG1").value=v.bgColor1; $("bgG2").value=v.bgColor2;
-  $("bgDir").value=v.bgDir; $("bgBri").value=v.bgBrightness; $("bgOpa").value=v.bgOpacity;
-  $("cTimer").value=st.timerColor; $("cNeg").value=st.negativeColor;
-  $("cSize").value=st.timerSize; $("szVal").textContent=st.timerSize;
+    + (totalKB > 600 ? "  ⚠ conviene bajarlo" : "");
+  $("bgTColor").classList.toggle("on", v.bgType === "color");
+  $("bgTGrad").classList.toggle("on",  v.bgType === "gradient");
+  $("bgTImg").classList.toggle("on",   v.bgType === "image");
+  $("bgColorWrap").style.display = v.bgType === "color"    ? "block" : "none";
+  $("bgGradWrap").style.display  = v.bgType === "gradient" ? "block" : "none";
+  $("bgImgWrap").style.display   = v.bgType === "image"    ? "block" : "none";
+  $("bgC1").value = v.bgColor1; $("bgG1").value = v.bgColor1; $("bgG2").value = v.bgColor2;
+  $("bgDir").value = v.bgDir; $("bgBri").value = v.bgBrightness; $("bgOpa").value = v.bgOpacity;
+  $("cTimer").value = st.timerColor; $("cNeg").value = st.negativeColor;
+  $("cSize").value = st.timerSize; $("szVal").textContent = st.timerSize;
   $("alarmName").textContent = st.alarmName || "Sin archivo: usa un tono triple.";
 }
 
-function setBgType(t){ V().bgType=t; pintarFondo(); refrescarAjustes(); publishTheme(); }
-$("bgTColor").onclick=()=>setBgType("color");
-$("bgTGrad").onclick =()=>setBgType("gradient");
-$("bgTImg").onclick  =()=>setBgType("image");
-$("bgC1").oninput = e=>{ V().bgColor1=e.target.value; pintarFondo(); publishTheme(); };
-$("bgG1").oninput = e=>{ V().bgColor1=e.target.value; pintarFondo(); publishTheme(); };
-$("bgG2").oninput = e=>{ V().bgColor2=e.target.value; pintarFondo(); publishTheme(); };
-$("bgDir").onchange = e=>{ V().bgDir=e.target.value; pintarFondo(); publishTheme(); };
-$("bgBri").oninput = e=>{ V().bgBrightness=+e.target.value; pintarFondo(); publishTheme(); };
-$("bgOpa").oninput = e=>{ V().bgOpacity=+e.target.value; pintarFondo(); publishTheme(); };
-$("cTimer").oninput = e=>{ st.timerColor=e.target.value; renderClock(); publishState(); };
-$("cNeg").oninput   = e=>{ st.negativeColor=e.target.value; renderClock(); publishState(); };
-$("cSize").oninput  = e=>{ st.timerSize=+e.target.value; $("szVal").textContent=st.timerSize; renderClock(); publishState(); };
+function setBgType(t){ V().bgType = t; pintarFondo(); refrescarAjustes(); publishTheme(); }
+$("bgTColor").onclick = () => setBgType("color");
+$("bgTGrad").onclick  = () => setBgType("gradient");
+$("bgTImg").onclick   = () => setBgType("image");
+$("bgC1").oninput   = e => { V().bgColor1 = e.target.value; pintarFondo(); publishTheme(); };
+$("bgG1").oninput   = e => { V().bgColor1 = e.target.value; pintarFondo(); publishTheme(); };
+$("bgG2").oninput   = e => { V().bgColor2 = e.target.value; pintarFondo(); publishTheme(); };
+$("bgDir").onchange = e => { V().bgDir = e.target.value; pintarFondo(); publishTheme(); };
+$("bgBri").oninput  = e => { V().bgBrightness = +e.target.value; pintarFondo(); publishTheme(); };
+$("bgOpa").oninput  = e => { V().bgOpacity = +e.target.value; pintarFondo(); publishTheme(); };
+$("cTimer").oninput = e => { st.timerColor = e.target.value; renderClock(); publishState(); };
+$("cNeg").oninput   = e => { st.negativeColor = e.target.value; renderClock(); publishState(); };
+$("cSize").oninput  = e => { st.timerSize = +e.target.value; $("szVal").textContent = st.timerSize; renderClock(); publishState(); };
 
 function compressImage(file, maxW, quality, cb, forceJpeg){
   const r = new FileReader();
   r.onload = ev => {
     const im = new Image();
     im.onload = () => {
-      let w=im.width, h=im.height;
-      const k=Math.min(1, maxW/Math.max(w,h));
-      w=Math.round(w*k); h=Math.round(h*k);
-      const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
-      const cx=cv.getContext("2d"); cx.drawImage(im,0,0,w,h);
+      let w = im.width, h = im.height;
+      const k = Math.min(1, maxW/Math.max(w,h));
+      w = Math.round(w*k); h = Math.round(h*k);
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0, w, h);
       if (forceJpeg) return cb(cv.toDataURL("image/jpeg", quality));
-      // Los GIF se dejan intactos para que sigan animandose
+      // Los GIF se dejan intactos para que sigan animándose
       if (/gif/i.test(file.type)) return cb(ev.target.result);
-      // PNG solo si de verdad tiene zonas transparentes; si no, JPEG (mucho mas liviano)
+      // PNG solo si de verdad tiene zonas transparentes; si no, JPEG (mucho más liviano)
       let transp = false;
       try {
         const px = cx.getImageData(0,0,w,h).data;
-        for (let i=3; i<px.length; i+=4){ if (px[i] < 250){ transp = true; break; } }
+        for (let i = 3; i < px.length; i += 4){ if (px[i] < 250){ transp = true; break; } }
       } catch(e){ transp = /png|webp/i.test(file.type); }
       cb(transp ? cv.toDataURL("image/png") : cv.toDataURL("image/jpeg", quality));
     };
-    im.onerror = ()=>cb(ev.target.result);
+    im.onerror = () => cb(ev.target.result);
     im.src = ev.target.result;
   };
   r.readAsDataURL(file);
 }
 
-$("fLogo").onchange = e => { const f=e.target.files[0];
-  if (f) compressImage(f,600,.9,d=>{ st.logo=d; pintarFondo(); refrescarAjustes(); publishMedia(); }); };
-$("btnDelLogo").onclick = ()=>{ st.logo=""; pintarFondo(); refrescarAjustes(); publishMedia(); };
+$("fLogo").onchange = e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) compressImage(f, 600, .9, d => { st.logo = d; pintarFondo(); refrescarAjustes(); publishMedia(); });
+};
+$("btnDelLogo").onclick = () => { st.logo = ""; pintarFondo(); refrescarAjustes(); publishMedia(); };
 
 function subirFondo(vista, f){
   compressImage(f, 1280, .70, d => {
@@ -870,65 +1065,41 @@ function subirFondo(vista, f){
     pintarFondo(); refrescarAjustes(); publishMedia();
   }, true);
 }
-$("fBgDesktop").onchange = e=>{ const f=e.target.files[0]; if(f) subirFondo("desktop",f); };
-$("fBgMobile").onchange  = e=>{ const f=e.target.files[0]; if(f) subirFondo("mobile",f); };
-$("btnDelBgD").onclick = ()=>{ st.desktop.bgImage=""; pintarFondo(); refrescarAjustes(); publishMedia(); };
-$("btnDelBgM").onclick = ()=>{ st.mobile.bgImage="";  pintarFondo(); refrescarAjustes(); publishMedia(); };
+$("fBgDesktop").onchange = e => { const f = e.target.files && e.target.files[0]; if (f) subirFondo("desktop", f); };
+$("fBgMobile").onchange  = e => { const f = e.target.files && e.target.files[0]; if (f) subirFondo("mobile", f); };
+$("btnDelBgD").onclick = () => { st.desktop.bgImage = ""; pintarFondo(); refrescarAjustes(); publishMedia(); };
+$("btnDelBgM").onclick = () => { st.mobile.bgImage  = ""; pintarFondo(); refrescarAjustes(); publishMedia(); };
 
-$("fAlarm").onchange = e => {
-  const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload = ev => {
-    st.alarmData=ev.target.result; st.alarmName=f.name; loadAlarm(st.alarmData);
-    try { localStorage.setItem(LS("alarm"), JSON.stringify({d:st.alarmData,n:st.alarmName})); } catch(err){}
-    refrescarAjustes();
-  };
-  r.readAsDataURL(f);
-};
-$("testSound").onclick = ()=>{ ensureAudio(); playAlarm(); };
-$("clearSound").onclick = ()=>{ st.alarmData=""; st.alarmName=""; alarmURL="";
-  try { localStorage.removeItem(LS("alarm")); } catch(e){} refrescarAjustes(); };
-
-function renderPresets(){
-  const c=$("presets"); c.innerHTML="";
-  [32,53,...st.customPresets].forEach(m=>{
-    const w=document.createElement("div");
-    w.style.cssText="display:inline-flex;align-items:center;gap:3px";
-    const b=document.createElement("button");
-    b.className="preset"+(st.presetMin===m?" sel":"");
-    b.textContent=m+" min"; b.onclick=()=>setPreset(m);
-    w.appendChild(b);
-    if (m!==32 && m!==53){
-      const x=document.createElement("button");
-      x.className="presetX"; x.textContent="\u00d7";
-      x.onclick=()=>{ st.customPresets=st.customPresets.filter(p=>p!==m); renderPresets(); saveLocal(); };
-      w.appendChild(x);
-    }
-    c.appendChild(w);
-  });
-}
-
+/* =========================================================
+   10. Arranque de la interfaz
+   ========================================================= */
 function renderAll(){
-  // Netlify y otros servidores esconden el ".html", asi que cortamos por "/"
+  // Netlify y otros servidores esconden el ".html", así que cortamos por "/"
   const carpeta = location.pathname.replace(/admin\/?$/, "").replace(/[^/]*$/, "");
   const url = location.origin + carpeta + "timer-view.html"
-              + (SALA==="principal" ? "" : "?sala="+SALA);
+              + (SALA === "principal" ? "" : "?sala="+SALA);
   $("shareUrl").value = url;
-  $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
-  $("qr").onerror = () => { $("qr").style.opacity=".25"; $("qr").title="No se pudo generar el QR — usa el enlace de abajo"; };
+  $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(url);
+  $("qr").onerror = () => { $("qr").style.opacity = ".25"; $("qr").title = "No se pudo generar el QR — usa el enlace de abajo"; };
   $("copyBtn").onclick = () => navigator.clipboard?.writeText(url);
-  try { const a=JSON.parse(localStorage.getItem(LS("alarm"))||"null");
-    if (a?.d){ st.alarmData=a.d; st.alarmName=a.n; loadAlarm(a.d); } } catch(e){}
+
+  try {
+    const a = JSON.parse(localStorage.getItem(LS("alarm")) || "null");
+    if (a?.d){ st.alarmData = a.d; st.alarmName = a.n; loadAlarm(a.d); }
+  } catch(e){}
+
   pintarFondo(); renderImgs(); renderPresets(); renderClock(); refrescarAjustes();
   document.addEventListener("click", ensureAudio, { once:false });
 }
 
-/* ================= EMPAREJAMIENTOS ================= */
+/* =========================================================
+   11. Lectura del .tdf de TOM
+   ========================================================= */
 let parsed = null;
-const P1WIN=[1,8], P2WIN=[2,10], TIE=[3], DBLLOSS=[4], BYE=[5];
+const P1WIN = [1,8], P2WIN = [2,10], TIE = [3], DBLLOSS = [4], BYE = [5];
 
-/* TOM escribe la fecha al estilo de EE.UU. (mes/dia/anio). Devuelve aaaa-mm-dd
-   o cadena vacia si no logra entenderla; el organizador la confirma a mano. */
+/* TOM escribe la fecha al estilo de EE.UU. (mes/día/año). Devuelve aaaa-mm-dd
+   o cadena vacía si no logra entenderla; el organizador la confirma a mano. */
 function fechaISO(txt){
   if (!txt) return "";
   let m = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -944,21 +1115,21 @@ function fechaISO(txt){
 function parseTdf(xmlText){
   const doc = new DOMParser().parseFromString(xmlText, "text/xml");
   if (doc.querySelector("parsererror")) throw new Error("XML inválido");
-  const name = doc.querySelector("data > name")?.textContent || "Torneo";
+  const name      = doc.querySelector("data > name")?.textContent || "Torneo";
   const roundtime = doc.querySelector("data > roundtime")?.textContent || "";
   const startdate = doc.querySelector("data > startdate")?.textContent?.trim() || "";
 
   const names = {};
   doc.querySelectorAll("tournament > players > player").forEach(p => {
-    const full = ((p.querySelector("firstname")?.textContent||"")+" "+
+    const full = ((p.querySelector("firstname")?.textContent||"") + " " +
                   (p.querySelector("lastname")?.textContent||"")).trim();
     if (full) names[p.getAttribute("userid")] = full;
   });
   if (!Object.keys(names).length) throw new Error("no encontré la lista de jugadores");
 
-  const rec = {}; Object.keys(names).forEach(id => rec[id]={w:0,l:0,t:0});
-  const snapRec = id => { const r=rec[id]||{w:0,l:0,t:0};
-    return {w:r.w,l:r.l,t:r.t,pts:r.w*3+r.t}; };
+  const rec = {}; Object.keys(names).forEach(id => rec[id] = {w:0,l:0,t:0});
+  const snapRec = id => { const r = rec[id] || {w:0,l:0,t:0};
+    return { w:r.w, l:r.l, t:r.t, pts:r.w*3 + r.t }; };
 
   // Si el .tdf tiene más de un "pod" (por ejemplo, fase suiza + corte a Top X
   // en un pod aparte), se usa solo el último: es la fase vigente del torneo.
@@ -968,19 +1139,20 @@ function parseTdf(xmlText){
   (podActivo ? podActivo.querySelectorAll("rounds > round") : []).forEach(r => {
     const raw = [];
     r.querySelectorAll("matches > match").forEach(m => raw.push({
-      out: parseInt(m.getAttribute("outcome")||"0",10),
-      p1: m.querySelector("player1")?.getAttribute("userid") || null,
-      p2: m.querySelector("player2")?.getAttribute("userid") || null,
-      solo: m.querySelector("player")?.getAttribute("userid") || null,
-      table: parseInt(m.querySelector("tablenumber")?.textContent||"0",10)
+      out:   parseInt(m.getAttribute("outcome")||"0", 10),
+      p1:    m.querySelector("player1")?.getAttribute("userid") || null,
+      p2:    m.querySelector("player2")?.getAttribute("userid") || null,
+      solo:  m.querySelector("player")?.getAttribute("userid") || null,
+      table: parseInt(m.querySelector("tablenumber")?.textContent||"0", 10)
     }));
-    // Primero se cuentan los resultados de esta ronda y despues se arma la
-    // tabla. Asi el record que ve el jugador YA incluye lo que acaba de pasar.
-    // Si la ronda todavia no tiene resultados, no suma nada y el record
+
+    // Primero se cuentan los resultados de esta ronda y después se arma la
+    // tabla. Así el récord que ve el jugador YA incluye lo que acaba de pasar.
+    // Si la ronda todavía no tiene resultados, no suma nada y el récord
     // mostrado sigue siendo el previo, que es lo correcto en ese momento.
     raw.forEach(m => {
-      const A=rec[m.p1], B=rec[m.p2], S=rec[m.solo];
-      if (BYE.includes(m.out) && S) S.w++;
+      const A = rec[m.p1], B = rec[m.p2], S = rec[m.solo];
+      if      (BYE.includes(m.out) && S) S.w++;
       else if (P1WIN.includes(m.out) && A && B){ A.w++; B.l++; }
       else if (P2WIN.includes(m.out) && A && B){ B.w++; A.l++; }
       else if (TIE.includes(m.out) && A && B){ A.t++; B.t++; }
@@ -991,16 +1163,16 @@ function parseTdf(xmlText){
       const n1 = names[m.p1 || m.solo] || "?";
       const n2 = m.p2 ? (names[m.p2] || "?") : null;
       let result = "";
-      if (P1WIN.includes(m.out)) result = "Gana " + n1;
-      else if (P2WIN.includes(m.out)) result = "Gana " + n2;
-      else if (TIE.includes(m.out)) result = "Empate";
+      if      (P1WIN.includes(m.out))   result = "Gana " + n1;
+      else if (P2WIN.includes(m.out))   result = "Gana " + n2;
+      else if (TIE.includes(m.out))     result = "Empate";
       else if (DBLLOSS.includes(m.out)) result = "Doble derrota";
-      else if (BYE.includes(m.out)) result = "Bye";
+      else if (BYE.includes(m.out))     result = "Bye";
       return { table:m.table, p1:n1, p1rec:snapRec(m.p1||m.solo),
                p2:n2, p2rec: m.p2 ? snapRec(m.p2) : null, result };
-    }).sort((a,b)=>a.table-b.table);
+    }).sort((a,b) => a.table - b.table);
 
-    rounds.push({ number: parseInt(r.getAttribute("number"),10), matches });
+    rounds.push({ number: parseInt(r.getAttribute("number"), 10), matches });
   });
   rounds.sort((a,b) => a.number - b.number);
   if (!rounds.length) throw new Error("el archivo no contiene rondas emparejadas");
@@ -1012,35 +1184,38 @@ function parseTdf(xmlText){
   const oficial = [...doc.querySelectorAll('standings pod[type="finished"] player')];
   let standings;
   if (oficial.length){
-    standings = oficial.map(p => ({ place: parseInt(p.getAttribute("place"),10),
-      name: names[p.getAttribute("id")]||"?", ...snapRec(p.getAttribute("id")) }))
-      .sort((a,b)=>a.place-b.place);
+    standings = oficial.map(p => ({ place: parseInt(p.getAttribute("place"), 10),
+      name: names[p.getAttribute("id")] || "?", ...snapRec(p.getAttribute("id")) }))
+      .sort((a,b) => a.place - b.place);
   } else {
     standings = Object.keys(names).map(id => ({ name: names[id], ...snapRec(id) }))
-      .sort((a,b)=> b.pts-a.pts || b.w-a.w).map((s,i)=>({ place:i+1, ...s }));
+      .sort((a,b) => b.pts - a.pts || b.w - a.w).map((s,i) => ({ place:i+1, ...s }));
   }
   return { name, roundtime, startdate, fecha: fechaISO(startdate),
            rounds, standings, phase, lastRound: lastR.number,
            pendientes, updatedAt: Date.now() };
 }
 
+/* =========================================================
+   12. Vista previa y publicación de emparejamientos
+   ========================================================= */
 const pctTxt = r => { const j = r.w + r.l + r.t;
-  return j ? ` \u00b7 ${Math.round((r.w + r.t/2) / j * 100)}%` : ""; };
-const recTxt = r => r ? ` (${r.w}-${r.l}-${r.t} \u00b7 ${r.pts} pts${pctTxt(r)})` : "";
+  return j ? ` · ${Math.round((r.w + r.t/2) / j * 100)}%` : ""; };
+const recTxt = r => r ? ` (${r.w}-${r.l}-${r.t} · ${r.pts} pts${pctTxt(r)})` : "";
 
 function showPreview(d){
   const last = d.rounds[d.rounds.length-1];
   let html = `<div style="margin-top:10px"><b>${esc(d.name)}</b> — se publicará hasta la <b>ronda ${last.number}</b>`;
   if (d.standings.length) html += ` + tabla de posiciones`;
-  html += `</div><div style="margin-top:6px;font-size:12.5px">` + (d.phase==="results"
+  html += `</div><div style="margin-top:6px;font-size:12.5px">` + (d.phase === "results"
     ? '<span class="ok">Todos los resultados de esta ronda están cargados</span> — los jugadores verán el aviso para revisarlos.'
     : '<span class="warnc">Faltan '+d.pendientes+' resultado(s)</span> — se publicará como ronda en juego.') +
     `</div><table><tr><th>Mesa</th><th>Jugador 1</th><th>Jugador 2</th><th>Resultado</th></tr>`;
   last.matches.forEach(m => {
-    html += `<tr><td>${m.p2?m.table:"—"}</td>
+    html += `<tr><td>${m.p2 ? m.table : "—"}</td>
       <td>${esc(m.p1)}<span class="rec">${recTxt(m.p1rec)}</span></td>
-      <td>${m.p2? esc(m.p2)+'<span class="rec">'+recTxt(m.p2rec)+'</span>' : "<i>BYE</i>"}</td>
-      <td>${m.p2? esc(m.result) : "Bye"}</td></tr>`;
+      <td>${m.p2 ? esc(m.p2)+'<span class="rec">'+recTxt(m.p2rec)+'</span>' : "<i>BYE</i>"}</td>
+      <td>${m.p2 ? esc(m.result) : "Bye"}</td></tr>`;
   });
   html += `</table>`;
   if (d.standings.length){
@@ -1065,18 +1240,19 @@ function handleFile(f){
       $("archiveBtn").disabled = false;
       $("archDate").value = parsed.fecha || new Date().toISOString().slice(0,10);
       $("archMsg").innerHTML = parsed.fecha
-        ? 'Fecha le\u00edda del archivo: <b>'+fechaLarga(parsed.fecha)+'</b>. Corr\u00edgela si no calza.'
-        : '<span class="err">El archivo no trae fecha; se us\u00f3 la de hoy. Rev\u00edsala.</span>';
-      $("parseMsg").innerHTML = '<span class="ok">'+f.name+' leído ✓</span>';
+        ? 'Fecha leída del archivo: <b>'+fechaLarga(parsed.fecha)+'</b>. Corrígela si no calza.'
+        : '<span class="err">El archivo no trae fecha; se usó la de hoy. Revísala.</span>';
+      $("parseMsg").innerHTML = '<span class="ok">'+esc(f.name)+' leído ✓</span>';
       if ($("autoPub").checked) publishPairings();
     } catch(err){
-      parsed=null; $("publishBtn").disabled=true; $("archiveBtn").disabled=true; $("preview").innerHTML="";
-      $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+err.message+'</span>';
+      parsed = null; $("publishBtn").disabled = true; $("archiveBtn").disabled = true; $("preview").innerHTML = "";
+      $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+esc(err.message)+'</span>';
     }
   };
   reader.readAsText(f);
 }
-$("tdf").onchange = e => { handleFile(e.target.files[0]); e.target.value=""; };
+
+$("tdf").onchange = e => { handleFile(e.target.files[0]); e.target.value = ""; };
 const drop = $("drop");
 drop.onclick = () => $("tdf").click();
 ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
@@ -1088,21 +1264,6 @@ drop.addEventListener("drop", e => {
   handleFile(e.dataTransfer.files && e.dataTransfer.files[0]);
 });
 ["dragover","drop"].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
-
-// Evita que un clic quede "colgado" para siempre si se corta la conexión a
-// mitad de una publicación: a los 15 s se avisa y se libera el botón para
-// reintentar (la escritura original puede igual llegar después, sola).
-function conTimeout(promesa, ms){
-  return Promise.race([
-    promesa,
-    new Promise((_,rej) => setTimeout(() => rej(new Error("sin-respuesta")), ms))
-  ]);
-}
-function mensajeConexion(e){
-  return e.message === "sin-respuesta"
-    ? "Sin conexión: no hubo respuesta en 15 s. Revisa el wifi e inténtalo de nuevo."
-    : "Error: " + (e.code || e.message);
-}
 
 async function publishPairings(){
   if (!parsed) return;
@@ -1118,25 +1279,34 @@ async function publishPairings(){
 $("publishBtn").onclick = publishPairings;
 
 /* Borra lo publicado y deja la vista de los jugadores limpia.
-   Pide confirmacion porque no se puede deshacer. */
+   Pide confirmación porque no se puede deshacer. */
 $("clearBtn").onclick = async () => {
-  if (!confirm("\u00bfBorrar los emparejamientos publicados?\n\n" +
-               "La pesta\u00f1a de los jugadores queda en blanco y los nombres se " +
+  if (!confirm("¿Borrar los emparejamientos publicados?\n\n" +
+               "La pestaña de los jugadores queda en blanco y los nombres se " +
                "eliminan de Firebase.\n\nLos torneos archivados NO se tocan."))
     return;
-  $("clearMsg").textContent = "Borrando\u2026";
+  $("clearMsg").textContent = "Borrando…";
   try {
     await conTimeout(remove(ref(db, BASE + "/pairings")), 15000);
     const hora = new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
-    $("clearMsg").innerHTML = '<span class="ok">Borrado &#10003; ' + hora + '</span>';
+    $("clearMsg").innerHTML = '<span class="ok">Borrado ✓ ' + hora + '</span>';
   } catch(e){ $("clearMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
 };
 
-/* ================= HISTORIAL Y PUNTOS POR PUESTO ================= */
+/* =========================================================
+   13. Historial y puntos por puesto
+   ========================================================= */
 const R_HIST = ref(db, BASE + "/historial");
 const R_CFG  = ref(db, BASE + "/config");
 const PTS_DEF = [12,10,8,7,6,5,4,3], PTS_REST_DEF = 1;
 let CFG = { puntos: PTS_DEF, resto: PTS_REST_DEF };
+
+const MESES_L = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                 "agosto","septiembre","octubre","noviembre","diciembre"];
+function fechaLarga(iso){
+  const [a,m,d] = iso.split("-");
+  return (+d) + " de " + MESES_L[+m-1] + " de " + a;
+}
 
 onValue(R_CFG, snap => {
   const v = snap.val();
@@ -1146,34 +1316,26 @@ onValue(R_CFG, snap => {
 });
 
 $("ptsSave").onclick = async () => {
-  const arr = ($("ptsList").value||"").split(",").map(x=>parseInt(x.trim(),10)).filter(n=>!isNaN(n)&&n>=0);
-  if (!arr.length){ $("ptsMsg").innerHTML = '<span class="err">Escribe al menos un n&uacute;mero</span>'; return; }
-  const resto = Math.max(0, parseInt($("ptsRest").value,10) || 0);
+  const arr = ($("ptsList").value||"").split(",").map(x => parseInt(x.trim(),10)).filter(n => !isNaN(n) && n >= 0);
+  if (!arr.length){ $("ptsMsg").innerHTML = '<span class="err">Escribe al menos un número</span>'; return; }
+  const resto = Math.max(0, parseInt($("ptsRest").value, 10) || 0);
   try {
     await set(R_CFG, { puntos: arr, resto });
-    $("ptsMsg").innerHTML = '<span class="ok">Guardado &#10003;</span>';
+    $("ptsMsg").innerHTML = '<span class="ok">Guardado ✓</span>';
   } catch(e){ $("ptsMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
 };
-
-const MESES_L = ["enero","febrero","marzo","abril","mayo","junio","julio",
-                 "agosto","septiembre","octubre","noviembre","diciembre"];
-function fechaLarga(iso){
-  const [a,m,d] = iso.split("-");
-  return (+d) + " de " + MESES_L[+m-1] + " de " + a;
-}
-function mesDe(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
 
 async function archivarTorneo(){
   if (!parsed) return;
   if (parsed.phase !== "results"){
-    if (!confirm("Todav\u00eda hay mesas sin resultado en la ronda "+parsed.lastRound+".\n\u00bfArchivar igual?")) return;
+    if (!confirm("Todavía hay mesas sin resultado en la ronda "+parsed.lastRound+".\n¿Archivar igual?")) return;
   }
   const f = $("archDate").value;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(f)){
     $("archMsg").innerHTML = '<span class="err">Elige la fecha del torneo antes de archivar.</span>';
     return;
   }
-  $("archMsg").textContent = "Archivando\u2026";
+  $("archMsg").textContent = "Archivando…";
   const registro = {
     nombre: parsed.name,
     fecha: f,
@@ -1185,7 +1347,7 @@ async function archivarTorneo(){
   };
   try {
     await conTimeout(push(R_HIST, registro), 15000);
-    $("archMsg").innerHTML = '<span class="ok">Archivado &#10003; ' + parsed.name +
+    $("archMsg").innerHTML = '<span class="ok">Archivado ✓ ' + esc(parsed.name) +
                              ' &middot; ' + fechaLarga(f) + '</span>';
   } catch(e){ $("archMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
 }
@@ -1193,8 +1355,8 @@ $("archiveBtn").onclick = archivarTorneo;
 
 onValue(R_HIST, snap => {
   const v = snap.val() || {};
-  const items = Object.entries(v).sort((a,b)=> (b[1].creado||0)-(a[1].creado||0));
-  if (!items.length){ $("histList").textContent = "A\u00fan no hay torneos archivados."; return; }
+  const items = Object.entries(v).sort((a,b) => (b[1].creado||0) - (a[1].creado||0));
+  if (!items.length){ $("histList").textContent = "Aún no hay torneos archivados."; return; }
   $("histList").innerHTML = "";
   items.forEach(([id, t]) => {
     const row = document.createElement("div");
@@ -1205,7 +1367,7 @@ onValue(R_HIST, snap => {
     const b = document.createElement("button");
     b.className = "small sec"; b.textContent = "Borrar";
     b.onclick = async () => {
-      if (!confirm("\u00bfBorrar \"" + t.nombre + "\" del historial? Dejar\u00e1 de sumar a la clasificaci\u00f3n.")) return;
+      if (!confirm('¿Borrar "' + t.nombre + '" del historial? Dejará de sumar a la clasificación.')) return;
       try { await remove(ref(db, BASE + "/historial/" + id)); } catch(e){}
     };
     row.appendChild(b);
@@ -1213,6 +1375,205 @@ onValue(R_HIST, snap => {
   });
 });
 
+/* =========================================================
+   14. Ruleta de sorteos
+   El giro se publica con hora de partida, ángulo inicial y ángulo final. Cada
+   celular anima ESE mismo giro con la hora del servidor, así la rueda frena en
+   el mismo nombre y al mismo tiempo en todas las pantallas.
+   ========================================================= */
+const R_SORT = ref(db, BASE + "/sorteo");
+const TAU = Math.PI * 2;
+const COLORES_RULETA = ["#9184d9","#5aa8e0","#7fd98a","#e0a95a","#d97f9c",
+                        "#8ad9d0","#c98be0","#b0b4c6"];
+const norm = a => ((a % TAU) + TAU) % TAU;
+const easeOut = t => 1 - Math.pow(1 - t, 4);
+
+/* Sorteo de verdad: el azar del navegador con rechazo de los valores que
+   caerían fuera del múltiplo exacto, para que ningún nombre pese más. */
+function azar(n){
+  const lim = Math.floor(4294967296 / n) * n;
+  const a = new Uint32Array(1);
+  do { crypto.getRandomValues(a); } while (a[0] >= lim);
+  return a[0] % n;
+}
+
+let SORT = { titulo:"Sorteo", items:[], ganadores:[], giro:null };
+let rot = 0, girando = false, sorteoCargado = false;
+
+function dibujarRueda(cv, items, rotacion){
+  const ctx = cv.getContext("2d");
+  const R = cv.width/2, cx = R, cy = R, N = items.length;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (!N) return;
+
+  const seg = TAU / N;
+  const fuente = Math.max(10, Math.min(20, 460/N));
+  for (let i = 0; i < N; i++){
+    const a0 = rotacion + i*seg;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R-4, a0, a0+seg);
+    ctx.closePath();
+    ctx.fillStyle = COLORES_RULETA[i % COLORES_RULETA.length];
+    ctx.fill();
+    ctx.strokeStyle = "rgba(14,15,24,.5)"; ctx.lineWidth = 2; ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a0 + seg/2);
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#12131c";
+    ctx.font = "600 " + fuente + "px Inter, system-ui, sans-serif";
+    const txt = items[i].length > 22 ? items[i].slice(0,21) + "…" : items[i];
+    ctx.fillText(txt, R - 16, 0);
+    ctx.restore();
+  }
+
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.13, 0, TAU);
+  ctx.fillStyle = "#0e0f18"; ctx.fill();
+  ctx.strokeStyle = "rgba(233,233,237,.28)"; ctx.lineWidth = 2; ctx.stroke();
+}
+
+const leerItems = () => ($("rItems").value || "").split("\n").map(s => s.trim()).filter(Boolean);
+
+function pintarRuleta(){
+  // Mientras haya un giro publicado se dibuja esa misma rueda, para que la
+  // flecha siga apuntando al ganador que todos vieron salir.
+  const items = SORT.giro?.items?.length ? SORT.giro.items : SORT.items;
+  dibujarRueda($("rCanvas"), items, rot);
+
+  const w = $("rWinner");
+  if (girando)                w.innerHTML = '<div class="lbl">GIRANDO…</div>';
+  else if (SORT.giro?.ganador) w.innerHTML = '<div class="lbl">GANADOR</div><div class="who">' + esc(SORT.giro.ganador) + '</div>';
+  else                         w.innerHTML = '<div class="lbl">LISTO PARA GIRAR</div>';
+
+  $("rGanadores").innerHTML = SORT.ganadores.length
+    ? '<div class="muted" style="margin-bottom:4px">Ganadores</div>' +
+      SORT.ganadores.map((x,i) => '<div>' + (i+1) + '. ' + esc(x.nombre) + '</div>').join("")
+    : "";
+}
+
+async function publicarSorteo(){
+  try { await set(R_SORT, SORT); }
+  catch(e){ $("rMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
+}
+
+// La lista se guarda sola mientras se escribe, sin machacar Firebase en cada tecla
+let sortTimer = null;
+function guardarLista(){
+  SORT.titulo = ($("rTitulo").value || "").trim() || "Sorteo";
+  SORT.items  = leerItems();
+  pintarRuleta();
+  clearTimeout(sortTimer);
+  sortTimer = setTimeout(publicarSorteo, 700);
+}
+$("rItems").oninput  = guardarLista;
+$("rTitulo").oninput = guardarLista;
+
+// Solo la primera lectura llena los campos: después el panel manda, y volver a
+// copiar desde Firebase borraría lo que el organizador está escribiendo.
+onValue(R_SORT, snap => {
+  if (sorteoCargado) return;
+  sorteoCargado = true;
+  const v = snap.val();
+  if (v){
+    SORT = { titulo: v.titulo || "Sorteo", items: v.items || [],
+             ganadores: v.ganadores || [], giro: v.giro || null };
+    if (SORT.giro) rot = SORT.giro.to;
+  }
+  $("rTitulo").value = SORT.titulo;
+  $("rItems").value  = SORT.items.join("\n");
+  pintarRuleta();
+});
+
+$("rDesdeTorneo").onclick = async () => {
+  let nombres = parsed?.standings?.map(p => p.name);
+  if (!nombres?.length){
+    try {
+      const s = await get(ref(db, BASE + "/pairings"));
+      nombres = (s.val()?.standings || []).map(p => p.name);
+    } catch(e){}
+  }
+  if (!nombres?.length){
+    $("rMsg").innerHTML = '<span class="err">Carga primero un .tdf o publica emparejamientos.</span>';
+    return;
+  }
+  $("rItems").value = nombres.join("\n");
+  $("rMsg").innerHTML = '<span class="ok">' + nombres.length + ' jugadores cargados ✓</span>';
+  guardarLista();
+};
+
+function girar(){
+  if (girando) return;
+  const items = leerItems();
+  if (items.length < 2){
+    $("rMsg").innerHTML = '<span class="err">Necesitas al menos dos participantes.</span>';
+    return;
+  }
+  $("rMsg").textContent = "";
+
+  const i   = azar(items.length);
+  const seg = TAU / items.length;
+  // Ángulo en el que el centro del ganador queda justo bajo la flecha de arriba
+  const objetivo = -Math.PI/2 - (i + 0.5)*seg;
+  const vueltas  = 5 + azar(3);
+  const from = rot;
+  const to   = from + norm(objetivo - from) + TAU*vueltas;
+  const dur  = 6200;
+  // Medio segundo de margen para que el giro alcance a llegar a los celulares
+  // antes de empezar, y así todos lo vean partir juntos.
+  const startAt = now() + 500;
+
+  const giro = { id: String(startAt), items, from, to, dur, startAt, ganador: items[i] };
+  SORT.items = items;
+  SORT.giro  = giro;
+  girando = true;
+  $("rGirar").disabled = true;
+  publicarSorteo();
+
+  const fin = () => {
+    if (!girando) return;
+    girando = false;
+    rot = to;
+    $("rGirar").disabled = false;
+    SORT.ganadores = [...SORT.ganadores, { nombre: items[i], ts: Date.now() }];
+    if ($("rQuitar").checked){
+      SORT.items = items.filter((_, k) => k !== i);
+      $("rItems").value = SORT.items.join("\n");
+    }
+    publicarSorteo();
+    pintarRuleta();
+  };
+  const paso = () => {
+    if (!girando) return;
+    const t = Math.min(1, Math.max(0, (now() - startAt) / dur));
+    rot = from + (to - from) * easeOut(t);
+    pintarRuleta();
+    if (t < 1) requestAnimationFrame(paso); else fin();
+  };
+  requestAnimationFrame(paso);
+  // Red de seguridad por si el navegador congela los frames a mitad del giro
+  setTimeout(fin, 500 + dur + 800);
+}
+$("rGirar").onclick = girar;
+
+$("rReset").onclick = () => {
+  if (SORT.ganadores.length &&
+      !confirm("Se borra la lista de ganadores y la rueda vuelve a cero. ¿Seguir?")) return;
+  SORT.ganadores = []; SORT.giro = null; rot = 0;
+  SORT.items = leerItems();
+  pintarRuleta(); publicarSorteo();
+};
+
+$("rBorrar").onclick = async () => {
+  if (!confirm("¿Quitar el sorteo de la vista de los jugadores?\n\nLa pestaña Sorteo desaparece de sus celulares.")) return;
+  try {
+    await conTimeout(remove(R_SORT), 15000);
+    SORT = { titulo: ($("rTitulo").value||"").trim() || "Sorteo", items: leerItems(), ganadores: [], giro: null };
+    rot = 0; pintarRuleta();
+    $("rMsg").innerHTML = '<span class="ok">Quitado de la vista ✓</span>';
+  } catch(e){ $("rMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
+};
 </script>
 </body>
 </html>
