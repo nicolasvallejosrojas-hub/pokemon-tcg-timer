@@ -68,9 +68,15 @@
     padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;}
   #rounds button.on{border-color:var(--accent);color:var(--accent);background:rgba(145,132,217,.12);}
 
+  /* Las mesas van en rejilla: en pantalla angosta queda una sola columna,
+     y apenas hay ancho se acomodan de a dos para no escrolear tanto */
+  #list.mesas{display:grid;grid-template-columns:1fr;gap:9px;align-items:start;}
+  @media (min-width:560px){ #list.mesas{grid-template-columns:1fr 1fr;} }
+  @media (min-width:1100px){ #list.mesas{grid-template-columns:1fr 1fr 1fr;} }
+
   /* Tarjeta de mesa: el número manda, el resto se lee después */
   .match{background:var(--surface);border:1px solid var(--divider);border-radius:14px;
-    margin-bottom:9px;display:flex;align-items:stretch;overflow:hidden;}
+    display:flex;align-items:stretch;overflow:hidden;}
   .mnum{display:flex;flex-direction:column;align-items:center;justify-content:center;
     min-width:62px;background:rgba(145,132,217,.10);
     border-right:1px solid var(--divider);padding:10px 6px;}
@@ -153,7 +159,7 @@
   <button id="tabT" class="on">Timer</button>
   <button id="tabP">Emparejamientos<span id="dot"></span></button>
   <button id="tabC">Clasificación</button>
-  <button id="tabS" style="display:none">Sorteo</button>
+  <button id="tabS">Sorteo</button>
 </div>
 
 <!-- ============ Timer ============ -->
@@ -188,6 +194,10 @@
 <!-- ============ Sorteo ============ -->
 <div class="page hide" id="pSort">
   <h1 id="rTitle">Sorteo</h1>
+  <div id="rVacio" class="vacio" style="display:none">
+    <b>Todav&iacute;a no hay sorteo</b>
+    <div>Cuando el organizador lo prepare, la rueda aparece ac&aacute; sola.</div>
+  </div>
   <div id="rWrap">
     <canvas id="rCanvas" width="440" height="440"></canvas>
     <div id="rPin"></div>
@@ -494,6 +504,7 @@ function renderPair(){
   }
 
   const list = $("list"); list.innerHTML = "";
+  list.className = showStand ? "" : "mesas";   // la rejilla es solo para las mesas
   const q = $("q").value.trim().toLowerCase();
 
   if (showStand){
@@ -547,9 +558,11 @@ function renderPair(){
     list.appendChild(d);
   });
 
-  if (q && !mostradas)
+  if (q && !mostradas){
+    list.className = "";                       // el aviso ocupa el ancho completo
     list.innerHTML = '<div class="vacio"><b>Sin coincidencias</b>'
       + '<div>Prueba con tu apellido o borra la búsqueda.</div></div>';
+  }
 }
 
 /* =========================================================
@@ -712,17 +725,12 @@ let SORT = null, giroId = null, animando = false, rotActual = 0;
 
 onValue(ref(db, BASE + "/sorteo"), snap => {
   SORT = snap.val();
-  // La pestaña solo aparece si hay algo que mostrar: participantes cargados o
-  // ganadores ya sorteados. Fuera de eso ni se nota que existe.
-  const hay = !!(SORT && ((SORT.items||[]).length || (SORT.ganadores||[]).length));
-  $("tabS").style.display = hay ? "" : "none";
-  if (!hay && tab === "sorteo"){ show("timer"); return; }
-  if (hay) arrancarGiro();
+  arrancarGiro();
   pintarRuleta();
 });
 
 function arrancarGiro(){
-  const g = SORT.giro;
+  const g = SORT?.giro;
   if (!g || !g.id || g.id === giroId) return;
   giroId = g.id;
 
@@ -747,13 +755,29 @@ function arrancarGiro(){
 }
 
 function pintarRuleta(){
-  if (!SORT || tab !== "sorteo") return;
-  $("rTitle").textContent = SORT.titulo || "Sorteo";
+  if (tab !== "sorteo") return;
 
   // Mientras haya un giro publicado se dibuja la rueda tal como estaba en ese
   // giro, para que la flecha siga apuntando al ganador que todos vieron salir.
-  const g = SORT.giro;
-  const items = g?.items?.length ? g.items : (SORT.items || []);
+  const g  = SORT?.giro;
+  const gs = SORT?.ganadores || [];
+  const items = g?.items?.length ? g.items : (SORT?.items || []);
+
+  // La pestaña está siempre a la vista, así que cuando el organizador todavía
+  // no prepara nada hay que decirlo con todas sus letras en vez de dejar un
+  // círculo vacío que parece que se rompió algo.
+  const vacio = !items.length && !gs.length;
+  $("rVacio").style.display  = vacio ? "" : "none";
+  $("rWrap").style.display   = vacio ? "none" : "";
+  $("rWinner").style.display = vacio ? "none" : "";
+  if (vacio){
+    $("rTitle").textContent = "Sorteo";
+    $("rList").innerHTML = "";
+    $("sstatus").textContent = "";
+    return;
+  }
+
+  $("rTitle").textContent = SORT?.titulo || "Sorteo";
   dibujarRueda($("rCanvas"), items, rotActual);
 
   const w = $("rWinner");
@@ -761,17 +785,16 @@ function pintarRuleta(){
   else if (g?.ganador)   w.innerHTML = '<div class="lbl">GANADOR</div><div class="who">' + esc(g.ganador) + '</div>';
   else                   w.innerHTML = '<div class="lbl">LISTO PARA GIRAR</div>';
 
-  const gs = SORT.ganadores || [];
   $("rList").innerHTML = gs.length
     ? '<div class="secLabel">GANADORES</div>' + gs.map((x,i) =>
         `<div class="frow"><span class="fpos">${i+1}</span>
            <div class="fmid"><div class="fname">${esc(x.nombre)}</div></div></div>`).join("")
     : "";
 
-  const quedan = (SORT.items || []).length;
+  const quedan = (SORT?.items || []).length;
   $("sstatus").textContent = quedan
     ? quedan + (quedan === 1 ? " participante en la rueda" : " participantes en la rueda")
-    : "El organizador aún no cargó participantes.";
+    : "Ya salieron todos los premios.";
 }
 
 window.addEventListener("resize", () => { if (tab === "sorteo") pintarRuleta(); });
