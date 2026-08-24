@@ -68,10 +68,9 @@
     padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;}
   #rounds button.on{border-color:var(--accent);color:var(--accent);background:rgba(145,132,217,.12);}
 
-  /* Las mesas van en rejilla: en pantalla angosta queda una sola columna,
-     y apenas hay ancho se acomodan de a dos para no escrolear tanto */
-  #list.mesas{display:grid;grid-template-columns:1fr;gap:9px;align-items:start;}
-  @media (min-width:560px){ #list.mesas{grid-template-columns:1fr 1fr;} }
+  /* Las mesas van siempre de a dos para no escrolear tanto; en pantalla
+     grande entra una tercera columna */
+  #list.mesas{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-items:start;}
   @media (min-width:1100px){ #list.mesas{grid-template-columns:1fr 1fr 1fr;} }
 
   /* Tarjeta de mesa: el número manda, el resto se lee después */
@@ -87,7 +86,7 @@
   .prow{display:flex;align-items:center;gap:8px;}
   .prow.won .pname{color:#c9c2f5;}
   .pinfo{flex:1;min-width:0;}
-  .pname{font-size:16px;font-weight:600;line-height:1.25;}
+  .pname{font-size:16px;font-weight:600;line-height:1.25;overflow-wrap:anywhere;}
   .pmeta{font-size:12px;color:#8a8d9e;margin-top:2px;font-weight:500;}
   .win{font-size:10px;font-weight:700;letter-spacing:.1em;color:#12131c;
     background:var(--accent);border-radius:5px;padding:3px 7px;white-space:nowrap;}
@@ -99,6 +98,27 @@
   .byetag b{font-size:10px;letter-spacing:.1em;color:#b5abe8;}
   .hl{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
   #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
+
+  /* En el celular la tarjeta se arma distinta: el número de mesa pasa arriba
+     como una cinta, así los 62px que ocupaba al costado quedan para el nombre,
+     que es lo único que el jugador anda buscando */
+  @media (max-width:559px){
+    #pPair{padding-left:10px;padding-right:10px;}
+    #list.mesas{gap:7px;}
+    .match{flex-direction:column;border-radius:11px;}
+    .mnum{flex-direction:row;align-items:baseline;justify-content:center;gap:5px;
+      min-width:0;padding:4px 6px;
+      border-right:none;border-bottom:1px solid var(--divider);}
+    .mlbl{font-size:8.5px;}
+    .mval{font-size:16px;}
+    .mbody{gap:5px;padding:8px 9px;}
+    .prow{flex-wrap:wrap;gap:4px;}
+    .pname{font-size:13px;line-height:1.2;}
+    .pmeta{font-size:10.5px;margin-top:1px;}
+    .win,.tie{font-size:8.5px;padding:2px 5px;letter-spacing:.06em;}
+    .byetag{padding:3px 7px;font-size:10px;gap:4px;}
+    .byetag b{font-size:9px;}
+  }
 
   /* =========================================================
      5. Pestaña Clasificación
