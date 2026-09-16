@@ -41,14 +41,23 @@
   #dot{position:absolute;top:4px;right:calc(50% - 17px);width:7px;height:7px;
     border-radius:50%;background:var(--accion);visibility:hidden;}
 
-  /* Todas las páginas dejan sitio para la barra de abajo */
-  #pTimer,#pPair,#pClas,#pSort,#pAgenda{padding-bottom:76px;}
+  /* Las páginas con scroll dejan sitio para la barra de abajo. El timer NO:
+     ahí la cabecera y la línea de estado se posicionan aparte, para que el
+     reloj quede centrado en la pantalla completa. Con padding-bottom quedaba
+     59 px más arriba del centro. */
+  #pPair,#pClas,#pSort,#pAgenda{padding-bottom:76px;}
 
   /* =========================================================
      Timer
      ========================================================= */
-  #pTimer{display:flex;flex-direction:column;align-items:center;justify-content:center;
-          gap:3vh;text-align:center;padding-left:14px;padding-right:14px;}
+  #pTimer{display:flex;align-items:center;justify-content:center;
+          text-align:center;padding:0 14px;}
+  #relojGrupo{display:flex;flex-direction:column;align-items:center;gap:1.6vh;
+              max-width:100%;}
+  /* Mismo rótulo que el lienzo de la tienda: espaciado y en mayúsculas, para
+     que se lea "en qué vamos" sin competir con el número. */
+  #pronda{font-size:clamp(11px,3.2vw,15px);letter-spacing:.22em;text-transform:uppercase;
+    color:var(--apagado);text-shadow:0 1px 3px rgba(0,0,0,.85);display:none;}
   /* La cabecera va arriba a la izquierda y no estorba al reloj, que sigue
      centrado en la pantalla completa. */
   #cabecera{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
@@ -61,7 +70,8 @@
     text-shadow:0 1px 3px rgba(0,0,0,.85);}
   #names{display:none;}
   #clock{font-size:clamp(64px,22vw,220px);}
-  #tstatus{font-size:13px;color:var(--apagado);min-height:1.3em;}
+  #tstatus{position:absolute;left:0;right:0;bottom:88px;font-size:13px;
+           color:var(--apagado);min-height:1.3em;text-shadow:0 1px 3px rgba(0,0,0,.85);}
   .imgbox{position:fixed;z-index:0;pointer-events:none;}
   .imgbox img{width:100%;height:100%;object-fit:contain;}
 
@@ -233,7 +243,12 @@
     </div>
   </div>
   <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
-  <div id="clock" class="reloj">--:--</div>
+  <!-- Rótulo y reloj van juntos en un grupo, y ese grupo es lo que se centra:
+       si se centrara solo el reloj, el rótulo lo empujaría hacia abajo. -->
+  <div id="relojGrupo">
+    <div id="pronda"></div>
+    <div id="clock" class="reloj">--:--</div>
+  </div>
   <div id="tstatus">Conectando…</div>
 </div>
 
@@ -580,12 +595,17 @@ onValue(ref(db, BASE + "/pairings"), snap => {
    emparejamientos que ya se estaba escuchando, así que no cuesta nada más. Si
    no hay nada publicado, la cabecera queda con el logo solo. */
 function pintarCabecera(){
-  const t = $("ctitulo"), sub = $("csub");
-  if (!P || !P.rounds || !P.rounds.length){ t.textContent = ""; sub.textContent = ""; return; }
+  const t = $("ctitulo"), sub = $("csub"), ro = $("pronda");
+  if (!P || !P.rounds || !P.rounds.length){
+    t.textContent = ""; sub.textContent = ""; ro.style.display = "none"; return;
+  }
   const deN = P.rondasTotales ? " de " + P.rondasTotales : "";
   t.textContent = P.name || "";
   sub.textContent = "Ronda " + P.lastRound + deN +
     (P.roundtime ? " · rondas de " + P.roundtime + " min" : "");
+  ro.textContent = "Ronda " + P.lastRound + deN +
+    (P.phase === "results" ? " · resultados" : " · en curso");
+  ro.style.display = "block";
 }
 
 $("q").oninput = renderPair;

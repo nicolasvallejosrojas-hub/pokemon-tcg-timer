@@ -86,6 +86,15 @@
   .soloorg{font-size:9.5px;letter-spacing:.14em;color:var(--L-rotulo);
     text-transform:uppercase;white-space:nowrap}
 
+  /* En la vista de celular el lienzo mide 620 px de ancho: los cuatro botones
+     más el rótulo no caben junto al nombre, y el nombre quedaba espachurrado
+     en una columna de una palabra por línea. Ahí el nombre se lleva la primera
+     fila entera y los controles bajan a la segunda. */
+  #canvas.vmobile #topbar{flex-wrap:wrap;padding:14px 18px}
+  #canvas.vmobile #tnombre{flex:0 0 100%;margin-bottom:10px}
+  #canvas.vmobile .soloorg{display:none}
+  #canvas.vmobile #logo{max-height:26px}
+
   #stage{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:18px}
 
@@ -1036,6 +1045,7 @@ function pintarFondo(){
   $("logo").style.display = st.logo ? "block" : "none";
   $("btnDesktop").classList.toggle("on", st.view === "desktop");
   $("btnMobile").classList.toggle("on", st.view === "mobile");
+  c.classList.toggle("vmobile", st.view === "mobile");
   escalar();
 }
 function escalar(){
