@@ -27,9 +27,9 @@
      con el pulgar, que es como el jugador sostiene el teléfono mientras
      tiene el mazo en la otra mano.
      ========================================================= */
-  #tabbar{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;
+  #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;
     background:rgba(42,36,47,.94);backdrop-filter:blur(10px);
-    padding:calc(6px + env(safe-area-inset-top,0px)) 4px 6px;}
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));}
   #tabbar button{flex:1;border:none;background:transparent;color:var(--rotulo);
     font-family:inherit;cursor:pointer;padding:6px 2px 4px;display:flex;
     flex-direction:column;align-items:center;gap:3px;border-radius:var(--radio);
@@ -41,8 +41,8 @@
   #dot{position:absolute;top:4px;right:calc(50% - 17px);width:7px;height:7px;
     border-radius:50%;background:var(--accion);visibility:hidden;}
 
-  /* Todas las páginas dejan sitio para la barra de arriba */
-  #pTimer,#pPair,#pClas,#pSort,#pAgenda{padding-top:74px;}
+  /* Todas las páginas dejan sitio para la barra de abajo */
+  #pTimer,#pPair,#pClas,#pSort,#pAgenda{padding-bottom:76px;}
 
   /* =========================================================
      Timer
@@ -59,7 +59,7 @@
   /* =========================================================
      Emparejamientos
      ========================================================= */
-  #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
+  #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
          background:var(--pagina);}
   #tname{font-family:var(--fuente-reloj);font-weight:300;font-size:27px;margin:0 0 2px;}
   #tsub{font-size:12px;color:var(--rotulo);margin-bottom:14px;}
@@ -117,7 +117,7 @@
   /* =========================================================
      Clasificación
      ========================================================= */
-  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
+  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
          background:var(--pagina);}
   #pClas h1,#rTitle,#aTitle{font-family:var(--fuente-reloj);font-weight:300;
     font-size:27px;margin:0 0 12px;}
@@ -135,17 +135,41 @@
   .cdet b.ac{color:var(--accion);}
   .chint{font-size:12px;color:var(--rotulo);padding:14px 4px 0;text-align:center;}
 
+  /* Podio del top 3. El primero va al centro y más alto, como en un podio de
+     verdad; el orden en pantalla es 2 · 1 · 3. Los colores salen de la paleta
+     (oro, plata, bronce del sistema) y no del rojo y verde de la referencia,
+     que pelearían con el amarillo de acción. */
+  #podio{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:7px;align-items:end;
+         margin:4px 0 22px;position:relative;padding-bottom:5px;}
+  /* Una base para que los tres bloques se apoyen en algo y no floten */
+  #podio::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;
+    background:var(--sup-alta);border-radius:0 0 var(--radio) var(--radio);}
+  .pod{display:flex;flex-direction:column;align-items:center;min-width:0;}
+  .podNom{font-size:12.5px;font-weight:600;text-align:center;line-height:1.25;
+    margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;
+    -webkit-box-orient:vertical;overflow-wrap:anywhere;}
+  .podPts{font-size:11.5px;color:var(--apagado);margin-bottom:7px;
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .podCaja{width:100%;border-radius:var(--radio) var(--radio) 0 0;display:flex;
+    align-items:center;justify-content:center;font-family:var(--fuente-reloj);
+    font-weight:300;color:var(--campo);line-height:1;}
+  .p1 .podCaja{height:104px;background:var(--podio1);font-size:42px;}
+  .p2 .podCaja{height:76px; background:var(--podio2);font-size:34px;}
+  .p3 .podCaja{height:58px; background:var(--podio3);font-size:30px;}
+  /* Con uno o dos jugadores el podio se ve raro, así que ahí no se muestra */
+  #podio.hide{display:none;}
+
   /* =========================================================
      Sorteo
      ========================================================= */
-  #pSort{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
+  #pSort{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
     background:var(--pagina);display:flex;flex-direction:column;align-items:center;}
   #rList{width:100%;max-width:420px;margin-top:20px;}
 
   /* =========================================================
      Agenda
      ========================================================= */
-  #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
+  #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
            background:var(--pagina);}
   .evCard{background:var(--sup);border-radius:var(--radio);padding:14px;
     margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;}
@@ -178,8 +202,8 @@
 <!-- ============ Fondo y barra de pestañas ============ -->
 <img id="bg" alt="">
 
-<!-- Barra arriba: cinco pestañas con texto no caben a 375 px, así que van
-     con icono y rótulo corto. -->
+<!-- Barra abajo: cinco pestañas con texto no caben a 375 px, y abajo se
+     llega con el pulgar mientras la otra mano sostiene el mazo. -->
 <div id="tabbar">
   <button id="tabT" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Timer</span></button>
   <button id="tabP"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7"/><rect x="13.5" y="4" width="7.5" height="7"/><rect x="3" y="13" width="7.5" height="7"/><rect x="13.5" y="13" width="7.5" height="7"/></svg><span>Mesas</span><i id="dot"></i></button>
@@ -213,6 +237,7 @@
   <div class="row" style="justify-content:center;margin:6px 0 10px">
     <select id="mes"></select>
   </div>
+  <div id="podio" class="hide"></div>
   <div id="clasBox"></div>
   <div id="cstatus">Conectando&hellip;</div>
 </div>
@@ -656,11 +681,29 @@ function puntosPorPuesto(place){
 
 $("mes").onchange = e => { mesSel = e.target.value; renderClas(true); };
 
+/* El podio repite a los tres primeros que ya están en la tabla de abajo. No
+   es información nueva: es para que se vea de un vistazo quién va ganando el
+   mes, que es lo que el jugador viene a mirar. */
+function pintarPodio(filas){
+  const caja = $("podio");
+  if (filas.length < 3){ caja.className = "hide"; caja.innerHTML = ""; return; }
+  caja.className = "";
+  const orden = [filas[1], filas[0], filas[2]];       // en pantalla: 2 · 1 · 3
+  const puesto = [2, 1, 3];
+  caja.innerHTML = orden.map((r, i) =>
+    '<div class="pod p' + puesto[i] + '">' +
+      '<div class="podNom">' + esc(r.name) + '</div>' +
+      '<div class="podPts">' + r.pts + ' pts</div>' +
+      '<div class="podCaja">' + puesto[i] + '</div>' +
+    '</div>').join("");
+}
+
 function renderClas(soloTabla){
   if (!HIST) return;
   const torneos = Object.values(HIST);
   if (!torneos.length){
     $("clasBox").innerHTML = "";
+    $("podio").className = "hide";
     $("cstatus").textContent = "Todavía no hay torneos archivados.";
     $("mes").style.display = "none";
     return;
@@ -697,6 +740,8 @@ function renderClas(soloTabla){
     r.jugadas = jugadas;
     r.wr = jugadas ? ((r.w + r.e/2) / jugadas * 100) : null;
   });
+
+  pintarPodio(filas);
 
   let h = '<div class="sub" style="margin-bottom:10px">' + delMes.length +
           (delMes.length === 1 ? ' torneo' : ' torneos') + ' en ' + nombreMes(mesSel) + '</div>';
