@@ -49,7 +49,16 @@
      ========================================================= */
   #pTimer{display:flex;flex-direction:column;align-items:center;justify-content:center;
           gap:3vh;text-align:center;padding-left:14px;padding-right:14px;}
-  #logo{max-height:9vh;max-width:60vw;object-fit:contain;display:none;}
+  /* La cabecera va arriba a la izquierda y no estorba al reloj, que sigue
+     centrado en la pantalla completa. */
+  #cabecera{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
+    gap:11px;padding:14px 16px;text-align:left;min-width:0;}
+  #logo{max-height:38px;max-width:38vw;object-fit:contain;display:none;flex-shrink:0;}
+  #cabtxt{min-width:0;}
+  #ctitulo{font-size:15px;font-weight:600;line-height:1.25;overflow-wrap:anywhere;
+    text-shadow:0 1px 3px rgba(0,0,0,.85);}
+  #csub{font-size:12px;color:var(--apagado);margin-top:2px;line-height:1.25;
+    text-shadow:0 1px 3px rgba(0,0,0,.85);}
   #names{display:none;}
   #clock{font-size:clamp(64px,22vw,220px);}
   #tstatus{font-size:13px;color:var(--apagado);min-height:1.3em;}
@@ -214,7 +223,15 @@
 
 <!-- ============ Timer ============ -->
 <div class="page" id="pTimer">
-  <img id="logo" alt="">
+  <!-- Misma cabecera que la pantalla de la tienda, sin los botones de control
+       ni el rótulo de "solo organizador", que ahí no significan nada. -->
+  <div id="cabecera">
+    <img id="logo" alt="">
+    <div id="cabtxt">
+      <div id="ctitulo"></div>
+      <div id="csub"></div>
+    </div>
+  </div>
   <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
   <div id="clock" class="reloj">--:--</div>
   <div id="tstatus">Conectando…</div>
@@ -286,7 +303,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
-         MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=2";
+         MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=3";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -496,6 +513,9 @@ function applyTheme(){
 
   if (logoSrc){ $("logo").src = logoSrc; $("logo").style.display = "block"; }
   else $("logo").style.display = "none";
+  // Acá NO va pintarCabecera(): applyTheme corre al evaluar el módulo, antes de
+  // que se declare P, y leerlo ahí revienta por zona muerta. El logo lo pone el
+  // tema y el texto lo ponen los emparejamientos; son independientes.
   $("names").style.display = "none";
 
   document.querySelectorAll(".imgbox").forEach(e => e.remove());
@@ -544,6 +564,7 @@ onValue(ref(db, BASE + "/pairings"), snap => {
   if (!P || !P.rounds || !P.rounds.length){
     P = null;
     limpiarPair("Aún no hay emparejamientos publicados.");
+    pintarCabecera();
     return;
   }
   $("pstatus").textContent = "";
@@ -551,8 +572,21 @@ onValue(ref(db, BASE + "/pairings"), snap => {
   if (sel === null || sel < lastNum) sel = lastNum;
   if (!first && tab !== "pair" && P.updatedAt > seenStamp) $("dot").style.visibility = "visible";
   first = false;
+  pintarCabecera();
   renderPair();
 }, () => $("pstatus").textContent = "Sin conexión — reintentando…");
+
+/* El nombre del torneo y la ronda vienen en el mismo paquete de
+   emparejamientos que ya se estaba escuchando, así que no cuesta nada más. Si
+   no hay nada publicado, la cabecera queda con el logo solo. */
+function pintarCabecera(){
+  const t = $("ctitulo"), sub = $("csub");
+  if (!P || !P.rounds || !P.rounds.length){ t.textContent = ""; sub.textContent = ""; return; }
+  const deN = P.rondasTotales ? " de " + P.rondasTotales : "";
+  t.textContent = P.name || "";
+  sub.textContent = "Ronda " + P.lastRound + deN +
+    (P.roundtime ? " · rondas de " + P.roundtime + " min" : "");
+}
 
 $("q").oninput = renderPair;
 

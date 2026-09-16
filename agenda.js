@@ -26,7 +26,7 @@
    páginas usen, hay que SUBIR EL NÚMERO en las dos, o el navegador de un
    jugador que ya visitó el sitio va a mezclar el HTML nuevo con este archivo
    viejo y la página se cae entera con "does not provide an export named X".
-   Versión actual: v=2
+   Versión actual: v=3
    ========================================================= */
 
 /* Epoch del instante, calculado en la zona horaria de quien lo escribe */
@@ -69,14 +69,26 @@ export function urlGoogle(ev){
   const rango = ev.hora
     ? utcCompacto(ini) + "/" + utcCompacto(ini + (ev.duracion||120)*60000)
     : diaCompacto(ev.fecha) + "/" + diaSiguiente(ev.fecha);   // el fin es exclusivo
-  const p = new URLSearchParams({
-    action: "TEMPLATE",
-    text:   ev.titulo || "Torneo",
-    dates:  rango
-  });
-  if (ev.detalle) p.set("details", ev.detalle);
-  if (ev.lugar)   p.set("location", ev.lugar);
-  return "https://calendar.google.com/calendar/render?" + p.toString();
+  const campos = [["action","TEMPLATE"], ["text", ev.titulo || "Torneo"], ["dates", rango]];
+  if (ev.detalle) campos.push(["details", ev.detalle]);
+  if (ev.lugar)   campos.push(["location", ev.lugar]);
+
+  /* Dos reglas de codificación, y las dos existen por el celular:
+
+     1. Los espacios van como %20 y NO como "+". Acá se usaba URLSearchParams,
+        que codifica el espacio como "+". El navegador de escritorio lo
+        decodifica sin problema —por eso en el computador siempre funcionó—
+        pero el parser de enlaces de la app de Google Calendar no, y al no
+        entender los parámetros abre el calendario en blanco.
+
+     2. "dates" se manda SIN codificar. Su valor lo armamos nosotros y solo
+        tiene dígitos, T, Z y la barra que separa inicio de fin; la
+        documentación de Google la muestra literal. Codificarla como %2F es
+        equivalente para un parser que decodifica bien, pero de nuevo: no hay
+        que confiar en que el de la app lo haga. */
+  const crudo = { dates:1 };
+  return "https://calendar.google.com/calendar/render?" +
+    campos.map(([k, v]) => k + "=" + (crudo[k] ? v : encodeURIComponent(v))).join("&");
 }
 
 /* ---------- Archivo .ics ----------

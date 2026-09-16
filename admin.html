@@ -451,6 +451,13 @@
   </div>
   <input type="file" id="tdf" accept=".tdf,.xml" style="display:none">
   <label class="chk"><input type="checkbox" id="autoPub"> Publicar automáticamente al soltar el archivo</label>
+  <div class="row" style="margin-top:10px;align-items:center">
+    <label style="margin:0;white-space:nowrap">Rondas totales
+      <input type="number" id="rondasTot" min="0" max="20" style="width:64px;margin-left:6px">
+    </label>
+    <span class="muted" style="flex:1">Para que se lea &laquo;Ronda 2 de 6&raquo; en la pantalla y en los celulares.
+      TOM no guarda este dato &mdash; lo deduce de la cantidad de jugadores, y eso no siempre calza. D&eacute;jalo vac&iacute;o si no lo quieres mostrar.</span>
+  </div>
   <div id="parseMsg" class="muted" style="margin-top:8px"></div>
   <div id="preview"></div>
   <div class="row" style="margin-top:12px">
@@ -642,7 +649,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
-         MES_LARGO, DOWS, isoDe, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=2";
+         MES_LARGO, DOWS, isoDe, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=3";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -1527,8 +1534,19 @@ drop.addEventListener("drop", e => {
 });
 ["dragover","drop"].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
 
+/* TOM no guarda cuántas rondas va a tener el torneo: lo deduce de la cantidad
+   de jugadores, y en los torneos de tienda eso no se cumple (hay .tdf de 38
+   jugadores con 4 rondas). Así que lo escribe el organizador y se recuerda por
+   sala, porque casi siempre es el mismo número. */
+try { $("rondasTot").value = localStorage.getItem(LS("rondas")) || ""; } catch(e){}
+$("rondasTot").onchange = () => {
+  try { localStorage.setItem(LS("rondas"), $("rondasTot").value); } catch(e){}
+};
+
 async function publishPairings(){
   if (!parsed) return;
+  const tot = parseInt($("rondasTot").value, 10);
+  parsed.rondasTotales = (tot > 0 && tot <= 20) ? tot : null;
   $("pubMsg").textContent = "Publicando…";
   drop.classList.add("busy");
   try {
@@ -1761,10 +1779,11 @@ onValue(ref(db, BASE + "/pairings"), snap => {
     $("ronda").style.display = "none";
     return;
   }
+  const deN = p.rondasTotales ? " de " + p.rondasTotales : "";
   $("ttitle").textContent = p.name || "Timer de torneo";
-  $("tsubt").textContent = "Ronda " + p.lastRound +
+  $("tsubt").textContent = "Ronda " + p.lastRound + deN +
     (p.roundtime ? " · rondas de " + p.roundtime + " min" : "");
-  $("ronda").textContent = "Ronda " + p.lastRound +
+  $("ronda").textContent = "Ronda " + p.lastRound + deN +
     (p.phase === "results" ? " · resultados" : " · en curso");
   $("ronda").style.display = "block";
 }, () => {});
