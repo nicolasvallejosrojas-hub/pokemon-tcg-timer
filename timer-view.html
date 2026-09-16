@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Torneo — Timer y emparejamientos</title>
-<link rel="stylesheet" href="estilo.css?v=1">
+<link rel="stylesheet" href="estilo.css?v=2">
 <style>
   /* Lo compartido vive en estilo.css. Acá queda solo el acomodo de esta
      página: el reloj a pantalla completa, la rejilla de mesas y las tarjetas.
@@ -27,9 +27,9 @@
      con el pulgar, que es como el jugador sostiene el teléfono mientras
      tiene el mazo en la otra mano.
      ========================================================= */
-  #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;
+  #tabbar{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;
     background:rgba(42,36,47,.94);backdrop-filter:blur(10px);
-    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));}
+    padding:calc(6px + env(safe-area-inset-top,0px)) 4px 6px;}
   #tabbar button{flex:1;border:none;background:transparent;color:var(--rotulo);
     font-family:inherit;cursor:pointer;padding:6px 2px 4px;display:flex;
     flex-direction:column;align-items:center;gap:3px;border-radius:var(--radio);
@@ -41,8 +41,8 @@
   #dot{position:absolute;top:4px;right:calc(50% - 17px);width:7px;height:7px;
     border-radius:50%;background:var(--accion);visibility:hidden;}
 
-  /* Todas las páginas dejan sitio para la barra de abajo */
-  #pTimer,#pPair,#pClas,#pSort,#pAgenda{padding-bottom:76px;}
+  /* Todas las páginas dejan sitio para la barra de arriba */
+  #pTimer,#pPair,#pClas,#pSort,#pAgenda{padding-top:74px;}
 
   /* =========================================================
      Timer
@@ -59,7 +59,7 @@
   /* =========================================================
      Emparejamientos
      ========================================================= */
-  #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+  #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
          background:var(--pagina);}
   #tname{font-family:var(--fuente-reloj);font-weight:300;font-size:27px;margin:0 0 2px;}
   #tsub{font-size:12px;color:var(--rotulo);margin-bottom:14px;}
@@ -117,7 +117,7 @@
   /* =========================================================
      Clasificación
      ========================================================= */
-  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
          background:var(--pagina);}
   #pClas h1,#rTitle,#aTitle{font-family:var(--fuente-reloj);font-weight:300;
     font-size:27px;margin:0 0 12px;}
@@ -138,14 +138,14 @@
   /* =========================================================
      Sorteo
      ========================================================= */
-  #pSort{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+  #pSort{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
     background:var(--pagina);display:flex;flex-direction:column;align-items:center;}
   #rList{width:100%;max-width:420px;margin-top:20px;}
 
   /* =========================================================
      Agenda
      ========================================================= */
-  #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+  #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:74px 14px 24px;
            background:var(--pagina);}
   .evCard{background:var(--sup);border-radius:var(--radio);padding:14px;
     margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;}
@@ -178,8 +178,8 @@
 <!-- ============ Fondo y barra de pestañas ============ -->
 <img id="bg" alt="">
 
-<!-- Barra abajo: cinco pestañas con texto no caben a 375 px, y abajo se
-     llega con el pulgar mientras la otra mano sostiene el mazo. -->
+<!-- Barra arriba: cinco pestañas con texto no caben a 375 px, así que van
+     con icono y rótulo corto. -->
 <div id="tabbar">
   <button id="tabT" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Timer</span></button>
   <button id="tabP"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7"/><rect x="13.5" y="4" width="7.5" height="7"/><rect x="3" y="13" width="7.5" height="7"/><rect x="13.5" y="13" width="7.5" height="7"/></svg><span>Mesas</span><i id="dot"></i></button>

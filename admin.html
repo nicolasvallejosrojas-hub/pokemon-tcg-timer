@@ -4,10 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel del organizador</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=1">
+<link rel="stylesheet" href="estilo.css?v=2">
 <style>
   /* =========================================================
      1. Base y controles comunes
@@ -95,13 +93,18 @@
      semitransparente del color del fondo. Sobre el lienzo liso es casi
      invisible; sobre una foto ruidosa de la tienda es lo que salva la
      legibilidad. */
+  /* El rótulo es texto chico: sin nada detrás se pierde sobre una foto, así
+     que conserva un velo, pero mucho más tenue que el del reloj. */
   #ronda{font-size:15px;letter-spacing:.22em;text-transform:uppercase;
-    color:var(--L-apagado);background:rgba(36,31,41,.5);padding:7px 16px;
-    border-radius:var(--L-radio);text-shadow:0 2px 6px rgba(0,0,0,.5);display:none}
+    color:var(--L-apagado);padding:6px 14px;border-radius:var(--L-radio);
+    background:rgba(36,31,41,.28);
+    text-shadow:0 1px 2px rgba(0,0,0,.9), 0 2px 10px rgba(0,0,0,.6);display:none}
+  /* Sin caja detrás del número: tres sombras en capas protegen igual sobre un
+     fondo ruidoso y no dibujan un rectángulo. */
   #clock{cursor:pointer;line-height:.95;min-width:280px;text-align:center;
     font-family:Newsreader,Georgia,serif;font-weight:300;font-variant-numeric:tabular-nums;
-    user-select:none;padding:4px 26px;border-radius:var(--L-radio);
-    background:rgba(36,31,41,.5);text-shadow:0 4px 18px rgba(0,0,0,.45)}
+    user-select:none;text-shadow:0 1px 2px rgba(0,0,0,.92), 0 3px 10px rgba(0,0,0,.75),
+    0 0 36px rgba(0,0,0,.65)}
   /* En pausa el número se apaga sin perder el color que eligió la tienda: a
      3 m se lee "no está corriendo" sin leer la palabra. */
   #clock.pausado{opacity:.5}

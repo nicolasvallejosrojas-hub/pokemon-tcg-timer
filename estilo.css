@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300&display=swap');
+
 /* =========================================================
    estilo.css — el sistema visual, compartido por el panel del
    organizador y por la vista de los jugadores.
@@ -16,7 +18,7 @@
    Si se cambia algo acá, hay que SUBIR EL NÚMERO en las dos, o el navegador
    de alguien que ya visitó el sitio va a mezclar el HTML nuevo con esta hoja
    vieja. Misma regla que agenda.js.
-   Versión actual: v=1
+   Versión actual: v=2
    ========================================================= */
 
 :root{
@@ -179,10 +181,14 @@ input::placeholder,textarea::placeholder{color:var(--rotulo);}
    solo. El respaldo semitransparente va siempre, porque la tienda puede poner
    una foto ruidosa de fondo y el número no puede depender de eso.
    ========================================================= */
+/* Sin caja de fondo: el recuadro oscuro detrás del número se veía pegado.
+   La protección sobre fondos ruidosos ahora la dan tres sombras en capas —
+   una dura y pegada al trazo, una media y un halo amplio— que oscurecen lo
+   que haya detrás sin dibujar ningún borde. */
 .reloj{font-family:var(--fuente-reloj);font-weight:300;line-height:.95;
   font-variant-numeric:tabular-nums;text-align:center;user-select:none;
-  padding:4px 26px;border-radius:var(--radio);
-  background:rgba(36,31,41,.5);text-shadow:0 4px 18px rgba(0,0,0,.45);}
+  text-shadow:0 1px 2px rgba(0,0,0,.92), 0 3px 10px rgba(0,0,0,.75),
+              0 0 36px rgba(0,0,0,.65);}
 .reloj.pausado{opacity:.5;}              /* se lee "detenido" sin leer la palabra */
 .reloj.porvencer{color:var(--accion) !important;}
 @keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
