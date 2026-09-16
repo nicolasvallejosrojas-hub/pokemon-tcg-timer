@@ -153,6 +153,34 @@
   /* =========================================================
      5. Calendario de torneos
      ========================================================= */
+  #calNav{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  #calMes{font-size:15px;font-weight:600;flex:1;text-transform:capitalize;}
+  .calGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+  .calDow{font-size:10px;letter-spacing:.08em;color:#6f7386;font-weight:600;
+    text-align:center;padding:2px 0 6px;}
+  .calDia{min-height:76px;border:1px solid var(--divider);border-radius:8px;padding:4px 5px;
+    background:var(--bg);display:flex;flex-direction:column;gap:3px;cursor:pointer;
+    transition:border-color .12s;overflow:hidden;}
+  .calDia:hover{border-color:var(--accent);}
+  .calDia.fuera{opacity:.3;}
+  .calDia.hoy{border-color:var(--accent);background:rgba(145,132,217,.10);}
+  .calNum{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:#8a8d9e;}
+  .calDia.hoy .calNum{color:var(--accent);}
+  .calEv{font-size:10.5px;line-height:1.3;background:rgba(145,132,217,.24);
+    border-left:2px solid var(--accent);border-radius:3px;padding:2px 4px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .calEv:hover{background:rgba(145,132,217,.45);}
+  .calEv.pasado{background:rgba(233,233,237,.08);border-left-color:#6f7386;color:#8a8d9e;}
+  .calHint{font-size:11.5px;color:#6f7386;margin-top:10px;}
+
+  /* En pantalla angosta la celda se achica y el evento queda como un punto de
+     color con la hora: el título no cabe y cortarlo a dos letras no sirve. */
+  @media (max-width:620px){
+    .calDia{min-height:52px;padding:3px;}
+    .calNum{font-size:11px;}
+    .calEv{font-size:9px;padding:1px 3px;}
+  }
+
   .evRow{display:flex;gap:12px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid var(--divider);}
   .evRow.pasado{opacity:.45;}
   .evFecha{min-width:64px;text-align:center;flex-shrink:0;}
@@ -469,6 +497,19 @@
      CALENDARIO
      ============================================================ -->
 <div class="panel hide" id="panelC">
+
+<div class="card">
+  <div id="calNav">
+    <div id="calMes">&nbsp;</div>
+    <button id="calHoy" class="small sec">Hoy</button>
+    <button id="calAnt" class="small sec" title="Mes anterior">&lsaquo;</button>
+    <button id="calSig" class="small sec" title="Mes siguiente">&rsaquo;</button>
+  </div>
+  <div class="calGrid" id="calDows"></div>
+  <div class="calGrid" id="calGrid"></div>
+  <div class="calHint">Haz clic en un d&iacute;a para agendar algo ah&iacute;, o en un evento para editarlo.</div>
+</div>
+
 <div class="card">
   <div style="font-size:14px;margin-bottom:6px">Fechas de torneo</div>
   <div class="muted" style="margin-bottom:12px">Lo que agregues acá aparece en la pesta&ntilde;a <b>Agenda</b> de los jugadores,
@@ -1916,6 +1957,7 @@ $("rBorrar").onclick = async () => {
    ========================================================= */
 const R_AGENDA = ref(db, BASE + "/agenda");
 let AGENDA = [], editandoId = null, verPasados = false;
+let mesVista = null;                                // {a, m} con m de 0 a 11
 
 onValue(R_AGENDA, snap => {
   const v = snap.val() || {};
@@ -1999,6 +2041,84 @@ async function borrar(ev){
 }
 
 const MES_CORTO = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+const MES_LARGO = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                   "agosto","septiembre","octubre","noviembre","diciembre"];
+/* La semana parte el lunes, como se lee acá. getDay() da 0 para el domingo,
+   así que hay que rotarlo: (dia + 6) % 7 deja el lunes en 0 y el domingo en 6. */
+const DOWS = ["LUN","MAR","MIÉ","JUE","VIE","SÁB","DOM"];
+const lunes0 = d => (d.getDay() + 6) % 7;
+const isoDe = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
+                   "-" + String(d.getDate()).padStart(2,"0");
+
+
+function irMes(delta){
+  mesVista = { a: mesVista.a, m: mesVista.m + delta };
+  // new Date normaliza solo el desborde de diciembre a enero y al revés
+  const d = new Date(mesVista.a, mesVista.m, 1);
+  mesVista = { a: d.getFullYear(), m: d.getMonth() };
+  renderMes();
+}
+$("calAnt").onclick = () => irMes(-1);
+$("calSig").onclick = () => irMes(1);
+$("calHoy").onclick = () => { const h = new Date(); mesVista = { a:h.getFullYear(), m:h.getMonth() }; renderMes(); };
+
+function renderMes(){
+  if (!mesVista){ const h = new Date(); mesVista = { a:h.getFullYear(), m:h.getMonth() }; }
+  $("calMes").textContent = MES_LARGO[mesVista.m] + " " + mesVista.a;
+
+  if (!$("calDows").childElementCount){
+    DOWS.forEach(d => {
+      const c = document.createElement("div"); c.className = "calDow"; c.textContent = d;
+      $("calDows").appendChild(c);
+    });
+  }
+
+  // Un índice por fecha, para no recorrer la agenda entera en cada celda
+  const porDia = {};
+  AGENDA.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
+
+  const primero = new Date(mesVista.a, mesVista.m, 1);
+  const arranque = new Date(mesVista.a, mesVista.m, 1 - lunes0(primero));
+  const diasMes  = new Date(mesVista.a, mesVista.m + 1, 0).getDate();
+  const semanas  = Math.ceil((lunes0(primero) + diasMes) / 7);
+  const hoyIso   = isoDe(new Date());
+
+  const g = $("calGrid"); g.innerHTML = "";
+  for (let i = 0; i < semanas * 7; i++){
+    const d = new Date(arranque.getFullYear(), arranque.getMonth(), arranque.getDate() + i);
+    const iso = isoDe(d);
+    const cel = document.createElement("div");
+    cel.className = "calDia" + (d.getMonth() !== mesVista.m ? " fuera" : "") +
+                    (iso === hoyIso ? " hoy" : "");
+    cel.title = "Agendar el " + fechaLegible(iso);
+    cel.onclick = () => agendarEn(iso);
+
+    const n = document.createElement("div");
+    n.className = "calNum"; n.textContent = d.getDate();
+    cel.appendChild(n);
+
+    (porDia[iso] || []).forEach(ev => {
+      const chip = document.createElement("div");
+      chip.className = "calEv" + (estaVigente(ev) ? "" : " pasado");
+      chip.textContent = (ev.hora ? ev.hora + " " : "") + ev.titulo;
+      chip.title = ev.titulo + " — clic para editar";
+      chip.onclick = e => { e.stopPropagation(); editar(ev); };
+      cel.appendChild(chip);
+    });
+
+    g.appendChild(cel);
+  }
+}
+
+/* Clic en un día vacío: deja la fecha puesta y manda el foco al título, que es
+   lo único que falta escribir. No guarda nada solo. */
+function agendarEn(iso){
+  if (editandoId) limpiarForm();
+  $("evFecha").value = iso;
+  $("evMsg").textContent = "Fecha puesta: " + fechaLegible(iso);
+  $("evTit").scrollIntoView({ behavior:"smooth", block:"center" });
+  $("evTit").focus();
+}
 
 function filaEvento(ev, pasado){
   const [, m, d] = ev.fecha.split("-");
@@ -2030,6 +2150,7 @@ function filaEvento(ev, pasado){
 }
 
 function renderAgenda(){
+  renderMes();
   const ahora = Date.now();
   const futuros = AGENDA.filter(e => estaVigente(e, ahora));
   const pasados = AGENDA.filter(e => !estaVigente(e, ahora)).reverse();
