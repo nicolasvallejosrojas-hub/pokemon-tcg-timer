@@ -168,6 +168,30 @@
   #rWinner .who{font-size:24px;font-weight:700;color:#c9c2f5;line-height:1.25;margin-top:3px;}
   #rList{width:100%;max-width:420px;margin-top:20px;}
   #sstatus{font-size:13px;opacity:.6;text-align:center;margin-top:22px;}
+
+  /* =========================================================
+     7. Pestaña Agenda
+     ========================================================= */
+  #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
+  #aTitle{font-size:16px;font-weight:500;margin:0 0 10px;}
+  .evCard{background:var(--surface);border:1px solid var(--divider);border-radius:12px;
+    padding:13px 14px;margin-bottom:11px;display:flex;gap:13px;align-items:flex-start;}
+  .evCard.prox{border-color:var(--accent);background:rgba(145,132,217,.09);}
+  .evCal{min-width:52px;text-align:center;flex-shrink:0;padding-top:2px;}
+  .evCal .d{font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+  .evCal .m{font-size:10px;letter-spacing:.1em;color:#8a8d9e;font-weight:600;margin-top:3px;}
+  .evBody{flex:1;min-width:0;}
+  .evTit{font-size:15.5px;font-weight:600;line-height:1.3;}
+  .evCuando{font-size:12px;color:#8a8d9e;margin-top:4px;line-height:1.5;}
+  .evFalta{display:inline-block;font-size:10.5px;letter-spacing:.06em;font-weight:600;
+    color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:2px 9px;margin-top:7px;}
+  .evDet{font-size:12.5px;color:#a8abbb;margin-top:7px;line-height:1.5;white-space:pre-wrap;}
+  .evBtns{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;}
+  .evBtns a,.evBtns button{border:1px solid var(--divider);background:transparent;color:var(--text);
+    border-radius:20px;padding:7px 13px;font-size:12.5px;font-family:inherit;cursor:pointer;
+    text-decoration:none;white-space:nowrap;}
+  .evBtns a.gcal{border-color:var(--accent);color:var(--accent);}
+  #astatus{text-align:center;opacity:.6;font-size:12.5px;margin-top:14px;}
 </style>
 </head>
 <body>
@@ -180,6 +204,7 @@
   <button id="tabP">Emparejamientos<span id="dot"></span></button>
   <button id="tabC">Clasificación</button>
   <button id="tabS">Sorteo</button>
+  <button id="tabA">Agenda</button>
 </div>
 
 <!-- ============ Timer ============ -->
@@ -227,10 +252,22 @@
   <div id="sstatus"></div>
 </div>
 
+<!-- ============ Agenda de torneos ============ -->
+<div class="page hide" id="pAgenda">
+  <h1 id="aTitle">Pr&oacute;ximos torneos</h1>
+  <div id="aVacio" class="vacio" style="display:none">
+    <b>No hay fechas publicadas</b>
+    <div>Cuando el organizador agende el pr&oacute;ximo torneo, aparece ac&aacute;.</div>
+  </div>
+  <div id="aLista"></div>
+  <div id="astatus">Cargando&hellip;</div>
+</div>
+
 <script src="config.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar } from "./agenda.js";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -261,27 +298,31 @@ onValue(ref(db, ".info/serverTimeOffset"), s => { offset = s.val() || 0; });
 /* =========================================================
    2. Navegación entre pestañas
    ========================================================= */
+/* Una entrada por pestaña: página, botón y qué hay que despertar al abrirla.
+   Las pestañas pesadas (clasificación, agenda) recién se suscriben a Firebase
+   cuando alguien las abre, así entrar al timer no descarga nada de más. */
 let tab = "timer";
+const PAGINAS = {
+  timer:  ["pTimer",  "tabT", null],
+  pair:   ["pPair",   "tabP", () => { $("dot").style.visibility = "hidden"; seenStamp = P?.updatedAt || 0; }],
+  clas:   ["pClas",   "tabC", () => suscribirHistorial()],
+  sorteo: ["pSort",   "tabS", () => pintarRuleta()],
+  agenda: ["pAgenda", "tabA", () => suscribirAgenda()]
+};
 function show(t){
   tab = t;
-  $("pTimer").classList.toggle("hide", t!=="timer");
-  $("pPair").classList.toggle("hide",  t!=="pair");
-  $("pClas").classList.toggle("hide",  t!=="clas");
-  $("pSort").classList.toggle("hide",  t!=="sorteo");
-  $("tabT").classList.toggle("on", t==="timer");
-  $("tabP").classList.toggle("on", t==="pair");
-  $("tabC").classList.toggle("on", t==="clas");
-  $("tabS").classList.toggle("on", t==="sorteo");
+  for (const [k, [pagina, boton]] of Object.entries(PAGINAS)){
+    $(pagina).classList.toggle("hide", k !== t);
+    $(boton).classList.toggle("on", k === t);
+  }
   document.querySelectorAll(".imgbox").forEach(e => e.style.display = t==="timer" ? "block" : "none");
   $("bg").style.opacity = t==="timer" ? "1" : "0";
-  if (t==="pair"){ $("dot").style.visibility="hidden"; seenStamp = P?.updatedAt || 0; }
-  if (t==="clas") suscribirHistorial();
-  if (t==="sorteo") pintarRuleta();
+  // Con cinco pestañas la barra ya no cabe entera en un celular angosto: la
+  // que se abre se trae a la vista sola, para que no quede a medias en el borde.
+  $(PAGINAS[t][1]).scrollIntoView({ behavior:"smooth", block:"nearest", inline:"nearest" });
+  PAGINAS[t][2]?.();
 }
-$("tabT").onclick = () => show("timer");
-$("tabP").onclick = () => show("pair");
-$("tabC").onclick = () => show("clas");
-$("tabS").onclick = () => show("sorteo");
+Object.entries(PAGINAS).forEach(([k, [, boton]]) => $(boton).onclick = () => show(k));
 
 /* =========================================================
    3. Respaldo local
@@ -818,6 +859,78 @@ function pintarRuleta(){
 }
 
 window.addEventListener("resize", () => { if (tab === "sorteo") pintarRuleta(); });
+/* =========================================================
+   10. Agenda de torneos
+   El organizador publica las fechas desde su panel; acá solo se muestran y se
+   ofrecen dos salidas: el enlace de Google Calendar (que la app del celular
+   abre sola) y un .ics para iPhone, Outlook y el resto.
+   ========================================================= */
+const MES_CORTO = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+let AG = null, agendaOn = false;
+
+function suscribirAgenda(){
+  if (agendaOn) return;
+  agendaOn = true;
+  onValue(ref(db, BASE + "/agenda"), snap => {
+    const v = snap.val() || {};
+    AG = ordenar(Object.entries(v).map(([id, e]) => ({ id, ...e })));
+    renderAgenda();
+  }, () => { $("astatus").textContent = "No se pudo cargar la agenda."; });
+}
+
+function tarjeta(ev, esProximo){
+  const [, m, d] = (ev.fecha || "").split("-");
+  const card = document.createElement("div");
+  card.className = "evCard" + (esProximo ? " prox" : "");
+  card.innerHTML =
+    '<div class="evCal"><div class="d">' + (+d) + '</div><div class="m">' + MES_CORTO[+m-1] + '</div></div>' +
+    '<div class="evBody">' +
+      '<div class="evTit">' + esc(ev.titulo) + '</div>' +
+      '<div class="evCuando">' + esc(fechaLegible(ev.fecha)) +
+        (ev.hora ? " · " + esc(ev.hora) + " h" : " · todo el día") +
+        (ev.lugar ? "<br>" + esc(ev.lugar) : "") + "</div>" +
+      '<span class="evFalta">' + esc(cuantoFalta(ev)) + "</span>" +
+      (ev.detalle ? '<div class="evDet">' + esc(ev.detalle) + "</div>" : "") +
+      '<div class="evBtns"></div>' +
+    "</div>";
+
+  const btns = card.querySelector(".evBtns");
+  const g = document.createElement("a");
+  g.className = "gcal"; g.href = urlGoogle(ev);
+  g.target = "_blank"; g.rel = "noopener";
+  g.textContent = "Agregar a Google Calendar";
+  btns.appendChild(g);
+
+  const i = document.createElement("button");
+  i.textContent = "Otro calendario (.ics)";
+  i.onclick = () => bajarIcs([ev], (ev.titulo || "torneo").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) + ".ics");
+  btns.appendChild(i);
+
+  return card;
+}
+
+function renderAgenda(){
+  if (!AG) return;
+  const futuros = AG.filter(e => estaVigente(e));
+  $("aVacio").style.display = futuros.length ? "none" : "block";
+  $("astatus").textContent = "";
+  const lista = $("aLista"); lista.innerHTML = "";
+  futuros.forEach((e, i) => lista.appendChild(tarjeta(e, i === 0)));
+  if (futuros.length > 1){
+    const todos = document.createElement("div");
+    todos.className = "evBtns";
+    todos.style.justifyContent = "center";
+    const b = document.createElement("button");
+    b.textContent = "Descargar las " + futuros.length + " fechas (.ics)";
+    b.onclick = () => bajarIcs(futuros, "torneos.ics", "Torneos");
+    todos.appendChild(b);
+    lista.appendChild(todos);
+  }
+}
+
+/* "en 3 días" envejece solo: si alguien deja la página abierta toda la noche,
+   al otro día tiene que decir "mañana" y no seguir diciendo "en 2 días". */
+setInterval(() => { if (tab === "agenda" && AG) renderAgenda(); }, 60000);
 </script>
 </body>
 </html>

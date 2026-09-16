@@ -138,6 +138,33 @@
   #rGanadores div{padding:5px 0;border-bottom:1px solid var(--divider);}
 
   /* =========================================================
+     3b. Vigilancia del .tdf
+     ========================================================= */
+  #vigCard{border:1px solid var(--divider);border-radius:10px;padding:13px 14px;margin-bottom:14px;
+    background:rgba(145,132,217,.06);}
+  #vigCard.activo{border-color:var(--accent);background:rgba(145,132,217,.12);}
+  #vigEstado{font-size:12.5px;line-height:1.6;margin-top:8px;}
+  #vigEstado b{font-weight:600;}
+  .latido{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7fd98a;
+    margin-right:7px;vertical-align:middle;}
+  #vigCard.activo .latido{animation:latir 2s ease-in-out infinite;}
+  @keyframes latir{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+  /* =========================================================
+     5. Calendario de torneos
+     ========================================================= */
+  .evRow{display:flex;gap:12px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid var(--divider);}
+  .evRow.pasado{opacity:.45;}
+  .evFecha{min-width:64px;text-align:center;flex-shrink:0;}
+  .evFecha .d{font-size:20px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+  .evFecha .m{font-size:10px;letter-spacing:.1em;color:#8a8d9e;font-weight:600;text-transform:uppercase;margin-top:3px;}
+  .evMid{flex:1;min-width:0;}
+  .evTit{font-size:14.5px;font-weight:600;line-height:1.3;}
+  .evMeta{font-size:12px;color:#8a8d9e;margin-top:3px;line-height:1.5;}
+  .evAcc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+  #evForm.editando{box-shadow:inset 0 0 0 1px var(--accent);border-radius:8px;padding:10px;margin:-10px;}
+
+  /* =========================================================
      5. QR
      ========================================================= */
   #qr{width:190px;height:190px;background:#fff;padding:8px;border-radius:6px;}
@@ -178,6 +205,7 @@
   <button id="tabT" class="on">Timer</button>
   <button id="tabP">Emparejamientos</button>
   <button id="tabS">Sorteo</button>
+  <button id="tabC">Calendario</button>
 </div>
 
 <!-- ============================================================
@@ -325,7 +353,21 @@
      ============================================================ -->
 <div class="panel hide" id="panelP">
 <div class="card">
-  <div style="margin-bottom:10px">Carga el <b>.tdf</b> de TOM (el principal tras guardar, o un respaldo <code>_rN-begin</code> / <code>_rN-end</code>).</div>
+  <div id="vigCard">
+    <div class="row" style="align-items:center">
+      <div style="flex:1;font-size:14px"><span class="latido" id="vigLuz" style="display:none"></span>Sincronizaci&oacute;n autom&aacute;tica con TOM</div>
+      <button id="vigCarpeta" class="small sec">Vigilar carpeta</button>
+      <button id="vigArchivo" class="small sec">Vigilar un archivo</button>
+      <button id="vigParar" class="small sec" style="display:none">Detener</button>
+    </div>
+    <div class="muted" style="margin-top:6px;line-height:1.55">Eliges <b>una vez</b> la carpeta donde TOM guarda el torneo y el panel
+      la revisa solo. Cada vez que TOM escribe el archivo &mdash; al guardar, o al cerrar una ronda con sus respaldos
+      <code>_rN-begin</code> / <code>_rN-end</code> &mdash; los emparejamientos se publican sin que toques nada.</div>
+    <div id="vigEstado" class="muted">Apagada. Por ahora hay que arrastrar el archivo a mano.</div>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="vigAuto" checked> Publicar apenas detecte un cambio</label>
+  </div>
+
+  <div style="margin-bottom:10px">O carga el <b>.tdf</b> a mano (el principal tras guardar, o un respaldo <code>_rN-begin</code> / <code>_rN-end</code>).</div>
   <div id="drop">
     <div class="ico">&#128196;</div>
     <div class="big">Arrastra aquí el archivo .tdf</div>
@@ -423,6 +465,74 @@
 </div>
 </div>
 
+<!-- ============================================================
+     CALENDARIO
+     ============================================================ -->
+<div class="panel hide" id="panelC">
+<div class="card">
+  <div style="font-size:14px;margin-bottom:6px">Fechas de torneo</div>
+  <div class="muted" style="margin-bottom:12px">Lo que agregues acá aparece en la pesta&ntilde;a <b>Agenda</b> de los jugadores,
+    con un bot&oacute;n para meterlo a su Google Calendar de un toque.</div>
+
+  <div id="evForm">
+    <label>T&iacute;tulo
+      <input id="evTit" style="width:100%;margin-top:4px" placeholder="Torneo mensual Primer Bloque" maxlength="80">
+    </label>
+
+    <div class="row" style="margin-top:10px;align-items:flex-end">
+      <label style="margin:0">Fecha
+        <input type="date" id="evFecha" style="display:block;margin-top:4px">
+      </label>
+      <label style="margin:0" id="evHoraWrap">Hora de inicio
+        <input type="time" id="evHora" style="display:block;margin-top:4px">
+      </label>
+      <label style="margin:0" id="evDurWrap">Dura
+        <select id="evDur" style="display:block;margin-top:4px">
+          <option value="60">1 hora</option>
+          <option value="120">2 horas</option>
+          <option value="180">3 horas</option>
+          <option value="240" selected>4 horas</option>
+          <option value="300">5 horas</option>
+          <option value="360">6 horas</option>
+          <option value="480">8 horas</option>
+        </select>
+      </label>
+    </div>
+    <label class="chk"><input type="checkbox" id="evTodoDia"> Todo el d&iacute;a (sin hora fija)</label>
+
+    <label>Lugar <span class="muted">(opcional)</span>
+      <input id="evLugar" style="width:100%;margin-top:4px" placeholder="Tienda, direcci&oacute;n" maxlength="120">
+    </label>
+    <label>Detalle <span class="muted">(opcional &mdash; formato, inscripci&oacute;n, premios)</span>
+      <textarea id="evDet" style="width:100%;height:70px;margin-top:4px;resize:vertical"
+                placeholder="Racial Edici&oacute;n. Inscripci&oacute;n 15:30, $3.000. Cupos limitados." maxlength="500"></textarea>
+    </label>
+
+    <div class="row" style="margin-top:12px">
+      <button id="evGuardar">Agregar fecha</button>
+      <button id="evCancelar" class="sec small" style="display:none">Cancelar edici&oacute;n</button>
+      <span id="evMsg" class="muted"></span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row" style="align-items:center;margin-bottom:8px">
+    <div style="font-size:14px;flex:1">Pr&oacute;ximos torneos</div>
+    <button id="evIcsTodo" class="small sec">Descargar .ics</button>
+  </div>
+  <div id="evLista" class="muted">Cargando&hellip;</div>
+</div>
+
+<div class="card">
+  <div class="row" style="align-items:center">
+    <div style="font-size:14px;flex:1">Fechas pasadas</div>
+    <button id="evVerPasados" class="small sec">Mostrar</button>
+  </div>
+  <div id="evPasados" style="display:none;margin-top:8px"></div>
+</div>
+</div>
+
 <!-- ============ QR (común a todas las pestañas) ============ -->
 <div class="card center">
   <div style="font-size:14px;margin-bottom:8px">QR para los jugadores — timer, emparejamientos y sorteo en una sola página</div>
@@ -440,8 +550,9 @@
 <script src="config.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, get, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar } from "./agenda.js";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -535,18 +646,18 @@ onAuthStateChanged(auth, async u => {
   }
 });
 
-$("tabT").onclick = () => switchTab("t");
-$("tabP").onclick = () => switchTab("p");
-$("tabS").onclick = () => switchTab("s");
+/* Una entrada por pestaña: agregar una más es agregar una línea acá y el
+   botón en el HTML, no seis toggles repartidos. */
+const PESTANAS = { t:"panelT", p:"panelP", s:"panelS", c:"panelC" };
 function switchTab(t){
-  $("panelT").classList.toggle("hide", t!=="t");
-  $("panelP").classList.toggle("hide", t!=="p");
-  $("panelS").classList.toggle("hide", t!=="s");
-  $("tabT").classList.toggle("on", t==="t");
-  $("tabP").classList.toggle("on", t==="p");
-  $("tabS").classList.toggle("on", t==="s");
+  for (const [k, panel] of Object.entries(PESTANAS)){
+    $(panel).classList.toggle("hide", k !== t);
+    $("tab" + k.toUpperCase()).classList.toggle("on", k === t);
+  }
   if (t === "s") pintarRuleta();
+  if (t === "c") renderAgenda();
 }
+Object.keys(PESTANAS).forEach(k => $("tab" + k.toUpperCase()).onclick = () => switchTab(k));
 
 /* =========================================================
    3. Estado del timer
@@ -647,6 +758,17 @@ async function publishState(){
   } catch(e){
     $("syncMsg").innerHTML = '<span class="err">Sin publicar: '+(e.code||e.message)+'</span>';
   }
+}
+
+/* Los deslizadores y el selector de color disparan "input" en cada pixel del
+   arrastre. Sin freno eso son decenas de escrituras por segundo a Firebase por
+   un solo gesto: caro, y además ninguna de las intermedias le importa a nadie.
+   Iniciar y pausar siguen yendo derecho, que es lo que tiene que llegar ya. */
+let estadoTimer = null;
+function publishStatePronto(){
+  saveLocal();
+  clearTimeout(estadoTimer);
+  estadoTimer = setTimeout(publishState, 250);
 }
 
 let themeTimer = null;
@@ -1022,9 +1144,9 @@ $("bgG2").oninput   = e => { V().bgColor2 = e.target.value; pintarFondo(); publi
 $("bgDir").onchange = e => { V().bgDir = e.target.value; pintarFondo(); publishTheme(); };
 $("bgBri").oninput  = e => { V().bgBrightness = +e.target.value; pintarFondo(); publishTheme(); };
 $("bgOpa").oninput  = e => { V().bgOpacity = +e.target.value; pintarFondo(); publishTheme(); };
-$("cTimer").oninput = e => { st.timerColor = e.target.value; renderClock(); publishState(); };
-$("cNeg").oninput   = e => { st.negativeColor = e.target.value; renderClock(); publishState(); };
-$("cSize").oninput  = e => { st.timerSize = +e.target.value; $("szVal").textContent = st.timerSize; renderClock(); publishState(); };
+$("cTimer").oninput = e => { st.timerColor = e.target.value; renderClock(); publishStatePronto(); };
+$("cNeg").oninput   = e => { st.negativeColor = e.target.value; renderClock(); publishStatePronto(); };
+$("cSize").oninput  = e => { st.timerSize = +e.target.value; $("szVal").textContent = st.timerSize; renderClock(); publishStatePronto(); };
 
 function compressImage(file, maxW, quality, cb, forceJpeg){
   const r = new FileReader();
@@ -1073,6 +1195,7 @@ $("btnDelBgM").onclick = () => { st.mobile.bgImage  = ""; pintarFondo(); refresc
 /* =========================================================
    10. Arranque de la interfaz
    ========================================================= */
+let arrancado = false;
 function renderAll(){
   // Netlify y otros servidores esconden el ".html", así que cortamos por "/"
   const carpeta = location.pathname.replace(/admin\/?$/, "").replace(/[^/]*$/, "");
@@ -1089,7 +1212,15 @@ function renderAll(){
   } catch(e){}
 
   pintarFondo(); renderImgs(); renderPresets(); renderClock(); refrescarAjustes();
-  document.addEventListener("click", ensureAudio, { once:false });
+
+  // onAuthStateChanged puede volver a pasar por acá (reconexión, cambio de
+  // cuenta). Lo que se engancha al documento o al disco se hace una sola vez:
+  // repetirlo dejaba oyentes de clic duplicados y relanzaba la vigilancia.
+  if (!arrancado){
+    arrancado = true;
+    document.addEventListener("click", ensureAudio);
+    restaurarVigilancia();
+  }
 }
 
 /* =========================================================
@@ -1227,28 +1358,39 @@ function showPreview(d){
   $("preview").innerHTML = html;
 }
 
+/* El texto del .tdf entra por dos puertas —arrastrado a mano o traído por la
+   vigilancia de la carpeta— así que el trabajo vive acá, separado del arrastre.
+   "silencioso" es para la vigilancia: si TOM está a medio escribir el archivo,
+   el XML sale cortado y no hay que pintar un error rojo por algo que en dos
+   segundos se arregla solo. */
+function aplicarTdf(texto, nombre, { autoPublicar = false, silencioso = false } = {}){
+  try {
+    parsed = parseTdf(texto); showPreview(parsed);
+    $("publishBtn").disabled = false;
+    $("archiveBtn").disabled = false;
+    $("archDate").value = parsed.fecha || new Date().toISOString().slice(0,10);
+    $("archMsg").innerHTML = parsed.fecha
+      ? 'Fecha leída del archivo: <b>'+fechaLarga(parsed.fecha)+'</b>. Corrígela si no calza.'
+      : '<span class="err">El archivo no trae fecha; se usó la de hoy. Revísala.</span>';
+    $("parseMsg").innerHTML = '<span class="ok">'+esc(nombre)+' leído ✓</span>';
+    if (autoPublicar) publishPairings();
+    return true;
+  } catch(err){
+    if (!silencioso){
+      parsed = null; $("publishBtn").disabled = true; $("archiveBtn").disabled = true; $("preview").innerHTML = "";
+      $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+esc(err.message)+'</span>';
+    }
+    return false;
+  }
+}
+
 function handleFile(f){
   if (!f) return;
   if (!/\.(tdf|xml)$/i.test(f.name)){
     $("parseMsg").innerHTML = '<span class="err">Ese no parece un archivo .tdf</span>'; return;
   }
   const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      parsed = parseTdf(ev.target.result); showPreview(parsed);
-      $("publishBtn").disabled = false;
-      $("archiveBtn").disabled = false;
-      $("archDate").value = parsed.fecha || new Date().toISOString().slice(0,10);
-      $("archMsg").innerHTML = parsed.fecha
-        ? 'Fecha leída del archivo: <b>'+fechaLarga(parsed.fecha)+'</b>. Corrígela si no calza.'
-        : '<span class="err">El archivo no trae fecha; se usó la de hoy. Revísala.</span>';
-      $("parseMsg").innerHTML = '<span class="ok">'+esc(f.name)+' leído ✓</span>';
-      if ($("autoPub").checked) publishPairings();
-    } catch(err){
-      parsed = null; $("publishBtn").disabled = true; $("archiveBtn").disabled = true; $("preview").innerHTML = "";
-      $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+esc(err.message)+'</span>';
-    }
-  };
+  reader.onload = ev => aplicarTdf(ev.target.result, f.name, { autoPublicar: $("autoPub").checked });
   reader.readAsText(f);
 }
 
@@ -1292,6 +1434,198 @@ $("clearBtn").onclick = async () => {
     $("clearMsg").innerHTML = '<span class="ok">Borrado ✓ ' + hora + '</span>';
   } catch(e){ $("clearMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
 };
+
+/* =========================================================
+   12b. Vigilancia del .tdf — sincronización con TOM
+   El navegador no puede "mirar" el disco por su cuenta, pero sí puede quedarse
+   con el permiso de una carpeta que el usuario le entrega a mano UNA vez
+   (File System Access API). Con eso, cada pocos segundos se busca el .tdf más
+   reciente de esa carpeta y, si cambió, se lee y se publica.
+
+   La carpeta gana sobre el archivo suelto: TOM va dejando respaldos
+   _rN-begin / _rN-end a medida que avanza el torneo, así que "el más nuevo de
+   la carpeta" sigue la ronda actual sin que nadie tenga que reapuntar nada.
+
+   Solo Chrome y Edge. En Firefox y Safari los botones avisan que no se puede y
+   queda el arrastre de siempre.
+   ========================================================= */
+const HAY_FSA = !!(window.showDirectoryPicker && window.showOpenFilePicker);
+const VIG_MS  = 4000;
+
+/* IndexedDB, y no localStorage, porque un handle de carpeta es un objeto vivo
+   del navegador: se puede clonar estructuradamente, pero no serializar a texto. */
+const idb = () => new Promise((ok, fail) => {
+  const r = indexedDB.open("tdf-vigilancia", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("handles");
+  r.onsuccess = () => ok(r.result);
+  r.onerror   = () => fail(r.error);
+});
+async function guardarHandle(valor){
+  try {
+    const d = await idb();
+    await new Promise((ok, fail) => {
+      const tx = d.transaction("handles", "readwrite");
+      tx.objectStore("handles").put(valor, SALA);
+      tx.oncomplete = ok; tx.onerror = () => fail(tx.error);
+    });
+  } catch(e){}
+}
+async function leerHandle(){
+  try {
+    const d = await idb();
+    return await new Promise((ok, fail) => {
+      const req = d.transaction("handles", "readonly").objectStore("handles").get(SALA);
+      req.onsuccess = () => ok(req.result || null);
+      req.onerror   = () => fail(req.error);
+    });
+  } catch(e){ return null; }
+}
+
+let vigHandle = null, vigTipo = null, vigTimer = null;
+let vigFirma = null, vigUltimo = null, vigRevisado = 0, vigFallos = 0, vigAviso = "";
+
+/* El .tdf más reciente de la carpeta, o el archivo elegido si se vigila uno solo */
+async function archivoVigilado(){
+  if (vigTipo === "archivo") return await vigHandle.getFile();
+  let mejor = null;
+  for await (const [nombre, h] of vigHandle.entries()){
+    if (h.kind !== "file" || !/\.tdf$/i.test(nombre)) continue;
+    const f = await h.getFile();
+    if (!mejor || f.lastModified > mejor.lastModified) mejor = f;
+  }
+  return mejor;
+}
+
+function pintarVig(){
+  const card = $("vigCard"), est = $("vigEstado");
+  const activa = !!vigHandle;
+  card.classList.toggle("activo", activa);
+  $("vigLuz").style.display     = activa ? "inline-block" : "none";
+  $("vigParar").style.display   = activa ? "" : "none";
+  $("vigCarpeta").style.display = activa ? "none" : "";
+  $("vigArchivo").style.display = activa ? "none" : "";
+
+  if (!activa){
+    est.innerHTML = vigAviso || (HAY_FSA
+      ? "Apagada. Por ahora hay que arrastrar el archivo a mano."
+      : '<span class="warnc">Este navegador no permite vigilar carpetas.</span> Funciona en Chrome y en Edge; acá hay que seguir arrastrando el archivo.');
+    return;
+  }
+
+  const hace = Math.round((Date.now() - vigRevisado)/1000);
+  let h = "Vigilando <b>" + esc(vigHandle.name) + "</b>" +
+          (vigTipo === "carpeta" ? " (carpeta)" : " (archivo suelto)") +
+          ' &middot; <span class="muted">revisado hace ' + (hace < 2 ? "un instante" : hace + " s") + "</span>";
+  if (vigUltimo){
+    const hora = new Date(vigUltimo.hora).toLocaleTimeString("es-CL", {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+    h += '<br><span class="ok">Último cambio: ' + esc(vigUltimo.nombre) +
+         " &middot; ronda " + vigUltimo.ronda + " &middot; " + hora + "</span>";
+  } else {
+    h += '<br><span class="muted">Sin cambios todavía. Guarda en TOM y aparece solo.</span>';
+  }
+  if (vigFallos >= 3){
+    h += '<br><span class="warnc">El archivo se está leyendo a medio escribir (' + vigFallos +
+         " intentos). Suele arreglarse solo apenas TOM termina de guardar.</span>";
+  }
+  est.innerHTML = h;
+}
+
+async function revisarTdf(){
+  if (!vigHandle) return;
+  try {
+    const f = await archivoVigilado();
+    vigRevisado = Date.now();
+    if (!f){ pintarVig(); return; }
+
+    // nombre + fecha de modificación + tamaño: si los tres son iguales, TOM no
+    // escribió nada nuevo y no hay para qué leer ni publicar de nuevo.
+    const firma = f.name + "|" + f.lastModified + "|" + f.size;
+    if (firma === vigFirma){ pintarVig(); return; }
+
+    const texto = await f.text();
+    if (!aplicarTdf(texto, f.name, { autoPublicar: $("vigAuto").checked, silencioso: true })){
+      vigFallos++; pintarVig(); return;             // se reintenta en el próximo ciclo
+    }
+    vigFirma = firma; vigFallos = 0;
+    vigUltimo = { nombre: f.name, hora: Date.now(), ronda: parsed.lastRound };
+    pintarVig();
+  } catch(e){
+    // El permiso se cae si el usuario lo revoca o si la carpeta se movió
+    detenerVig(e.name === "NotAllowedError"
+      ? '<span class="err">Se perdió el permiso sobre la carpeta.</span> Vuelve a elegirla.'
+      : '<span class="err">No pude leer la carpeta: ' + esc(e.message) + "</span>");
+  }
+}
+
+function arrancarVig(handle, tipo){
+  vigHandle = handle; vigTipo = tipo;
+  vigFirma = null; vigUltimo = null; vigFallos = 0; vigAviso = "";
+  clearInterval(vigTimer);
+  vigTimer = setInterval(revisarTdf, VIG_MS);
+  revisarTdf();
+  pintarVig();
+}
+function detenerVig(aviso = ""){
+  clearInterval(vigTimer);
+  vigTimer = null; vigHandle = null; vigTipo = null; vigAviso = aviso;
+  pintarVig();
+}
+
+function elegir(fn){
+  return async () => {
+    if (!HAY_FSA){
+      vigAviso = '<span class="warnc">Este navegador no lo permite.</span> Abre el panel en Chrome o en Edge.';
+      pintarVig(); return;
+    }
+    try {
+      const { h, tipo } = await fn();
+      await guardarHandle({ h, tipo });
+      arrancarVig(h, tipo);
+    } catch(e){
+      if (e.name === "AbortError") return;          // el usuario cerró el diálogo
+      vigAviso = '<span class="err">' + esc(e.message) + "</span>";
+      pintarVig();
+    }
+  };
+}
+$("vigCarpeta").onclick = elegir(async () => ({
+  h: await showDirectoryPicker({ mode:"read", id:"tom", startIn:"documents" }), tipo:"carpeta" }));
+$("vigArchivo").onclick = elegir(async () => {
+  const [h] = await showOpenFilePicker({ id:"tom", startIn:"documents", multiple:false,
+    types:[{ description:"Torneo de TOM", accept:{ "application/xml":[".tdf",".xml"] } }] });
+  return { h, tipo:"archivo" };
+});
+$("vigParar").onclick = async () => { await guardarHandle(null); detenerVig("Vigilancia detenida."); };
+
+/* Al recargar el panel el handle sigue guardado, pero el permiso puede haber
+   vuelto a "preguntar": pedirlo de nuevo exige un clic del usuario, así que en
+   ese caso se ofrece un botón en vez de fallar en silencio. */
+async function restaurarVigilancia(){
+  if (!HAY_FSA){ pintarVig(); return; }
+  const g = await leerHandle();
+  if (!g || !g.h){ pintarVig(); return; }
+  let permiso = "prompt";
+  try { permiso = await g.h.queryPermission({ mode:"read" }); } catch(e){}
+  if (permiso === "granted"){ arrancarVig(g.h, g.tipo); return; }
+
+  vigAviso = "Hay una " + (g.tipo === "carpeta" ? "carpeta" : "un archivo") + " recordada (<b>" +
+             esc(g.h.name) + "</b>), pero el navegador pide confirmarla de nuevo.";
+  pintarVig();
+  const b = document.createElement("button");
+  b.className = "small"; b.textContent = "Reanudar vigilancia";
+  b.style.marginTop = "6px";
+  b.onclick = async () => {
+    try {
+      if (await g.h.requestPermission({ mode:"read" }) === "granted") arrancarVig(g.h, g.tipo);
+      else { vigAviso = '<span class="err">Permiso denegado.</span>'; pintarVig(); }
+    } catch(e){ vigAviso = '<span class="err">' + esc(e.message) + "</span>"; pintarVig(); }
+  };
+  $("vigEstado").appendChild(document.createElement("br"));
+  $("vigEstado").appendChild(b);
+}
+
+// El "revisado hace N s" tiene que envejecer aunque no pase nada
+setInterval(() => { if (vigHandle) pintarVig(); }, 1000);
 
 /* =========================================================
    13. Historial y puntos por puesto
@@ -1574,6 +1908,154 @@ $("rBorrar").onclick = async () => {
     $("rMsg").innerHTML = '<span class="ok">Quitado de la vista ✓</span>';
   } catch(e){ $("rMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
 };
+/* =========================================================
+   15. Calendario de torneos
+   Lo que se guarda acá lo lee la pestaña "Agenda" de los jugadores. El enlace
+   a Google Calendar no necesita API ni permisos: es la URL pública de "evento
+   nuevo" con los campos ya rellenos, y en el celular la abre la app.
+   ========================================================= */
+const R_AGENDA = ref(db, BASE + "/agenda");
+let AGENDA = [], editandoId = null, verPasados = false;
+
+onValue(R_AGENDA, snap => {
+  const v = snap.val() || {};
+  AGENDA = ordenar(Object.entries(v).map(([id, e]) => ({ id, ...e })));
+  renderAgenda();
+}, () => $("evLista").innerHTML = '<span class="err">No se pudo cargar el calendario.</span>');
+
+/* Los eventos de todo el día no llevan hora ni duración */
+function modoTodoDia(){
+  const td = $("evTodoDia").checked;
+  $("evHoraWrap").style.display = td ? "none" : "";
+  $("evDurWrap").style.display  = td ? "none" : "";
+}
+$("evTodoDia").onchange = modoTodoDia;
+
+function leerForm(){
+  const titulo = $("evTit").value.trim();
+  const fecha  = $("evFecha").value;
+  const todoDia = $("evTodoDia").checked;
+  const hora   = todoDia ? "" : ($("evHora").value || "");
+  if (!titulo) return { error:"Ponle un título al torneo." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { error:"Elige la fecha." };
+  if (!todoDia && !hora) return { error:"Pon la hora de inicio, o marca «todo el día»." };
+  return { ev: {
+    titulo, fecha, hora,
+    duracion: todoDia ? 0 : +$("evDur").value,
+    lugar:    $("evLugar").value.trim(),
+    detalle:  $("evDet").value.trim(),
+    inicioMs: aEpoch(fecha, hora),
+    updatedAt: Date.now()
+  }};
+}
+
+function limpiarForm(){
+  editandoId = null;
+  $("evTit").value = ""; $("evLugar").value = ""; $("evDet").value = "";
+  $("evTodoDia").checked = false; modoTodoDia();
+  $("evGuardar").textContent = "Agregar fecha";
+  $("evCancelar").style.display = "none";
+  $("evForm").classList.remove("editando");
+}
+$("evCancelar").onclick = () => { limpiarForm(); $("evMsg").textContent = ""; };
+
+$("evGuardar").onclick = async () => {
+  const { ev, error } = leerForm();
+  if (error){ $("evMsg").innerHTML = '<span class="err">' + error + '</span>'; return; }
+  $("evMsg").textContent = "Guardando…";
+  try {
+    if (editandoId){
+      // update y no set: set borraría "creado", que el formulario no vuelve a mandar
+      await conTimeout(update(ref(db, BASE + "/agenda/" + editandoId), ev), 15000);
+      $("evMsg").innerHTML = '<span class="ok">Fecha actualizada ✓</span>';
+    } else {
+      await conTimeout(push(R_AGENDA, { ...ev, creado: Date.now() }), 15000);
+      $("evMsg").innerHTML = '<span class="ok">Fecha agregada ✓ ya la ven los jugadores</span>';
+    }
+    limpiarForm();
+  } catch(e){ $("evMsg").innerHTML = '<span class="err">' + mensajeConexion(e) + '</span>'; }
+};
+
+function editar(ev){
+  editandoId = ev.id;
+  $("evTit").value   = ev.titulo || "";
+  $("evFecha").value = ev.fecha || "";
+  $("evTodoDia").checked = !ev.hora;
+  $("evHora").value  = ev.hora || "";
+  $("evDur").value   = ev.duracion || 240;
+  $("evLugar").value = ev.lugar || "";
+  $("evDet").value   = ev.detalle || "";
+  modoTodoDia();
+  $("evGuardar").textContent = "Guardar cambios";
+  $("evCancelar").style.display = "";
+  $("evForm").classList.add("editando");
+  $("evMsg").textContent = "Editando una fecha ya publicada.";
+  $("evTit").scrollIntoView({ behavior:"smooth", block:"center" });
+}
+
+async function borrar(ev){
+  if (!confirm('¿Borrar "' + ev.titulo + '" del calendario?\n\nDesaparece de la agenda de los jugadores. Los que ya lo agregaron a su Google Calendar lo conservan.')) return;
+  try { await remove(ref(db, BASE + "/agenda/" + ev.id)); } catch(e){ alert(mensajeConexion(e)); }
+}
+
+const MES_CORTO = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+
+function filaEvento(ev, pasado){
+  const [, m, d] = ev.fecha.split("-");
+  const row = document.createElement("div");
+  row.className = "evRow" + (pasado ? " pasado" : "");
+  row.innerHTML =
+    '<div class="evFecha"><div class="d">' + (+d) + '</div><div class="m">' + MES_CORTO[+m-1] + '</div></div>' +
+    '<div class="evMid"><div class="evTit">' + esc(ev.titulo) + '</div><div class="evMeta">' +
+      esc(fechaLegible(ev.fecha)) + (ev.hora ? " · " + esc(ev.hora) + " h" : " · todo el día") +
+      (pasado ? "" : " · " + esc(cuantoFalta(ev))) +
+      (ev.lugar ? "<br>" + esc(ev.lugar) : "") +
+      (ev.detalle ? '<br><span style="opacity:.75">' + esc(ev.detalle) + "</span>" : "") +
+    "</div></div>";
+
+  const acc = document.createElement("div");
+  acc.className = "evAcc";
+  [["Editar", () => editar(ev)], ["Borrar", () => borrar(ev)]].forEach(([txt, fn]) => {
+    const b = document.createElement("button");
+    b.className = "small sec"; b.textContent = txt; b.onclick = fn;
+    acc.appendChild(b);
+  });
+  const g = document.createElement("a");
+  g.href = urlGoogle(ev); g.target = "_blank"; g.rel = "noopener";
+  g.className = "small"; g.textContent = "Ver en Google";
+  g.style.cssText = "border:1px solid var(--divider);color:var(--text);border-radius:8px;padding:5px 10px;font-size:12px;text-decoration:none;align-self:flex-start";
+  acc.appendChild(g);
+  row.appendChild(acc);
+  return row;
+}
+
+function renderAgenda(){
+  const ahora = Date.now();
+  const futuros = AGENDA.filter(e => estaVigente(e, ahora));
+  const pasados = AGENDA.filter(e => !estaVigente(e, ahora)).reverse();
+
+  const lista = $("evLista"); lista.innerHTML = "";
+  lista.className = futuros.length ? "" : "muted";
+  if (!futuros.length) lista.textContent = "No hay fechas próximas. Agrega la primera arriba.";
+  else futuros.forEach(e => lista.appendChild(filaEvento(e, false)));
+  $("evIcsTodo").disabled = !futuros.length;
+
+  $("evVerPasados").textContent = verPasados ? "Ocultar" : "Mostrar";
+  $("evVerPasados").disabled = !pasados.length;
+  const caja = $("evPasados");
+  caja.style.display = verPasados && pasados.length ? "block" : "none";
+  if (verPasados){
+    caja.innerHTML = "";
+    pasados.forEach(e => caja.appendChild(filaEvento(e, true)));
+  }
+}
+$("evVerPasados").onclick = () => { verPasados = !verPasados; renderAgenda(); };
+$("evIcsTodo").onclick = () => {
+  const futuros = AGENDA.filter(e => estaVigente(e));
+  if (futuros.length) bajarIcs(futuros, "torneos-" + SALA + ".ics", "Torneos · " + SALA);
+};
+
+modoTodoDia();
 </script>
 </body>
 </html>
