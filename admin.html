@@ -4,30 +4,57 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel del organizador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css?v=1">
 <style>
   /* =========================================================
      1. Base y controles comunes
      ========================================================= */
-  :root{--bg:#161826;--surface:#232532;--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);--radius:10px;}
+  /* Las variables viejas ahora apuntan a la paleta de estilo.css: cada regla
+     que ya usaba var(--surface) o var(--accent) hereda el diseño nuevo sin
+     reescribirla. El divisor no desaparece del todo: la regla de "sin líneas
+     de 1 px" se justificaba por la proyección, y el panel se mira en un
+     notebook a 30 cm, donde una línea sutil ordena. */
+  :root{--bg:var(--campo);--surface:var(--sup);--text:var(--texto);
+        --accent:var(--accion);--divider:rgba(244,240,245,.10);--radius:var(--radio);
+
+    /* El lienzo usaba sus propios --L-*; ahora son alias de la paleta
+       compartida para que no queden dos paletas conviviendo. */
+    --L-lienzo:var(--lienzo); --L-pagina:var(--pagina); --L-campo:var(--campo);
+    --L-sup:var(--sup); --L-sup-alta:var(--sup-alta); --L-texto:var(--texto);
+    --L-apagado:var(--apagado); --L-rotulo:var(--rotulo); --L-accion:var(--accion);
+    --L-accion-clara:var(--accion-clara); --L-info:var(--info); --L-alerta:var(--alerta);
+    --L-negativo:var(--negativo); --L-radio:var(--radio);
+  }
   html,body{margin:0;min-height:100%;}
-  body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;padding:18px;box-sizing:border-box;}
+  body{background:var(--pagina);color:var(--text);font-family:var(--fuente);padding:18px;box-sizing:border-box;}
   h1{font-size:18px;font-weight:500;margin:0 0 14px;}
   .card{background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);padding:16px;margin-bottom:14px;max-width:840px;}
-  button{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:8px;
-         padding:9px 20px;font-family:inherit;font-size:14px;cursor:pointer;}
-  button.sec{border-color:var(--divider);color:var(--text);}
+  button{border:none;background:var(--accion);color:var(--campo);font-weight:600;
+         border-radius:var(--radio);padding:10px 20px;font-family:inherit;font-size:14px;
+         cursor:pointer;}
+  button:hover{background:var(--accion-clara);}
+  /* El secundario va un nivel MÁS ALTO que la tarjeta, no igual: sobre una
+     tarjeta del mismo color desaparecía y parecía texto suelto. */
+  button.sec{background:var(--sup-alta);color:var(--texto);font-weight:400;}
+  button.sec:hover{background:var(--sup);box-shadow:inset 0 0 0 1px var(--rotulo);}
   button.small{padding:5px 10px;font-size:12px;}
   button:disabled{opacity:.4;cursor:default;}
   input,select,textarea{background:var(--bg);border:1px solid var(--divider);border-radius:6px;color:var(--text);
         padding:7px 9px;font-family:inherit;font-size:13px;box-sizing:border-box;}
   label{font-size:12px;display:block;margin-top:10px;}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-  .muted{font-size:12px;opacity:.6;} .ok{color:#7fd98a;} .err{color:#e05a5a;} .warnc{color:#EF9F27;}
+  .muted{font-size:12px;opacity:.6;} .ok{color:var(--ok);} .err{color:var(--negativo);} .warnc{color:var(--accion);}
   .center{display:flex;flex-direction:column;align-items:center;}
 
+  /* Misma píldora que usa la vista del jugador: relleno, radio 4, sin borde */
   #tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
-  #tabs button{border-radius:20px;padding:8px 22px;border-color:var(--divider);color:var(--text);}
-  #tabs button.on{border-color:var(--accent);color:var(--accent);}
+  #tabs button{border:none;background:var(--sup);color:var(--apagado);
+    border-radius:var(--radio);padding:9px 18px;font-size:13.5px;}
+  #tabs button:hover{background:var(--sup-alta);color:var(--texto);}
+  #tabs button.on{background:var(--accion);color:var(--campo);font-weight:600;}
   .panel.hide{display:none;}
 
   table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px;}
@@ -39,71 +66,105 @@
      ========================================================= */
   #stageWrap{width:100%;overflow:hidden;display:flex;justify-content:center}
   #scaler{transform-origin:top center}
-  #canvas{position:relative;overflow:hidden;border-radius:14px;
-    box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;color:#e9e9ed}
+  #canvas{position:relative;overflow:hidden;border-radius:var(--L-radio);
+    box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;
+    color:var(--L-texto);font-family:Figtree,system-ui,sans-serif}
   #bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 
-  #topbar{position:relative;z-index:1;display:flex;align-items:center;gap:12px;
-    padding:14px 22px;border-bottom:1px solid rgba(233,233,237,.16)}
-  #ttitle{font-weight:500;font-size:16px;margin-right:auto}
-  #logo{max-height:28px;max-width:120px;object-fit:contain}
-  .tbtn{border:1px solid rgba(233,233,237,.16);background:transparent;color:#e9e9ed;
-    border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
-  .tbtn:hover{border-color:var(--accent)}
-  .tbtn.on{border-color:var(--accent);color:var(--accent)}
+  /* Sin línea de 1 px: las hairlines desaparecen en proyección. La barra se
+     separa del escenario con su propio fondo, que sobrevive a cualquier
+     proyector y a cualquier imagen que ponga la tienda debajo. */
+  #topbar{position:relative;z-index:1;display:flex;align-items:center;gap:14px;
+    padding:16px 26px;background:rgba(36,31,41,.55)}
+  #ttitle{font-weight:600;font-size:17px;line-height:1.2}
+  #tsubt{font-size:12.5px;color:var(--L-apagado);margin-top:2px;line-height:1.2}
+  #tnombre{margin-right:auto;min-width:0}
+  #logo{max-height:30px;max-width:120px;object-fit:contain}
+  .tbtn{border:none;background:var(--L-sup);color:var(--L-texto);
+    border-radius:var(--L-radio);padding:7px 13px;font-size:12px;cursor:pointer;
+    white-space:nowrap;flex-shrink:0;font-family:inherit}
+  .tbtn:hover{background:var(--L-sup-alta)}
+  .tbtn.on{background:var(--L-accion);color:var(--L-campo);font-weight:600}
+  .soloorg{font-size:9.5px;letter-spacing:.14em;color:var(--L-rotulo);
+    text-transform:uppercase;white-space:nowrap}
 
   #stage{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:16px}
-  #clock{cursor:pointer;font-weight:500;line-height:1;min-width:280px;text-align:center;
-    font-variant-numeric:tabular-nums;user-select:none}
-  #clockEdit{font-weight:500;line-height:1;width:280px;text-align:center;background:transparent;
-    border:none;border-bottom:2px solid var(--accent);outline:none;color:inherit;display:none}
+    align-items:center;justify-content:center;gap:18px}
+
+  /* El rótulo de ronda y el reloj llevan su propio respaldo: caja
+     semitransparente del color del fondo. Sobre el lienzo liso es casi
+     invisible; sobre una foto ruidosa de la tienda es lo que salva la
+     legibilidad. */
+  #ronda{font-size:15px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--L-apagado);background:rgba(36,31,41,.5);padding:7px 16px;
+    border-radius:var(--L-radio);text-shadow:0 2px 6px rgba(0,0,0,.5);display:none}
+  #clock{cursor:pointer;line-height:.95;min-width:280px;text-align:center;
+    font-family:Newsreader,Georgia,serif;font-weight:300;font-variant-numeric:tabular-nums;
+    user-select:none;padding:4px 26px;border-radius:var(--L-radio);
+    background:rgba(36,31,41,.5);text-shadow:0 4px 18px rgba(0,0,0,.45)}
+  /* En pausa el número se apaga sin perder el color que eligió la tienda: a
+     3 m se lee "no está corriendo" sin leer la palabra. */
+  #clock.pausado{opacity:.5}
+  #clock.porvencer{color:var(--L-accion) !important}
+  #clockEdit{line-height:.95;width:320px;text-align:center;background:transparent;
+    border:none;border-bottom:2px solid var(--L-accion);outline:none;color:inherit;
+    display:none;font-family:Newsreader,Georgia,serif;font-weight:300}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
   .pulsing{animation:pulse 1s ease-in-out infinite}
-  .mainbtn{border:1px solid var(--accent);color:var(--accent);background:transparent;
-    border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
-  .greybtn{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
-    border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer}
-  #presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-  .preset{border:1px solid rgba(233,233,237,.16);color:#e9e9ed;background:transparent;
-    border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
-  .preset.sel{border-color:var(--accent);color:var(--accent)}
-  .presetX{border:none;background:transparent;color:#e9e9ed;opacity:.5;cursor:pointer;font-size:14px}
+
+  .mainbtn{border:none;background:var(--L-accion);color:var(--L-campo);font-weight:600;
+    border-radius:var(--L-radio);padding:14px 38px;font-size:16px;cursor:pointer;
+    font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+  .mainbtn:hover{background:var(--L-accion-clara)}
+  .greybtn{border:none;background:var(--L-sup);color:var(--L-texto);
+    border-radius:var(--L-radio);padding:14px 32px;font-size:16px;cursor:pointer;
+    font-family:inherit}
+  .greybtn:hover{background:var(--L-sup-alta)}
+  #presets{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+  .preset{border:none;background:var(--L-sup);color:var(--L-apagado);
+    border-radius:var(--L-radio);padding:7px 13px;font-size:12.5px;cursor:pointer;
+    font-family:inherit}
+  .preset.sel{background:var(--L-accion);color:var(--L-campo);font-weight:600}
+  .presetX{border:none;background:transparent;color:var(--L-apagado);opacity:.6;
+    cursor:pointer;font-size:14px}
 
   /* Cajitas de imagen que se arrastran sobre el lienzo */
   .box{position:absolute;z-index:2;display:flex;flex-direction:column}
-  .boxbar{height:16px;cursor:move;background:#232532;border:1px solid rgba(233,233,237,.16);
+  .boxbar{height:16px;cursor:move;background:var(--sup);border:1px solid var(--divider);
     border-bottom:none;border-radius:6px 6px 0 0}
-  .boxbody{flex:1;border-radius:0 0 8px 8px;border:1px dashed rgba(233,233,237,.16);
+  .boxbody{flex:1;border-radius:0 0 8px 8px;border:1px dashed var(--divider);
     position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .boxbody img{width:100%;height:100%;object-fit:contain}
-  .boxempty{font-size:11px;color:rgba(233,233,237,.55);text-align:center;padding:4px}
+  .boxempty{font-size:11px;color:var(--apagado);text-align:center;padding:4px}
   .handle{position:absolute;background:transparent;z-index:3}
 
-  #menu{position:fixed;z-index:60;display:none;min-width:190px;padding:5px;background:#232532;
-    border:1px solid rgba(233,233,237,.16);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
-  #menu button{display:block;width:100%;text-align:left;border:none;background:transparent;color:#e9e9ed;
+  #menu{position:fixed;z-index:60;display:none;min-width:190px;padding:5px;background:var(--sup);
+    border:1px solid var(--divider);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  #menu button{display:block;width:100%;text-align:left;border:none;background:transparent;color:var(--texto);
     font-size:13px;padding:8px 12px;border-radius:6px;cursor:pointer}
-  #menu button:hover{background:rgba(145,132,217,.18)}
-  #menu hr{border:none;border-top:1px solid rgba(233,233,237,.16);margin:4px 0}
-  #menu .danger{color:#e07a7a}
+  #menu button:hover{background:rgba(249,215,70,.18)}
+  #menu hr{border:none;border-top:1px solid var(--divider);margin:4px 0}
+  #menu .danger{color:var(--negativo)}
 
   /* Hoja de ajustes del timer */
   #settings{position:absolute;inset:0;z-index:5;display:none;place-items:center;padding:16px;
-    background:rgba(14,15,24,.62)}
+    background:rgba(42,36,47,.72)}
   #settings.open{display:grid}
   #sheet{width:min(440px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;
-    padding:18px;border-radius:14px;background:#232532;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+    /* La hoja es un contenedor, no una superficie: si va del mismo color que
+       los botones que contiene, esos botones desaparecen. */
+    padding:18px;border-radius:var(--radio);background:var(--pagina);
+    box-shadow:0 18px 50px rgba(0,0,0,.45)}
   #sheet h2{font-size:19px;font-weight:500}
   .lab{font-size:12px;display:block}
   .lab input[type=range]{display:block;width:100%;margin-top:4px}
-  .col{display:block;width:100%;height:32px;margin-top:4px;border:1px solid rgba(233,233,237,.16);
+  .col{display:block;width:100%;height:32px;margin-top:4px;border:1px solid var(--divider);
     border-radius:6px;background:transparent;cursor:pointer}
-  .seg{display:inline-flex;border:1px solid rgba(233,233,237,.16);border-radius:8px;overflow:hidden}
+  .seg{display:inline-flex;border:1px solid var(--divider);border-radius:8px;overflow:hidden}
   .seg button{padding:6px 12px;font-size:12px;border:none;background:transparent;
-    color:rgba(233,233,237,.55);cursor:pointer}
+    color:var(--apagado);cursor:pointer}
   .seg button.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-  .hint{font-size:11px;color:rgba(233,233,237,.55);margin-top:4px;line-height:1.4}
+  .hint{font-size:11px;color:var(--apagado);margin-top:4px;line-height:1.4}
   .imgrow{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;}
   .imgrow img{height:44px;border:1px solid var(--divider);border-radius:4px;background:var(--bg);}
 
@@ -113,7 +174,7 @@
   #drop{border:2px dashed var(--divider);border-radius:12px;padding:34px 16px;text-align:center;
     cursor:pointer;transition:border-color .15s, background .15s;}
   #drop:hover{border-color:var(--accent);}
-  #drop.over{border-color:var(--accent);background:rgba(145,132,217,.12);}
+  #drop.over{border-color:var(--accent);background:rgba(249,215,70,.12);}
   #drop.busy{opacity:.55;pointer-events:none;}
   #drop .big{font-size:15.5px;font-weight:500;margin:8px 0 3px;}
   #drop .sm{font-size:12.5px;opacity:.6;}
@@ -126,14 +187,6 @@
   #sortLayout{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
   #sortCol{flex:1;min-width:260px;}
   #rItems{width:100%;height:190px;resize:vertical;font-size:13px;line-height:1.5;}
-  #rWrap{position:relative;width:340px;max-width:100%;flex-shrink:0;}
-  #rCanvas{width:100%;height:auto;display:block;}
-  #rPin{position:absolute;top:-2px;left:50%;transform:translateX(-50%);
-    width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;
-    border-top:20px solid var(--accent);filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));}
-  #rWinner{text-align:center;margin-top:12px;min-height:2.6em;}
-  #rWinner .lbl{font-size:10px;letter-spacing:.12em;color:#6f7386;font-weight:600;}
-  #rWinner .who{font-size:22px;font-weight:700;color:#c9c2f5;line-height:1.25;margin-top:3px;}
   #rGanadores{margin-top:12px;font-size:13px;}
   #rGanadores div{padding:5px 0;border-bottom:1px solid var(--divider);}
 
@@ -142,10 +195,10 @@
      ========================================================= */
   #vigCard{border:1px solid var(--divider);border-radius:10px;padding:13px 14px;margin-bottom:14px;
     background:rgba(145,132,217,.06);}
-  #vigCard.activo{border-color:var(--accent);background:rgba(145,132,217,.12);}
+  #vigCard.activo{border-color:var(--accent);background:rgba(249,215,70,.12);}
   #vigEstado{font-size:12.5px;line-height:1.6;margin-top:8px;}
   #vigEstado b{font-weight:600;}
-  .latido{display:inline-block;width:7px;height:7px;border-radius:50%;background:#7fd98a;
+  .latido{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);
     margin-right:7px;vertical-align:middle;}
   #vigCard.activo .latido{animation:latir 2s ease-in-out infinite;}
   @keyframes latir{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
@@ -153,42 +206,23 @@
   /* =========================================================
      5. Calendario de torneos
      ========================================================= */
-  #calNav{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
-  #calMes{font-size:15px;font-weight:600;flex:1;text-transform:capitalize;}
-  .calGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
-  .calDow{font-size:10px;letter-spacing:.08em;color:#6f7386;font-weight:600;
-    text-align:center;padding:2px 0 6px;}
-  .calDia{min-height:76px;border:1px solid var(--divider);border-radius:8px;padding:4px 5px;
-    background:var(--bg);display:flex;flex-direction:column;gap:3px;cursor:pointer;
-    transition:border-color .12s;overflow:hidden;}
   .calDia:hover{border-color:var(--accent);}
-  .calDia.fuera{opacity:.3;}
-  .calDia.hoy{border-color:var(--accent);background:rgba(145,132,217,.10);}
-  .calNum{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:#8a8d9e;}
-  .calDia.hoy .calNum{color:var(--accent);}
-  .calEv{font-size:10.5px;line-height:1.3;background:rgba(145,132,217,.24);
-    border-left:2px solid var(--accent);border-radius:3px;padding:2px 4px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .calEv:hover{background:rgba(145,132,217,.45);}
-  .calEv.pasado{background:rgba(233,233,237,.08);border-left-color:#6f7386;color:#8a8d9e;}
-  .calHint{font-size:11.5px;color:#6f7386;margin-top:10px;}
+  .calDia.hoy
+  .calHint{font-size:11.5px;color:var(--rotulo);margin-top:10px;}
 
   /* En pantalla angosta la celda se achica y el evento queda como un punto de
      color con la hora: el título no cabe y cortarlo a dos letras no sirve. */
   @media (max-width:620px){
-    .calDia{min-height:52px;padding:3px;}
-    .calNum{font-size:11px;}
-    .calEv{font-size:9px;padding:1px 3px;}
   }
 
   .evRow{display:flex;gap:12px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid var(--divider);}
   .evRow.pasado{opacity:.45;}
   .evFecha{min-width:64px;text-align:center;flex-shrink:0;}
   .evFecha .d{font-size:20px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
-  .evFecha .m{font-size:10px;letter-spacing:.1em;color:#8a8d9e;font-weight:600;text-transform:uppercase;margin-top:3px;}
+  .evFecha .m{font-size:10px;letter-spacing:.1em;color:var(--apagado);font-weight:600;text-transform:uppercase;margin-top:3px;}
   .evMid{flex:1;min-width:0;}
   .evTit{font-size:14.5px;font-weight:600;line-height:1.3;}
-  .evMeta{font-size:12px;color:#8a8d9e;margin-top:3px;line-height:1.5;}
+  .evMeta{font-size:12px;color:var(--apagado);margin-top:3px;line-height:1.5;}
   .evAcc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
   #evForm.editando{box-shadow:inset 0 0 0 1px var(--accent);border-radius:8px;padding:10px;margin:-10px;}
 
@@ -247,8 +281,12 @@
         <img id="bgImg" alt="">
 
         <div id="topbar">
-          <div id="ttitle">Timer de torneo</div>
           <img id="logo" alt="">
+          <div id="tnombre">
+            <div id="ttitle">Timer de torneo</div>
+            <div id="tsubt"></div>
+          </div>
+          <span class="soloorg">Solo organizador</span>
           <button class="tbtn" id="btnDesktop">Computador</button>
           <button class="tbtn" id="btnMobile">Celular</button>
           <button class="tbtn" id="btnFull">Pantalla completa</button>
@@ -256,6 +294,7 @@
         </div>
 
         <div id="stage">
+          <div id="ronda"></div>
           <div id="clock" title="Clic para editar el tiempo">32:00</div>
           <input id="clockEdit" type="text">
           <div style="display:flex; gap:8px">
@@ -335,6 +374,12 @@
               <label class="lab" style="flex:1">Color en negativo
                 <input type="color" class="col" id="cNeg">
               </label>
+            </div>
+
+            <div class="row" style="align-items:center">
+              <button class="tbtn" id="btnPaleta">Aplicar paleta del rediseño</button>
+              <span class="hint" style="flex:1;margin:0">Deja el fondo, el timer y el negativo
+                con los colores con que fue diseñado. Se aplica a las dos vistas.</span>
             </div>
 
             <label class="lab">Tama&ntilde;o del timer: <span id="szVal"></span>px
@@ -708,13 +753,13 @@ const PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTA
 const SIZES = { desktop:{w:1180,h:660}, mobile:{w:620,h:1100} };
 
 function nuevaVista(){
-  return { bgType:"color", bgColor1:"#161826", bgColor2:"#2b2741", bgDir:"to right",
+  return { bgType:"color", bgColor1:"#362F3C", bgColor2:"#2A242F", bgDir:"to right",
            bgImage:"", bgBrightness:100, bgOpacity:100, boxes:[], nextId:1 };
 }
 
 let st = {
   presetMin:32, customPresets:[], resetSec:32*60, remaining:32*60, paused:true, endTime:null,
-  view:"desktop", logo:"", timerColor:"#e9e9ed", negativeColor:"#e05a5a", timerSize:96,
+  view:"desktop", logo:"", timerColor:"#F4F0F5", negativeColor:"#D97F7D", timerSize:150,
   alarmData:"", alarmName:"",
   desktop:nuevaVista(), mobile:nuevaVista()
 };
@@ -904,7 +949,13 @@ function renderClock(){
   $("clock").style.fontSize = st.timerSize+"px";
   $("clock").style.color = s < 0 ? st.negativeColor : st.timerColor;
   $("clockEdit").style.fontSize = st.timerSize+"px";
-  $("clock").classList.toggle("pulsing", !st.paused && s <= 10 && s >= 0);
+  // Los cuatro estados tienen que leerse a 3 m sin leer ninguna palabra:
+  // apagado = en pausa, crema = corriendo, amarillo = últimos 10 s, rosa =
+  // tiempo negativo. El amarillo no repite el rosa del negativo a propósito.
+  const porVencer = !st.paused && s <= 10 && s >= 0;
+  $("clock").classList.toggle("pulsing", porVencer);
+  $("clock").classList.toggle("porvencer", porVencer);
+  $("clock").classList.toggle("pausado", st.paused);
   $("toggleBtn").textContent = st.paused ? "Iniciar" : "Pausar";
   if (!st.paused){
     // "s <= 0" y no "s === 0": si el navegador frena el intervalo (pestaña de
@@ -1175,6 +1226,30 @@ function refrescarAjustes(){
   $("cSize").value = st.timerSize; $("szVal").textContent = st.timerSize;
   $("alarmName").textContent = st.alarmName || "Sin archivo: usa un tono triple.";
 }
+
+/* Los colores del rediseño entran como valores por defecto solo para salas
+   nuevas, así que una sala que ya existía se queda con los suyos. Este botón
+   es el atajo para pasarse a mano, sin ir color por color.
+
+   No toca el TIPO de fondo a propósito: si la tienda puso una imagen, cambiarlo
+   a color le escondería su imagen de golpe. Se dejan los colores listos y se
+   avisa qué pasó. */
+const PALETA = { fondo1:"#362F3C", fondo2:"#2A242F", timer:"#F4F0F5", negativo:"#D97F7D" };
+$("btnPaleta").onclick = () => {
+  if (!confirm("Se reemplazan los colores actuales del fondo, del timer y del tiempo negativo, en las dos vistas.\n\n¿Aplicar la paleta del rediseño?")) return;
+  ["desktop","mobile"].forEach(k => {
+    st[k].bgColor1 = PALETA.fondo1;
+    st[k].bgColor2 = PALETA.fondo2;
+  });
+  st.timerColor = PALETA.timer;
+  st.negativeColor = PALETA.negativo;
+  pintarFondo(); renderClock(); refrescarAjustes();
+  publishTheme();                      // el fondo viaja en "theme"
+  publishState();                      // los colores del reloj, en "state"
+  $("stPeso").textContent = V().bgType === "image"
+    ? "Paleta aplicada. Ojo: esta vista está en modo imagen, así que el color nuevo se ve recién si cambias el fondo a Color."
+    : "Paleta aplicada ✓";
+};
 
 function setBgType(t){ V().bgType = t; pintarFondo(); refrescarAjustes(); publishTheme(); }
 $("bgTColor").onclick = () => setBgType("color");
@@ -1668,6 +1743,28 @@ async function restaurarVigilancia(){
 
 // El "revisado hace N s" tiene que envejecer aunque no pase nada
 setInterval(() => { if (vigHandle) pintarVig(); }, 1000);
+
+/* =========================================================
+   12c. Nombre del torneo y ronda en el lienzo
+   Lo que se proyecta gana mucho con decir de qué torneo y qué ronda se trata.
+   El dato ya existe: lo escribe la pestaña Emparejamientos al publicar. Acá
+   solo se lee, y si no hay nada publicado la línea desaparece sola.
+   ========================================================= */
+onValue(ref(db, BASE + "/pairings"), snap => {
+  const p = snap.val();
+  if (!p || !p.rounds || !p.rounds.length){
+    $("ttitle").textContent = "Timer de torneo";
+    $("tsubt").textContent = "";
+    $("ronda").style.display = "none";
+    return;
+  }
+  $("ttitle").textContent = p.name || "Timer de torneo";
+  $("tsubt").textContent = "Ronda " + p.lastRound +
+    (p.roundtime ? " · rondas de " + p.roundtime + " min" : "");
+  $("ronda").textContent = "Ronda " + p.lastRound +
+    (p.phase === "results" ? " · resultados" : " · en curso");
+  $("ronda").style.display = "block";
+}, () => {});
 
 /* =========================================================
    13. Historial y puntos por puesto

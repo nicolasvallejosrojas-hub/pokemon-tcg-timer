@@ -4,221 +4,173 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Torneo — Timer y emparejamientos</title>
+<link rel="stylesheet" href="estilo.css?v=1">
 <style>
-  /* =========================================================
-     1. Base
-     ========================================================= */
-  :root{--text:#e9e9ed;--accent:#9184d9;--divider:rgba(233,233,237,.16);--surface:#232532;}
-  html,body{margin:0;height:100%;}
-  body{background:#0e0f18;color:var(--text);font-family:'Inter',system-ui,sans-serif;
-       overflow:hidden;position:relative;}
-  #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none;transition:opacity .2s;}
+  /* Lo compartido vive en estilo.css. Acá queda solo el acomodo de esta
+     página: el reloj a pantalla completa, la rejilla de mesas y las tarjetas.
+     Las medidas de los componentes comunes se ajustan con variables. */
+  :root{--text:var(--texto);--accent:var(--accion);
+        --divider:rgba(244,240,245,.10);--surface:var(--sup);
+        --cal-alto:46px;--rueda:min(86vw,420px);}
 
+  html,body{height:100%;}
+  body{overflow:hidden;position:relative;}
+  #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
+      display:none;transition:opacity .2s;}
   .page{position:fixed;inset:0;box-sizing:border-box;z-index:1;}
   .page.hide{display:none !important;}
-  .sub{font-size:12px;color:#8a8d9e;font-weight:500;}
-  .vacio{padding:40px 8px;text-align:center;}
-  .vacio b{font-size:15px;}
-  .vacio div{font-size:13px;color:#8a8d9e;margin-top:6px;}
+  .sub{font-size:12.5px;color:var(--apagado);}
 
   /* =========================================================
-     2. Barra de pestañas
+     Barra inferior de 5 iconos
+     Cinco pestañas con texto no caben a 375 px. Abajo y con icono se llega
+     con el pulgar, que es como el jugador sostiene el teléfono mientras
+     tiene el mazo en la otra mano.
      ========================================================= */
-  #tabbar{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;gap:6px;justify-content:center;
-    padding:8px;background:rgba(14,15,24,.72);backdrop-filter:blur(6px);border-bottom:1px solid var(--divider);
-    overflow-x:auto;scrollbar-width:none;}
-  #tabbar::-webkit-scrollbar{display:none;}
-  #tabbar button{border:1px solid var(--divider);background:transparent;color:var(--text);border-radius:20px;
-    padding:7px 15px;font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;}
-  #tabbar button.on{border-color:var(--accent);color:var(--accent);}
-  #dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:6px;visibility:hidden;}
+  #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;
+    background:rgba(42,36,47,.94);backdrop-filter:blur(10px);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));}
+  #tabbar button{flex:1;border:none;background:transparent;color:var(--rotulo);
+    font-family:inherit;cursor:pointer;padding:6px 2px 4px;display:flex;
+    flex-direction:column;align-items:center;gap:3px;border-radius:var(--radio);
+    position:relative;min-width:0;}
+  #tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+  #tabbar button span{font-size:10.5px;font-weight:500;letter-spacing:.01em;}
+  #tabbar button.on{color:var(--accion);}
+  #dot{position:absolute;top:4px;right:calc(50% - 17px);width:7px;height:7px;
+    border-radius:50%;background:var(--accion);visibility:hidden;}
+
+  /* Todas las páginas dejan sitio para la barra de abajo */
+  #pTimer,#pPair,#pClas,#pSort,#pAgenda{padding-bottom:76px;}
 
   /* =========================================================
-     3. Pestaña Timer
+     Timer
      ========================================================= */
-  #pTimer{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3vh;
-          text-align:center;padding:56px 14px 14px;}
-  #logo{max-height:8vh;max-width:60vw;object-fit:contain;display:none;}
-  #names{font-size:clamp(15px,3.4vw,26px);opacity:.9;display:none;gap:12px;align-items:baseline;justify-content:center;flex-wrap:wrap;}
-  #names .vs{opacity:.45;font-size:.8em;}
-  #clock{font-weight:600;line-height:1;font-size:clamp(58px,20vw,210px);font-variant-numeric:tabular-nums;}
-  #tstatus{font-size:13px;opacity:.5;min-height:1.3em;}
+  #pTimer{display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:3vh;text-align:center;padding-left:14px;padding-right:14px;}
+  #logo{max-height:9vh;max-width:60vw;object-fit:contain;display:none;}
+  #names{display:none;}
+  #clock{font-size:clamp(64px,22vw,220px);}
+  #tstatus{font-size:13px;color:var(--apagado);min-height:1.3em;}
   .imgbox{position:fixed;z-index:0;pointer-events:none;}
   .imgbox img{width:100%;height:100%;object-fit:contain;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-  .warn{animation:pulse 1s ease-in-out infinite;}
 
   /* =========================================================
-     4. Pestaña Emparejamientos
+     Emparejamientos
      ========================================================= */
-  #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
-  #tname{font-size:16px;font-weight:500;margin:0 0 2px;}
-  #tsub{font-size:11.5px;opacity:.55;margin-bottom:10px;}
-  .banner{background:rgba(145,132,217,.14);border:1px solid var(--accent);border-radius:8px;
-    padding:9px 11px;font-size:12.5px;margin-bottom:10px;line-height:1.45;}
+  #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+         background:var(--pagina);}
+  #tname{font-family:var(--fuente-reloj);font-weight:300;font-size:27px;margin:0 0 2px;}
+  #tsub{font-size:12px;color:var(--rotulo);margin-bottom:14px;}
+  .banner{background:var(--sup);border-left:3px solid var(--accion);
+    border-radius:var(--radio);padding:11px 14px;font-size:13px;margin-bottom:14px;
+    line-height:1.5;}
 
   /* El buscador es lo primero que toca el jugador, por eso va grande */
-  #q{width:100%;box-sizing:border-box;height:52px;padding:0 14px;border-radius:12px;
-     border:1px solid rgba(145,132,217,.45);background:#171a26;color:var(--text);
-     font-size:17px;font-weight:600;font-family:inherit;outline:none;margin-bottom:12px;}
-  #q::placeholder{color:#6f7386;font-weight:500;}
+  #q{width:100%;font-size:16px;padding:14px 16px;margin-bottom:14px;}
 
-  #rounds{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;}
-  #rounds button{border:1px solid var(--divider);background:transparent;color:var(--text);border-radius:8px;
-    padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;}
-  #rounds button.on{border-color:var(--accent);color:var(--accent);background:rgba(145,132,217,.12);}
+  #rounds{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+  #rounds button{border:none;background:var(--sup);color:var(--apagado);
+    border-radius:var(--radio);padding:8px 15px;font-size:13.5px;
+    font-family:inherit;cursor:pointer;}
+  #rounds button.on{background:var(--accion);color:var(--campo);font-weight:600;}
 
-  /* Las mesas van siempre de a dos para no escrolear tanto; en pantalla
-     grande entra una tercera columna */
+  /* Las mesas van de a dos: el jugador escanea, no lee */
   #list.mesas{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-items:start;}
   @media (min-width:1100px){ #list.mesas{grid-template-columns:1fr 1fr 1fr;} }
-
-  /* Tarjeta de mesa: el número manda, el resto se lee después */
-  .match{background:var(--surface);border:1px solid var(--divider);border-radius:14px;
-    display:flex;align-items:stretch;overflow:hidden;}
-  .mnum{display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-width:62px;background:rgba(145,132,217,.10);
-    border-right:1px solid var(--divider);padding:10px 6px;}
-  .mlbl{font-size:9px;letter-spacing:.12em;color:#6f7386;font-weight:600;}
-  .mval{font-size:25px;font-weight:700;color:var(--accent);line-height:1.1;
-    font-variant-numeric:tabular-nums;}
-  .mbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding:10px 12px;}
+  .match{background:var(--sup);border-radius:var(--radio);overflow:hidden;
+    display:flex;flex-direction:column;}
+  .match.hl{box-shadow:inset 0 0 0 2px var(--accion);}
+  .mnum{display:flex;align-items:baseline;justify-content:center;gap:6px;
+    padding:5px 8px;background:var(--campo);}
+  .mlbl{font-size:9px;letter-spacing:.14em;color:var(--rotulo);font-weight:600;}
+  .mval{font-size:17px;font-weight:700;color:var(--accion);
+        font-variant-numeric:tabular-nums;}
+  .mbody{flex:1;display:flex;flex-direction:column;gap:7px;padding:11px 12px;}
   .prow{display:flex;align-items:center;gap:8px;}
-  .prow.won .pname{color:#c9c2f5;}
   .pinfo{flex:1;min-width:0;}
-  .pname{font-size:16px;font-weight:600;line-height:1.25;overflow-wrap:anywhere;}
-  .pmeta{font-size:12px;color:#8a8d9e;margin-top:2px;font-weight:500;}
-  .win{font-size:10px;font-weight:700;letter-spacing:.1em;color:#12131c;
-    background:var(--accent);border-radius:5px;padding:3px 7px;white-space:nowrap;}
-  .tie{font-size:10px;font-weight:700;letter-spacing:.1em;color:#8a8d9e;
-    border:1px solid var(--divider);border-radius:5px;padding:3px 7px;white-space:nowrap;}
-  .byetag{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;
-    padding:4px 9px;border-radius:6px;background:rgba(145,132,217,.14);
-    border:1px solid rgba(145,132,217,.3);font-size:11px;color:#8a8d9e;}
-  .byetag b{font-size:10px;letter-spacing:.1em;color:#b5abe8;}
-  .hl{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
-  #pstatus{font-size:13px;opacity:.6;text-align:center;margin-top:26px;}
+  /* A 375 px con dos columnas el nombre y el récord se parten feo. Se achican
+     lo justo para que la mayoría entre en una línea; el récord no se parte
+     nunca, se recorta, porque leerlo a medias confunde más que no verlo. */
+  .pname{font-size:13.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere;}
+  .pmeta{font-size:11px;color:var(--apagado);margin-top:3px;
+         font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
+         text-overflow:ellipsis;}
+  .mbody{padding:10px;}
+  .win,.tie{font-size:8.5px;padding:3px 6px;}
+  .prow.won .pname{color:var(--accion);}
+  .win,.tie{font-size:9px;letter-spacing:.1em;font-weight:700;padding:3px 7px;
+    border-radius:2px;white-space:nowrap;}
+  .win{background:var(--accion);color:var(--campo);}
+  .tie{background:var(--sup-alta);color:var(--apagado);}
+  .byetag{font-size:12px;color:var(--apagado);}
+  .byetag b{color:var(--texto);}
 
-  /* En el celular la tarjeta se arma distinta: el número de mesa pasa arriba
-     como una cinta, así los 62px que ocupaba al costado quedan para el nombre,
-     que es lo único que el jugador anda buscando */
-  @media (max-width:559px){
-    #pPair{padding-left:10px;padding-right:10px;}
-    #list.mesas{gap:7px;}
-    .match{flex-direction:column;border-radius:11px;}
-    .mnum{flex-direction:row;align-items:baseline;justify-content:center;gap:5px;
-      min-width:0;padding:4px 6px;
-      border-right:none;border-bottom:1px solid var(--divider);}
-    .mlbl{font-size:8.5px;}
-    .mval{font-size:16px;}
-    .mbody{gap:5px;padding:8px 9px;}
-    .prow{flex-wrap:wrap;gap:4px;}
-    .pname{font-size:13px;line-height:1.2;}
-    .pmeta{font-size:10.5px;margin-top:1px;}
-    .win,.tie{font-size:8.5px;padding:2px 5px;letter-spacing:.06em;}
-    .byetag{padding:3px 7px;font-size:10px;gap:4px;}
-    .byetag b{font-size:9px;}
-  }
-
-  /* =========================================================
-     5. Pestaña Clasificación
-     ========================================================= */
-  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
-  #mes{background:#1b1d29;color:var(--text);border:1px solid var(--divider);border-radius:8px;
-    padding:8px 12px;font-size:14px;font-family:inherit;min-width:180px;}
-  #cstatus{text-align:center;opacity:.6;font-size:12.5px;margin-top:14px;}
-
-  /* Filas de posiciones y de clasificación mensual */
-  .secLabel,.chead{font-size:10px;letter-spacing:.12em;color:#6f7386;font-weight:600;
-    padding:0 2px 10px;display:flex;justify-content:space-between;}
-  .frow,.crow{display:flex;align-items:center;gap:12px;padding:11px 2px;
-    border-bottom:1px solid var(--divider);}
-  .crow{cursor:pointer;}
-  .crow.sel{background:rgba(145,132,217,.08);}
-  .fpos{min-width:26px;text-align:center;font-size:14px;font-weight:700;color:#6f7386;
-    font-variant-numeric:tabular-nums;}
-  .fpos.pod1{color:#e8c96a;} .fpos.pod2{color:#c6cbd8;} .fpos.pod3{color:#c99b6a;}
+  .secLabel,.chead{font-size:10px;letter-spacing:.12em;color:var(--rotulo);
+    font-weight:600;padding:0 2px 10px;display:flex;justify-content:space-between;}
+  .frow,.crow{display:flex;align-items:center;gap:12px;padding:12px 10px;
+    background:var(--sup);border-radius:var(--radio);margin-bottom:5px;}
+  .hlrow{box-shadow:inset 0 0 0 2px var(--accion);}
   .fmid{flex:1;min-width:0;}
-  .fname{font-size:15.5px;font-weight:600;line-height:1.25;}
-  .fmeta{font-size:12px;color:#8a8d9e;margin-top:3px;font-weight:500;}
-  .fpts{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;}
-  .hlrow{background:rgba(145,132,217,.18);border-radius:8px;}
-  .cdet{display:none;gap:22px;margin:0 0 4px 38px;padding:12px 0 4px;
-    border-bottom:1px solid var(--divider);}
+
+  /* =========================================================
+     Clasificación
+     ========================================================= */
+  #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+         background:var(--pagina);}
+  #pClas h1,#rTitle,#aTitle{font-family:var(--fuente-reloj);font-weight:300;
+    font-size:27px;margin:0 0 12px;}
+  #mes{min-width:190px;font-size:14px;}
+  #cstatus,#sstatus,#astatus,#pstatus{text-align:center;color:var(--apagado);
+    font-size:12.5px;margin-top:16px;}
+  .crow{cursor:pointer;}
+  .crow.sel{box-shadow:inset 0 0 0 2px var(--accion);}
+  .cdet{display:none;gap:22px;margin:-3px 0 5px;padding:12px 14px;
+    background:var(--campo);border-radius:var(--radio);}
   .cdet.open{display:flex;}
-  .cdet span{display:block;font-size:10px;letter-spacing:.1em;color:#6f7386;font-weight:600;}
+  .cdet span{display:block;font-size:10px;letter-spacing:.1em;color:var(--rotulo);
+    font-weight:600;}
   .cdet b{font-size:15px;font-weight:600;}
-  .cdet b.ac{color:#b5abe8;}
-  .chint{font-size:12px;color:#6f7386;padding:14px 4px 0;text-align:center;}
+  .cdet b.ac{color:var(--accion);}
+  .chint{font-size:12px;color:var(--rotulo);padding:14px 4px 0;text-align:center;}
 
   /* =========================================================
-     6. Pestaña Sorteo
+     Sorteo
      ========================================================= */
-  #pSort{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;
-    display:flex;flex-direction:column;align-items:center;}
-  #rTitle{font-size:16px;font-weight:500;margin:0 0 12px;text-align:center;}
-  #rWrap{position:relative;width:min(86vw,420px);}
-  #rCanvas{width:100%;height:auto;display:block;}
-  /* La flecha marca el ganador: apunta hacia abajo, al borde de arriba */
-  #rPin{position:absolute;top:-2px;left:50%;transform:translateX(-50%);
-    width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;
-    border-top:20px solid var(--accent);filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));}
-  #rWinner{margin-top:16px;text-align:center;min-height:2.6em;}
-  #rWinner .lbl{font-size:10px;letter-spacing:.12em;color:#6f7386;font-weight:600;}
-  #rWinner .who{font-size:24px;font-weight:700;color:#c9c2f5;line-height:1.25;margin-top:3px;}
+  #pSort{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+    background:var(--pagina);display:flex;flex-direction:column;align-items:center;}
   #rList{width:100%;max-width:420px;margin-top:20px;}
-  #sstatus{font-size:13px;opacity:.6;text-align:center;margin-top:22px;}
 
   /* =========================================================
-     7. Pestaña Agenda
+     Agenda
      ========================================================= */
-  #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
-  #calNav{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
-  #calMes{font-size:14.5px;font-weight:600;flex:1;text-transform:capitalize;}
-  #calNav button{border:1px solid var(--divider);background:transparent;color:var(--text);
-    border-radius:20px;padding:5px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;}
-  .calGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;}
-  .calDow{font-size:9.5px;letter-spacing:.06em;color:#6f7386;font-weight:600;
-    text-align:center;padding:2px 0 5px;}
-  .calDia{min-height:46px;border:1px solid var(--divider);border-radius:7px;padding:3px;
-    background:var(--surface);display:flex;flex-direction:column;gap:2px;overflow:hidden;}
-  .calDia.fuera{opacity:.28;}
-  .calDia.hoy{border-color:var(--accent);background:rgba(145,132,217,.12);}
-  .calNum{font-size:10.5px;font-weight:600;color:#8a8d9e;font-variant-numeric:tabular-nums;
-    text-align:center;}
-  .calDia.hoy .calNum{color:var(--accent);}
-  /* En el celular no cabe el título: el evento es una barrita de color con la
-     hora. El nombre completo está en la tarjeta de abajo, a un toque. */
-  .calEv{font-size:8.5px;line-height:1.3;background:var(--accent);color:#12131c;
-    border-radius:3px;padding:1px 2px;text-align:center;font-weight:600;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
-  .calEv.pasado{background:#555a6e;color:#c6cbd8;}
-  .evCard.destacada{outline:2px solid var(--accent);outline-offset:2px;}
-  @media (min-width:560px){
-    .calDia{min-height:66px;padding:4px;}
-    .calNum{font-size:12px;text-align:left;}
-    .calEv{font-size:10.5px;padding:2px 4px;text-align:left;}
-  }
-
-  #aTitle{font-size:16px;font-weight:500;margin:0 0 10px;}
-  .evCard{background:var(--surface);border:1px solid var(--divider);border-radius:12px;
-    padding:13px 14px;margin-bottom:11px;display:flex;gap:13px;align-items:flex-start;}
-  .evCard.prox{border-color:var(--accent);background:rgba(145,132,217,.09);}
-  .evCal{min-width:52px;text-align:center;flex-shrink:0;padding-top:2px;}
-  .evCal .d{font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
-  .evCal .m{font-size:10px;letter-spacing:.1em;color:#8a8d9e;font-weight:600;margin-top:3px;}
+  #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
+           background:var(--pagina);}
+  .evCard{background:var(--sup);border-radius:var(--radio);padding:14px;
+    margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;}
+  .evCard.prox{box-shadow:inset 0 0 0 2px var(--accion);}
+  .evCard.destacada{box-shadow:inset 0 0 0 2px var(--accion-clara);}
+  .evCal{min-width:52px;text-align:center;flex-shrink:0;}
+  .evCal .d{font-family:var(--fuente-reloj);font-weight:300;font-size:32px;
+            line-height:1;font-variant-numeric:tabular-nums;}
+  .evCal .m{font-size:10px;letter-spacing:.1em;color:var(--rotulo);font-weight:600;
+            margin-top:2px;}
   .evBody{flex:1;min-width:0;}
-  .evTit{font-size:15.5px;font-weight:600;line-height:1.3;}
-  .evCuando{font-size:12px;color:#8a8d9e;margin-top:4px;line-height:1.5;}
-  .evFalta{display:inline-block;font-size:10.5px;letter-spacing:.06em;font-weight:600;
-    color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:2px 9px;margin-top:7px;}
-  .evDet{font-size:12.5px;color:#a8abbb;margin-top:7px;line-height:1.5;white-space:pre-wrap;}
-  .evBtns{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;}
-  .evBtns a,.evBtns button{border:1px solid var(--divider);background:transparent;color:var(--text);
-    border-radius:20px;padding:7px 13px;font-size:12.5px;font-family:inherit;cursor:pointer;
-    text-decoration:none;white-space:nowrap;}
-  .evBtns a.gcal{border-color:var(--accent);color:var(--accent);}
-  #astatus{text-align:center;opacity:.6;font-size:12.5px;margin-top:14px;}
+  .evTit{font-size:16px;font-weight:600;line-height:1.3;}
+  .evCuando{font-size:12.5px;color:var(--apagado);margin-top:4px;line-height:1.5;}
+  .evFalta{display:inline-block;font-size:10px;letter-spacing:.08em;font-weight:700;
+    color:var(--campo);background:var(--accion);border-radius:2px;padding:3px 8px;
+    margin-top:8px;text-transform:uppercase;}
+  .evDet{font-size:12.5px;color:var(--apagado);margin-top:8px;line-height:1.5;
+         white-space:pre-wrap;}
+  .evBtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  /* Sobre la tarjeta (--sup) el botón necesita ser --sup-alta o se pierde */
+  .evBtns a,.evBtns button{border:none;background:var(--sup-alta);color:var(--texto);
+    border-radius:var(--radio);padding:9px 14px;font-size:12.5px;font-family:inherit;
+    cursor:pointer;text-decoration:none;white-space:nowrap;}
+  .evBtns a.gcal{background:var(--accion);color:var(--campo);font-weight:600;}
+  #calCaja{margin-bottom:20px;}
 </style>
 </head>
 <body>
@@ -226,19 +178,21 @@
 <!-- ============ Fondo y barra de pestañas ============ -->
 <img id="bg" alt="">
 
+<!-- Barra abajo: cinco pestañas con texto no caben a 375 px, y abajo se
+     llega con el pulgar mientras la otra mano sostiene el mazo. -->
 <div id="tabbar">
-  <button id="tabT" class="on">Timer</button>
-  <button id="tabP">Emparejamientos<span id="dot"></span></button>
-  <button id="tabC">Clasificación</button>
-  <button id="tabS">Sorteo</button>
-  <button id="tabA">Agenda</button>
+  <button id="tabT" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Timer</span></button>
+  <button id="tabP"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7"/><rect x="13.5" y="4" width="7.5" height="7"/><rect x="3" y="13" width="7.5" height="7"/><rect x="13.5" y="13" width="7.5" height="7"/></svg><span>Mesas</span><i id="dot"></i></button>
+  <button id="tabC"><svg viewBox="0 0 24 24"><path d="M9 20V10M15 20V4M3 20h18M21 20v-6"/></svg><span>Ranking</span></button>
+  <button id="tabS"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 5v16M4 13h16M6.3 7.3l11.4 11.4M17.7 7.3L6.3 18.7"/></svg><span>Sorteo</span></button>
+  <button id="tabA"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span></button>
 </div>
 
 <!-- ============ Timer ============ -->
 <div class="page" id="pTimer">
   <img id="logo" alt="">
   <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
-  <div id="clock">--:--</div>
+  <div id="clock" class="reloj">--:--</div>
   <div id="tstatus">Conectando…</div>
 </div>
 
@@ -255,7 +209,7 @@
 
 <!-- ============ Clasificación mensual ============ -->
 <div class="page hide" id="pClas">
-  <h1>Clasificaci&oacute;n</h1>
+  <h1>Ranking</h1>
   <div class="row" style="justify-content:center;margin:6px 0 10px">
     <select id="mes"></select>
   </div>
@@ -434,7 +388,10 @@ function dibujarReloj(){
   const c = $("clock");
   c.textContent = fmt(sec);
   c.style.color = sec < 0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
-  c.classList.toggle("warn", !S.paused && sec <= 10 && sec >= 0);
+  const porVencer = !S.paused && sec <= 10 && sec >= 0;
+  c.classList.toggle("porvencer", porVencer);
+  c.classList.toggle("pulsing", porVencer);
+  c.classList.toggle("pausado", !!S.paused);
   if (S.timerSize) c.style.fontSize = "min(" + S.timerSize + "px, 26vw)";
 }
 
@@ -544,7 +501,7 @@ dibujarReloj();
 let P = null, sel = null, showStand = false, seenStamp = 0, first = true;
 
 function limpiarPair(msg){
-  $("tname").textContent = "Emparejamientos";
+  $("tname").textContent = "Mesas";
   $("tsub").textContent  = "";
   $("banner").style.display = "none";
   $("rounds").innerHTML = "";
