@@ -173,6 +173,33 @@
      7. Pestaña Agenda
      ========================================================= */
   #pAgenda{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:60px 14px 30px;background:#0e0f18;}
+  #calNav{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+  #calMes{font-size:14.5px;font-weight:600;flex:1;text-transform:capitalize;}
+  #calNav button{border:1px solid var(--divider);background:transparent;color:var(--text);
+    border-radius:20px;padding:5px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;}
+  .calGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;}
+  .calDow{font-size:9.5px;letter-spacing:.06em;color:#6f7386;font-weight:600;
+    text-align:center;padding:2px 0 5px;}
+  .calDia{min-height:46px;border:1px solid var(--divider);border-radius:7px;padding:3px;
+    background:var(--surface);display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+  .calDia.fuera{opacity:.28;}
+  .calDia.hoy{border-color:var(--accent);background:rgba(145,132,217,.12);}
+  .calNum{font-size:10.5px;font-weight:600;color:#8a8d9e;font-variant-numeric:tabular-nums;
+    text-align:center;}
+  .calDia.hoy .calNum{color:var(--accent);}
+  /* En el celular no cabe el título: el evento es una barrita de color con la
+     hora. El nombre completo está en la tarjeta de abajo, a un toque. */
+  .calEv{font-size:8.5px;line-height:1.3;background:var(--accent);color:#12131c;
+    border-radius:3px;padding:1px 2px;text-align:center;font-weight:600;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+  .calEv.pasado{background:#555a6e;color:#c6cbd8;}
+  .evCard.destacada{outline:2px solid var(--accent);outline-offset:2px;}
+  @media (min-width:560px){
+    .calDia{min-height:66px;padding:4px;}
+    .calNum{font-size:12px;text-align:left;}
+    .calEv{font-size:10.5px;padding:2px 4px;text-align:left;}
+  }
+
   #aTitle{font-size:16px;font-weight:500;margin:0 0 10px;}
   .evCard{background:var(--surface);border:1px solid var(--divider);border-radius:12px;
     padding:13px 14px;margin-bottom:11px;display:flex;gap:13px;align-items:flex-start;}
@@ -255,6 +282,18 @@
 <!-- ============ Agenda de torneos ============ -->
 <div class="page hide" id="pAgenda">
   <h1 id="aTitle">Pr&oacute;ximos torneos</h1>
+
+  <div id="calCaja" style="display:none;margin-bottom:20px">
+    <div id="calNav">
+      <div id="calMes">&nbsp;</div>
+      <button id="calHoy">Hoy</button>
+      <button id="calAnt" aria-label="Mes anterior">&lsaquo;</button>
+      <button id="calSig" aria-label="Mes siguiente">&rsaquo;</button>
+    </div>
+    <div class="calGrid" id="calDows"></div>
+    <div class="calGrid" id="calGrid"></div>
+  </div>
+
   <div id="aVacio" class="vacio" style="display:none">
     <b>No hay fechas publicadas</b>
     <div>Cuando el organizador agende el pr&oacute;ximo torneo, aparece ac&aacute;.</div>
@@ -267,7 +306,8 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar } from "./agenda.js";
+import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
+         MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=2";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -866,7 +906,7 @@ window.addEventListener("resize", () => { if (tab === "sorteo") pintarRuleta(); 
    abre sola) y un .ics para iPhone, Outlook y el resto.
    ========================================================= */
 const MES_CORTO = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
-let AG = null, agendaOn = false;
+let AG = null, agendaOn = false, mesVista = null;
 
 function suscribirAgenda(){
   if (agendaOn) return;
@@ -882,6 +922,7 @@ function tarjeta(ev, esProximo){
   const [, m, d] = (ev.fecha || "").split("-");
   const card = document.createElement("div");
   card.className = "evCard" + (esProximo ? " prox" : "");
+  card.dataset.ev = ev.id;
   card.innerHTML =
     '<div class="evCal"><div class="d">' + (+d) + '</div><div class="m">' + MES_CORTO[+m-1] + '</div></div>' +
     '<div class="evBody">' +
@@ -909,8 +950,67 @@ function tarjeta(ev, esProximo){
   return card;
 }
 
+/* La rejilla es solo de lectura: el jugador no agenda nada. Tocar un evento lo
+   lleva a su tarjeta, que es donde están los botones de Google Calendar. */
+function renderMes(){
+  if (!mesVista) mesVista = mesDeInteres(AG || []);
+  $("calMes").textContent = MES_LARGO[mesVista.m] + " " + mesVista.a;
+
+  if (!$("calDows").childElementCount){
+    DOWS.forEach(d => {
+      const c = document.createElement("div"); c.className = "calDow"; c.textContent = d;
+      $("calDows").appendChild(c);
+    });
+  }
+
+  const porDia = porFecha(AG || []);
+  const g = $("calGrid"); g.innerHTML = "";
+
+  celdasDelMes(mesVista.a, mesVista.m).forEach(c => {
+    const cel = document.createElement("div");
+    cel.className = "calDia" + (c.fuera ? " fuera" : "") + (c.hoy ? " hoy" : "");
+
+    const num = document.createElement("div");
+    num.className = "calNum"; num.textContent = c.dia;
+    cel.appendChild(num);
+
+    (porDia[c.iso] || []).forEach(ev => {
+      const chip = document.createElement("div");
+      chip.className = "calEv" + (estaVigente(ev) ? "" : " pasado");
+      chip.textContent = ev.hora || "todo el día";
+      chip.title = ev.titulo;
+      chip.onclick = () => irATarjeta(ev);
+      cel.appendChild(chip);
+    });
+
+    g.appendChild(cel);
+  });
+}
+
+function irMes(delta){ mesVista = mesDesplazado(mesVista.a, mesVista.m, delta); renderMes(); }
+$("calAnt").onclick = () => irMes(-1);
+$("calSig").onclick = () => irMes(1);
+$("calHoy").onclick = () => { const h = new Date(); mesVista = { a:h.getFullYear(), m:h.getMonth() }; renderMes(); };
+
+/* Toca un evento de la rejilla: baja a su tarjeta y la resalta un momento. Si
+   ya pasó no tiene tarjeta —la lista solo muestra los próximos—, así que ahí
+   se avisa en vez de hacer nada. */
+function irATarjeta(ev){
+  const card = $("aLista").querySelector('[data-ev="' + ev.id + '"]');
+  if (!card){
+    $("astatus").textContent = "«" + ev.titulo + "» ya pasó.";
+    setTimeout(() => { $("astatus").textContent = ""; }, 2500);
+    return;
+  }
+  card.scrollIntoView({ behavior:"smooth", block:"center" });
+  card.classList.add("destacada");
+  setTimeout(() => card.classList.remove("destacada"), 1600);
+}
+
 function renderAgenda(){
   if (!AG) return;
+  renderMes();
+  $("calCaja").style.display = AG.length ? "block" : "none";
   const futuros = AG.filter(e => estaVigente(e));
   $("aVacio").style.display = futuros.length ? "none" : "block";
   $("astatus").textContent = "";

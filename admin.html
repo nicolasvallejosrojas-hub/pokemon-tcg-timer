@@ -593,7 +593,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar } from "./agenda.js";
+import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
+         MES_LARGO, DOWS, isoDe, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=2";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -2041,21 +2042,9 @@ async function borrar(ev){
 }
 
 const MES_CORTO = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
-const MES_LARGO = ["enero","febrero","marzo","abril","mayo","junio","julio",
-                   "agosto","septiembre","octubre","noviembre","diciembre"];
-/* La semana parte el lunes, como se lee acá. getDay() da 0 para el domingo,
-   así que hay que rotarlo: (dia + 6) % 7 deja el lunes en 0 y el domingo en 6. */
-const DOWS = ["LUN","MAR","MIÉ","JUE","VIE","SÁB","DOM"];
-const lunes0 = d => (d.getDay() + 6) % 7;
-const isoDe = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
-                   "-" + String(d.getDate()).padStart(2,"0");
-
 
 function irMes(delta){
-  mesVista = { a: mesVista.a, m: mesVista.m + delta };
-  // new Date normaliza solo el desborde de diciembre a enero y al revés
-  const d = new Date(mesVista.a, mesVista.m, 1);
-  mesVista = { a: d.getFullYear(), m: d.getMonth() };
+  mesVista = mesDesplazado(mesVista.a, mesVista.m, delta);
   renderMes();
 }
 $("calAnt").onclick = () => irMes(-1);
@@ -2073,31 +2062,20 @@ function renderMes(){
     });
   }
 
-  // Un índice por fecha, para no recorrer la agenda entera en cada celda
-  const porDia = {};
-  AGENDA.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
-
-  const primero = new Date(mesVista.a, mesVista.m, 1);
-  const arranque = new Date(mesVista.a, mesVista.m, 1 - lunes0(primero));
-  const diasMes  = new Date(mesVista.a, mesVista.m + 1, 0).getDate();
-  const semanas  = Math.ceil((lunes0(primero) + diasMes) / 7);
-  const hoyIso   = isoDe(new Date());
-
+  const porDia = porFecha(AGENDA);
   const g = $("calGrid"); g.innerHTML = "";
-  for (let i = 0; i < semanas * 7; i++){
-    const d = new Date(arranque.getFullYear(), arranque.getMonth(), arranque.getDate() + i);
-    const iso = isoDe(d);
+
+  celdasDelMes(mesVista.a, mesVista.m).forEach(c => {
     const cel = document.createElement("div");
-    cel.className = "calDia" + (d.getMonth() !== mesVista.m ? " fuera" : "") +
-                    (iso === hoyIso ? " hoy" : "");
-    cel.title = "Agendar el " + fechaLegible(iso);
-    cel.onclick = () => agendarEn(iso);
+    cel.className = "calDia" + (c.fuera ? " fuera" : "") + (c.hoy ? " hoy" : "");
+    cel.title = "Agendar el " + fechaLegible(c.iso);
+    cel.onclick = () => agendarEn(c.iso);
 
-    const n = document.createElement("div");
-    n.className = "calNum"; n.textContent = d.getDate();
-    cel.appendChild(n);
+    const num = document.createElement("div");
+    num.className = "calNum"; num.textContent = c.dia;
+    cel.appendChild(num);
 
-    (porDia[iso] || []).forEach(ev => {
+    (porDia[c.iso] || []).forEach(ev => {
       const chip = document.createElement("div");
       chip.className = "calEv" + (estaVigente(ev) ? "" : " pasado");
       chip.textContent = (ev.hora ? ev.hora + " " : "") + ev.titulo;
@@ -2107,7 +2085,7 @@ function renderMes(){
     });
 
     g.appendChild(cel);
-  }
+  });
 }
 
 /* Clic en un día vacío: deja la fecha puesta y manda el foco al título, que es

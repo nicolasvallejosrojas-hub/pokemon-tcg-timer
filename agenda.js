@@ -20,6 +20,13 @@
    que se manda a Google Calendar. Si guardáramos solo el texto, el celular de
    un jugador que anda de viaje interpretaría "16:00" en SU zona horaria y
    agendaría el torneo a la hora equivocada.
+   ---------------------------------------------------------
+   OJO AL ACTUALIZAR: las dos páginas lo importan como "./agenda.js?v=N".
+   Ese número es a prueba de caché. Si acá se agrega o se renombra algo que las
+   páginas usen, hay que SUBIR EL NÚMERO en las dos, o el navegador de un
+   jugador que ya visitó el sitio va a mezclar el HTML nuevo con este archivo
+   viejo y la página se cae entera con "does not provide an export named X".
+   Versión actual: v=2
    ========================================================= */
 
 /* Epoch del instante, calculado en la zona horaria de quien lo escribe */
@@ -134,15 +141,15 @@ export function bajarIcs(eventos, nombreArchivo = "torneos.ics", nombreCalendari
 }
 
 /* ---------- Texto para humanos ---------- */
-const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
-               "agosto","septiembre","octubre","noviembre","diciembre"];
+export const MES_LARGO = ["enero","febrero","marzo","abril","mayo","junio","julio",
+                          "agosto","septiembre","octubre","noviembre","diciembre"];
 const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
 export function fechaLegible(fecha, conDia = true){
   if (!fecha) return "";
   const [a,m,d] = fecha.split("-").map(Number);
   const dt = new Date(a, m-1, d);
-  return (conDia ? DIAS[dt.getDay()] + " " : "") + d + " de " + MESES[m-1] +
+  return (conDia ? DIAS[dt.getDay()] + " " : "") + d + " de " + MES_LARGO[m-1] +
          (a !== new Date().getFullYear() ? " de " + a : "");
 }
 
@@ -160,6 +167,58 @@ export function cuantoFalta(ev, ahora = Date.now()){
   if (dias < 14)  return "en una semana";
   if (dias < 31)  return "en " + Math.round(dias/7) + " semanas";
   return "en " + Math.round(dias/30) + (Math.round(dias/30) === 1 ? " mes" : " meses");
+}
+
+/* ---------- Rejilla de mes ----------
+   Solo el cálculo: qué días entran en la vista de un mes y cómo se agrupan los
+   eventos. El dibujo lo hace cada página por su lado, porque el panel deja
+   editar y la vista del jugador no. */
+
+/* La semana parte el lunes, como se lee acá. getDay() da 0 para el domingo,
+   así que hay que rotarlo: (dia + 6) % 7 deja el lunes en 0 y el domingo en 6. */
+export const DOWS = ["LUN","MAR","MIÉ","JUE","VIE","SÁB","DOM"];
+const lunes0 = d => (d.getDay() + 6) % 7;
+
+export const isoDe = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
+                          "-" + String(d.getDate()).padStart(2,"0");
+
+/* Suma o resta meses sin desbordar: new Date normaliza diciembre→enero sola */
+export function mesDesplazado(a, m, delta){
+  const d = new Date(a, m + delta, 1);
+  return { a: d.getFullYear(), m: d.getMonth() };
+}
+
+/* Las celdas de la vista de un mes, incluyendo los días de los meses vecinos
+   que completan la primera y la última semana. Se devuelven 5 o 6 semanas
+   según lo que el mes necesite, no 6 siempre: una fila vacía es fea. */
+export function celdasDelMes(a, m, hoy = new Date()){
+  const primero  = new Date(a, m, 1);
+  const arranque = new Date(a, m, 1 - lunes0(primero));
+  const diasMes  = new Date(a, m + 1, 0).getDate();
+  const semanas  = Math.ceil((lunes0(primero) + diasMes) / 7);
+  const hoyIso   = isoDe(hoy);
+  const celdas = [];
+  for (let i = 0; i < semanas*7; i++){
+    const d = new Date(arranque.getFullYear(), arranque.getMonth(), arranque.getDate() + i);
+    const iso = isoDe(d);
+    celdas.push({ iso, dia: d.getDate(), fuera: d.getMonth() !== m, hoy: iso === hoyIso });
+  }
+  return celdas;
+}
+
+/* Índice fecha -> eventos, para no recorrer la agenda entera en cada celda */
+export function porFecha(eventos){
+  const ix = {};
+  eventos.forEach(e => { (ix[e.fecha] = ix[e.fecha] || []).push(e); });
+  return ix;
+}
+
+/* El mes que conviene mostrar al abrir: el del próximo torneo. Si el siguiente
+   es en noviembre, abrir en un octubre vacío no le sirve a nadie. */
+export function mesDeInteres(eventos, hoy = new Date()){
+  const prox = ordenar(eventos.filter(e => estaVigente(e, hoy.getTime())))[0];
+  const d = prox ? new Date(prox.inicioMs ?? aEpoch(prox.fecha, prox.hora)) : hoy;
+  return { a: d.getFullYear(), m: d.getMonth() };
 }
 
 export const ordenar = evs => [...evs].sort((a,b) =>
