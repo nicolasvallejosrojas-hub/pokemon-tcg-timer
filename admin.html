@@ -77,16 +77,11 @@
     white-space:nowrap;flex-shrink:0;font-family:inherit}
   .tbtn:hover{background:var(--sup-alta)}
   .tbtn.on{background:var(--accion);color:var(--campo);font-weight:600}
-  .soloorg{font-size:var(--t1);letter-spacing:.14em;color:var(--rotulo);
-    text-transform:uppercase;white-space:nowrap}
 
-  /* En la vista de celular el lienzo mide 620 px de ancho: los cuatro botones
-     más el rótulo no caben junto al nombre, y el nombre quedaba espachurrado
-     en una columna de una palabra por línea. Ahí el nombre se lleva la primera
-     fila entera y los controles bajan a la segunda. */
-  #canvas.vmobile #topbar{flex-wrap:wrap;padding:14px 18px}
-  #canvas.vmobile #tnombre{flex:0 0 100%;margin-bottom:10px}
-  #canvas.vmobile .soloorg{display:none}
+  /* Los cuatro botones del organizador salieron del lienzo, asi que el apano
+     de envolver la barra en dos filas ya no hace falta: aca solo queda lo que
+     de verdad ven los jugadores. */
+  #canvas.vmobile #topbar{padding:14px 18px}
   #canvas.vmobile #logo{max-height:26px}
 
   #stage{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
@@ -152,16 +147,59 @@
   #menu hr{border:none;border-top:1px solid var(--divider);margin:4px 0}
   #menu .danger{color:var(--negativo)}
 
-  /* Hoja de ajustes del timer */
-  #settings{position:absolute;inset:0;z-index:5;display:none;place-items:center;padding:16px;
-    background:rgba(42,36,47,.72)}
-  #settings.open{display:grid}
-  #sheet{width:min(440px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;
-    /* La hoja es un contenedor, no una superficie: si va del mismo color que
-       los botones que contiene, esos botones desaparecen. */
-    padding:18px;border-radius:var(--radio);background:var(--pagina);
-    box-shadow:0 18px 50px rgba(0,0,0,.45)}
-  #sheet h2{font-size:var(--t5);font-weight:500}
+  /* =========================================================
+     2b. Apariencia: rail al lado del lienzo
+     ---------------------------------------------------------
+     Antes esto era una hoja modal DENTRO de #canvas. Como #canvas cuelga de
+     #scaler, que lleva transform:scale(), la hoja se encogia junto con la
+     maqueta: a escala 0,6 un selector de color de 32 px se veia a 19 y un
+     objetivo tactil de 44 px quedaba en 26. Ademas se ataba a los 660 px de
+     alto del lienzo y tapaba con un velo justo lo que uno estaba ajustando,
+     que es lo unico que hacen esos controles: fondo, brillo, opacidad, color
+     y tamano del reloj.
+
+     Ahora vive afuera del transform, a tamano real, y al lado en vez de
+     encima: cada cambio se ve en vivo mientras se hace. */
+  #timerLayout{display:grid;grid-template-columns:minmax(0,1fr) 340px;
+    gap:var(--e3);align-items:start;max-width:1240px}
+  /* La tarjeta del panel esta topada en 840 px; aca la rejilla manda. */
+  #timerLayout > .card{max-width:none;margin-bottom:0}
+
+  /* Barra del organizador: fuera del lienzo, para que no se escale ni se
+     confunda con lo que ven los jugadores. */
+  .barra{display:flex;align-items:center;gap:var(--e2);flex-wrap:wrap;
+    margin-bottom:var(--e3)}
+  .barra .tbtn,.barra .seg button{min-height:44px}
+  .barra .seg button{padding:0 14px}
+
+  #settings{background:var(--surface);border:1px solid var(--divider);
+    border-radius:var(--radio);padding:var(--e4);box-sizing:border-box;
+    position:sticky;top:var(--e2);max-height:calc(100vh - 36px);overflow:auto}
+  #sheet{display:flex;flex-direction:column;gap:var(--e4)}
+  #sheet h2{font-size:var(--t5);font-weight:500;margin:0}
+  /* El secundario va un nivel MAS ALTO que la superficie que lo contiene: el
+     rail es --surface y .tbtn tambien, asi que sin esto desaparecerian. */
+  #settings .tbtn{background:var(--sup-alta);min-height:36px}
+  #settings .tbtn:hover{background:var(--accion);color:var(--campo)}
+  /* El piso de 44 px es para la vista de jugador, que se toca con el dedo en
+     un telefono. Este rail se maneja con mouse en un notebook, asi que baja a
+     36: sigue muy por encima del minimo AA de 24 y deja ver mas controles sin
+     scrollear. */
+  #settings .seg button{min-height:36px;padding:0 12px}
+  #settings input[type=number],#settings input[type=range],
+  #settings select,#settings .col{min-height:36px}
+
+  .grupo{display:flex;flex-direction:column;gap:var(--e2)}
+  .grupo > h3{font-size:var(--t1);letter-spacing:.12em;text-transform:uppercase;
+    color:var(--rotulo);font-weight:600;margin:0}
+  .grupo + .grupo{border-top:1px solid var(--divider);padding-top:var(--e4)}
+
+  /* Apilado, el rail deja de ser barra lateral: pegarlo y darle scroll propio
+     solo estorbaria, porque ya no compite por ancho con la maqueta. */
+  @media (max-width:1000px){
+    #timerLayout{grid-template-columns:minmax(0,1fr)}
+    #settings{position:static;max-height:none}
+  }
   .lab{font-size:var(--t2);display:block}
   .lab input[type=range]{display:block;width:100%;margin-top:4px}
   .col{display:block;width:100%;height:32px;margin-top:4px;border:1px solid var(--divider);
@@ -285,7 +323,19 @@
      TIMER
      ============================================================ -->
 <div class="panel" id="panelT">
+<div id="timerLayout">
 <div class="card" style="padding:12px">
+
+  <!-- Barra del organizador. Estaba adentro del lienzo, asi que se escalaba
+       con el y encima se mezclaba con lo que si ven los jugadores. -->
+  <div class="barra">
+    <div class="seg" role="group" aria-label="Vista del lienzo">
+      <button id="btnDesktop">Computador</button>
+      <button id="btnMobile">Celular</button>
+    </div>
+    <button class="tbtn" id="btnFull">Pantalla completa</button>
+  </div>
+
   <div id="stageWrap">
     <div id="scaler">
       <div id="canvas">
@@ -297,11 +347,6 @@
             <div id="ttitle">Timer de torneo</div>
             <div id="tsubt"></div>
           </div>
-          <span class="soloorg">Solo organizador</span>
-          <button class="tbtn" id="btnDesktop">Computador</button>
-          <button class="tbtn" id="btnMobile">Celular</button>
-          <button class="tbtn" id="btnFull">Pantalla completa</button>
-          <button class="tbtn" id="btnSettings">Ajustes</button>
         </div>
 
         <div id="stage">
@@ -315,12 +360,37 @@
           <div id="presets"></div>
         </div>
 
-        <!-- Hoja de ajustes -->
-        <div id="settings">
-          <div id="sheet">
-            <h2>Ajustes</h2>
 
-            <label class="lab">Logo del evento
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:10px;align-items:center">
+    <span id="syncMsg" class="muted" style="flex:1"></span>
+    <span class="muted">Clic derecho sobre el lienzo para agregar cajitas.</span>
+  </div>
+</div>
+
+<!-- ============================================================
+     APARIENCIA — rail, no ventana
+     Vive fuera de #scaler para no encogerse con la maqueta, y al lado del
+     lienzo en vez de encima, porque todo lo que hay aca se ve reflejado
+     ahi mismo mientras se ajusta.
+     ============================================================ -->
+<aside id="settings" aria-label="Apariencia del timer">
+  <div id="sheet">
+    <h2>Apariencia</h2>
+
+    <section class="grupo">
+      <h3>Atajo</h3>
+      <button class="tbtn" id="btnPaleta">Aplicar paleta del rediseno</button>
+      <span class="hint" style="margin:0">Deja el fondo, el reloj y el negativo con los
+        colores con que fue disenado. Se aplica a las dos vistas.</span>
+    </section>
+
+    <section class="grupo">
+      <h3>Marca</h3>
+      <label class="lab">Logo del evento
               <input type="file" accept="image/*" id="fLogo">
             </label>
             <div class="row" style="align-items:center">
@@ -328,9 +398,11 @@
               <button class="tbtn" id="btnDelLogo" aria-label="Quitar el logo del evento" title="Quitar el logo del evento">Quitar</button>
             </div>
             <div class="hint" id="stPeso" style="margin:0 0 4px"></div>
+    </section>
 
-            <div>
-              <div style="font-size:var(--t2); margin-bottom:4px">Fondo — <span id="bgWhich"></span></div>
+    <section class="grupo">
+      <h3>Fondo — <span id="bgWhich"></span></h3>
+      
               <div class="seg">
                 <button id="bgTColor">Color</button>
                 <button id="bgTGrad">Gradiente</button>
@@ -376,9 +448,11 @@
                   <input type="range" min="10" max="100" id="bgOpa">
                 </label>
               </div>
-            </div>
+    </section>
 
-            <div class="row">
+    <section class="grupo">
+      <h3>Reloj</h3>
+      <div class="row">
               <label class="lab" style="flex:1">Color del timer
                 <input type="color" class="col" id="cTimer">
               </label>
@@ -387,48 +461,35 @@
               </label>
             </div>
 
-            <div class="row" style="align-items:center">
-              <button class="tbtn" id="btnPaleta">Aplicar paleta del rediseño</button>
-              <span class="hint" style="flex:1;margin:0">Deja el fondo, el timer y el negativo
-                con los colores con que fue diseñado. Se aplica a las dos vistas.</span>
-            </div>
+            
 
             <label class="lab">Tama&ntilde;o del timer: <span id="szVal"></span>px
               <input type="range" min="40" max="240" id="cSize">
             </label>
+    </section>
 
-            <div>
-              <div style="font-size:var(--t2);margin-bottom:4px">Agregar tiempo personalizado</div>
+    <section class="grupo">
+      <h3>Tiempos</h3>
+      
               <div class="row">
                 <input type="number" id="newPreset" placeholder="minutos" style="flex:1">
                 <button class="tbtn" id="addPreset">Agregar</button>
               </div>
-            </div>
+    </section>
 
-            <div>
-              <div style="font-size:var(--t2);margin-bottom:4px">Sonido de alarma <span class="muted">(suena en este equipo)</span></div>
+    <section class="grupo">
+      <h3>Alarma</h3>
+      <span class="hint" style="margin:0">Suena solo en este equipo.</span>
               <input type="file" accept="audio/*" id="fAlarm" style="font-size:var(--t2)">
               <div class="row" style="margin-top:6px;align-items:center">
                 <span class="hint" id="alarmName" style="flex:1;margin:0"></span>
                 <button class="tbtn" id="testSound">Probar</button>
                 <button class="tbtn" id="clearSound" aria-label="Quitar el sonido de alarma" title="Quitar el sonido de alarma">Quitar</button>
               </div>
-            </div>
-
-            <div class="row" style="justify-content:flex-end;margin-top:4px">
-              <button class="tbtn" id="btnCloseSettings">Listo</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
+    </section>
   </div>
+</aside>
 
-  <div class="row" style="margin-top:10px;align-items:center">
-    <span id="syncMsg" class="muted" style="flex:1"></span>
-    <span class="muted">Clic derecho sobre el lienzo para agregar cajitas.</span>
-  </div>
 </div>
 </div>
 
@@ -1211,7 +1272,6 @@ function menuCaja(id, e){
 }
 $("canvas").addEventListener("contextmenu", e => {
   if (e.target.closest(".box")) return;
-  if ($("settings").classList.contains("open")) return;
   e.preventDefault();
   const r = $("canvas").getBoundingClientRect();
   const x = (e.clientX-r.left)/escala, y = (e.clientY-r.top)/escala;
@@ -1224,8 +1284,7 @@ $("canvas").addEventListener("contextmenu", e => {
 /* =========================================================
    9. Hoja de ajustes e imágenes
    ========================================================= */
-$("btnSettings").onclick      = () => { refrescarAjustes(); $("settings").classList.add("open"); };
-$("btnCloseSettings").onclick = () => $("settings").classList.remove("open");
+
 
 function refrescarAjustes(){
   const v = V();
