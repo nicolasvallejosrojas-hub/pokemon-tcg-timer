@@ -348,6 +348,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=3";
+import { resolver as palResolver, esOriginal as palEsOriginal, aplicar as palAplicarEn } from "./paleta.js?v=1";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -551,6 +552,13 @@ const vistaActual = () => (window.innerHeight >= window.innerWidth) ? "mobile" :
 
 function applyTheme(){
   if (!TH) return;
+
+  /* La paleta del organizador viaja dentro del tema. Sin ella (salas viejas,
+     o antes de que llegue el primer paquete) se borran los tokens y manda
+     estilo.css, que es la paleta disenada. */
+  palAplicarEn(document.documentElement,
+    (TH.paleta && !palEsOriginal(TH.paleta)) ? palResolver(TH.paleta) : null);
+
   const modo = vistaActual();
   const V = TH[modo] || TH.desktop || TH;         // compatible con el formato anterior
   const M = (MED && (MED[modo] || MED.desktop)) || {};

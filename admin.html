@@ -11,19 +11,21 @@
      1. Base y controles comunes
      ========================================================= */
   /* Las variables viejas ahora apuntan a la paleta de estilo.css: cada regla
-     que ya usaba var(--surface) o var(--accent) hereda el diseño nuevo sin
+     que ya usaba var(--sup) o var(--accion) hereda el diseño nuevo sin
      reescribirla. El divisor no desaparece del todo: la regla de "sin líneas
      de 1 px" se justificaba por la proyección, y el panel se mira en un
      notebook a 30 cm, donde una línea sutil ordena. */
-  :root{--bg:var(--campo);--surface:var(--sup);--text:var(--texto);
-        --accent:var(--accion);--divider:rgba(244,240,245,.10);--radius:var(--radio);
-
-
+  :root{
+    /* Unico valor propio del panel. El resto eran alias que ya apuntaban a su
+       token del sistema, o sea indireccion pura, y se colapsaron. La linea de
+       1 px sobrevive a la regla de "sin hairlines" porque esa se justificaba
+       por la proyeccion, y el panel se mira en un notebook a 30 cm. */
+    --divider:rgba(244,240,245,.10);
   }
   html,body{margin:0;min-height:100%;}
-  body{background:var(--pagina);color:var(--text);font-family:var(--fuente);padding:18px;box-sizing:border-box;}
+  body{background:var(--pagina);color:var(--texto);font-family:var(--fuente);padding:18px;box-sizing:border-box;}
   h1{font-size:var(--t5);font-weight:500;margin:0 0 14px;}
-  .card{background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);padding:16px;margin-bottom:14px;max-width:840px;}
+  .card{background:var(--sup);border:1px solid var(--divider);border-radius:var(--radio);padding:16px;margin-bottom:14px;max-width:840px;}
   button{border:none;background:var(--accion);color:var(--campo);font-weight:600;
          border-radius:var(--radio);padding:10px 20px;font-family:inherit;font-size:var(--t3);
          cursor:pointer;}
@@ -160,8 +162,8 @@
 
      Ahora vive afuera del transform, a tamano real, y al lado en vez de
      encima: cada cambio se ve en vivo mientras se hace. */
-  #timerLayout{display:grid;grid-template-columns:minmax(0,1fr) 340px;
-    gap:var(--e3);align-items:start;max-width:1240px}
+  #timerLayout{display:grid;grid-template-columns:minmax(0,1fr) 400px;
+    gap:var(--e3);align-items:start;max-width:1320px}
   /* La tarjeta del panel esta topada en 840 px; aca la rejilla manda. */
   #timerLayout > .card{max-width:none;margin-bottom:0}
 
@@ -172,7 +174,16 @@
   .barra .tbtn,.barra .seg button{min-height:44px}
   .barra .seg button{padding:0 14px}
 
-  #settings{background:var(--surface);border:1px solid var(--divider);
+  /* Barra de cambios sin publicar. Va sobre el lienzo y no en el rail porque
+     lo que avisa es que la maqueta y la pantalla proyectada no coinciden. */
+  #pendiente{display:flex;align-items:center;gap:var(--e2);flex-wrap:wrap;
+    margin-bottom:var(--e3)}
+  #pendiente span{flex:1 1 200px}
+  #pendiente .tbtn{min-height:36px}
+  #pendienteAviso{font-size:var(--t2);color:var(--apagado);margin-bottom:var(--e2)}
+  #pendienteAviso:empty{display:none}
+
+  #settings{background:var(--sup);border:1px solid var(--divider);
     border-radius:var(--radio);padding:var(--e4);box-sizing:border-box;
     position:sticky;top:var(--e2);max-height:calc(100vh - 36px);overflow:auto}
   #sheet{display:flex;flex-direction:column;gap:var(--e4)}
@@ -194,6 +205,24 @@
     color:var(--rotulo);font-weight:600;margin:0}
   .grupo + .grupo{border-top:1px solid var(--divider);padding-top:var(--e4)}
 
+  /* Tira de muestras de la paleta derivada. */
+  #palMuestra{display:flex;gap:2px;border-radius:var(--radio);overflow:hidden}
+  #palMuestra span{flex:1;height:24px}
+  #palPresets{flex-wrap:wrap}
+  #palPresets .tbtn{flex:1 1 auto}
+
+  /* Mapa de la paleta: cada token con lo que hace y su codigo editable. */
+  #palMapa{display:flex;flex-direction:column;gap:var(--e1)}
+  .palfila{display:flex;align-items:center;gap:var(--e2)}
+  .palsw{flex:0 0 26px;height:26px;border-radius:var(--radio-marca);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+  .palrol{flex:1 1 auto;min-width:0;font-size:var(--t2);line-height:1.3}
+  .palrol .palmal{color:var(--negativo);display:block;font-size:var(--t1)}
+  .palcod{flex:0 0 118px;font-size:var(--t1);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    min-height:30px;padding:2px 6px}
+  #palPegar{width:100%;box-sizing:border-box;font-size:var(--t2);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
   /* Apilado, el rail deja de ser barra lateral: pegarlo y darle scroll propio
      solo estorbaria, porque ya no compite por ancho con la maqueta. */
   @media (max-width:1000px){
@@ -207,20 +236,20 @@
   .seg{display:inline-flex;border:1px solid var(--divider);border-radius:var(--radio);overflow:hidden}
   .seg button{padding:6px 12px;font-size:var(--t2);border:none;background:transparent;
     color:var(--apagado);cursor:pointer}
-  .seg button.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .seg button.on{color:var(--accion);box-shadow:inset 0 0 0 1px var(--accion)}
   /* --t1 es para rótulos en mayúscula, no para frases. Estas son oraciones
      completas que explican un control, así que van en el token de metadato. */
   .hint{font-size:var(--t2);color:var(--apagado);margin-top:4px;line-height:1.45}
   .imgrow{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;}
-  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:var(--radio);background:var(--bg);}
+  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:var(--radio);background:var(--campo);}
 
   /* =========================================================
      3. Emparejamientos
      ========================================================= */
   #drop{border:2px dashed var(--divider);border-radius:var(--radio);padding:34px 16px;text-align:center;
     cursor:pointer;transition:border-color .15s, background .15s;}
-  #drop:hover{border-color:var(--accent);}
-  #drop.over{border-color:var(--accent);background:rgba(249,215,70,.12);}
+  #drop:hover{border-color:var(--accion);}
+  #drop.over{border-color:var(--accion);background:rgba(249,215,70,.12);}
   #drop.busy{opacity:.55;pointer-events:none;}
   #drop .big{font-size:var(--t4);font-weight:500;margin:8px 0 3px;}
   #drop .sm{font-size:var(--t2);opacity:.6;}
@@ -255,7 +284,7 @@
   /* =========================================================
      5. Calendario de torneos
      ========================================================= */
-  .calDia:hover{border-color:var(--accent);}
+  .calDia:hover{border-color:var(--accion);}
   .calDia.hoy
   .calHint{font-size:var(--t2);color:var(--rotulo);margin-top:10px;}
 
@@ -273,7 +302,7 @@
   .evTit{font-size:var(--t4);font-weight:600;line-height:1.3;}
   .evMeta{font-size:var(--t2);color:var(--apagado);margin-top:3px;line-height:1.5;}
   .evAcc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
-  #evForm.editando{box-shadow:inset 0 0 0 1px var(--accent);border-radius:var(--radio);padding:10px;margin:-10px;}
+  #evForm.editando{box-shadow:inset 0 0 0 1px var(--accion);border-radius:var(--radio);padding:10px;margin:-10px;}
 
   /* =========================================================
      5. QR
@@ -336,6 +365,14 @@
     <button class="tbtn" id="btnFull">Pantalla completa</button>
   </div>
 
+  <!-- Lo que cambia el diseño espera confirmación; el tiempo no. -->
+  <div id="pendiente" class="aviso accion" hidden>
+    <span id="pendienteTxt">Hay cambios de diseño sin publicar.</span>
+    <button class="tbtn" id="btnPublicar">Publicar a los jugadores</button>
+    <button class="tbtn" id="btnDescartar">Descartar</button>
+  </div>
+  <div id="pendienteAviso" role="status" aria-live="polite"></div>
+
   <div id="stageWrap">
     <div id="scaler">
       <div id="canvas">
@@ -380,13 +417,6 @@
 <aside id="settings" aria-label="Apariencia del timer">
   <div id="sheet">
     <h2>Apariencia</h2>
-
-    <section class="grupo">
-      <h3>Atajo</h3>
-      <button class="tbtn" id="btnPaleta">Aplicar paleta del rediseno</button>
-      <span class="hint" style="margin:0">Deja el fondo, el reloj y el negativo con los
-        colores con que fue disenado. Se aplica a las dos vistas.</span>
-    </section>
 
     <section class="grupo">
       <h3>Marca</h3>
@@ -452,6 +482,9 @@
 
     <section class="grupo">
       <h3>Reloj</h3>
+      <button class="tbtn" id="btnPaleta">Volver a los colores disenados</button>
+      <span class="hint" style="margin:0">Repone el fondo, el reloj y el negativo de la
+        pantalla proyectada. Se aplica a las dos vistas.</span>
       <div class="row">
               <label class="lab" style="flex:1">Color del timer
                 <input type="color" class="col" id="cTimer">
@@ -486,6 +519,45 @@
                 <button class="tbtn" id="testSound">Probar</button>
                 <button class="tbtn" id="clearSound" aria-label="Quitar el sonido de alarma" title="Quitar el sonido de alarma">Quitar</button>
               </div>
+    </section>
+
+    <section class="grupo">
+      <h3>Paleta del sistema</h3>
+      <span class="hint" style="margin:0">Se aplica al panel <b>y a la pantalla
+        proyectada</b>. Viaja con el tema, asi que los jugadores la ven al toque.</span>
+
+      <div class="row">
+        <label class="lab" style="flex:1">Color de accion
+          <input type="color" class="col" id="palAccion">
+        </label>
+        <label class="lab" style="flex:1">Base
+          <input type="color" class="col" id="palBase">
+        </label>
+      </div>
+
+      <div id="palPresets" class="row"></div>
+      <div id="palMuestra" aria-hidden="true"></div>
+      <span class="hint" id="palAviso" style="margin:0"></span>
+
+      <div class="row" style="align-items:center">
+        <div class="seg" id="palFormato" role="group" aria-label="Formato de los codigos">
+          <button data-f="hex" class="on">HEX</button>
+          <button data-f="rgb">RGB</button>
+          <button data-f="hsl">HSL</button>
+        </div>
+        <button class="tbtn" id="palVerMapa" aria-expanded="false" aria-controls="palMapa">Ver el mapa</button>
+      </div>
+
+      <div id="palMapa" hidden></div>
+
+      <label class="lab">Pegar una paleta de afuera
+        <textarea id="palPegar" rows="2" placeholder="#2A242F #F9D746, o rgb(42,36,47), o hsl(48,94%,70%)"></textarea>
+      </label>
+      <div class="row">
+        <button class="tbtn" id="palUsarPegado">Usar lo pegado</button>
+        <button class="tbtn" id="palReset">Volver a la original</button>
+      </div>
+      <span class="hint" id="palPegarAviso" style="margin:0"></span>
     </section>
   </div>
 </aside>
@@ -725,6 +797,9 @@ import { getDatabase, ref, onValue, set, get, push, remove, update } from "https
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, isoDe, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=3";
+import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_SETS,
+         leerColor, formatear, extraerColores, contraste, derivar, resolver,
+         revisar, esOriginal, aplicar as palAplicarEn } from "./paleta.js?v=1";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -811,6 +886,23 @@ onAuthStateChanged(auth, async u => {
     // y las imágenes ya están en Firebase de la sesión anterior, y publicarlos
     // de nuevo forzaría a cada celular a re-descargarlos.
     if (salaNueva) cleanAndPublish(); else publishState();
+    /* Si la huella guardada no coincide con lo que hay ahora, esta sesion se
+       abrio sobre un borrador que nunca se confirmo: hay que avisarlo en vez
+       de dejar al organizador creyendo que los jugadores ya lo ven. */
+    let previa = null;
+    try { previa = localStorage.getItem(LS("apariencia")); } catch(e){}
+    if (previa && previa !== huellaApariencia()){
+      /* El borrador local no coincide con lo ultimo que se publico desde este
+         equipo. La version publicada no esta aca, asi que descartar no puede
+         prometer volver a ella: se deja sin copia y el boton lo dice en vez de
+         restaurar el mismo borrador y fingir que hizo algo. */
+      aparienciaSucia = true;
+      apUltima = null;
+    } else {
+      apUltima = copiaApariencia();
+      guardarHuella();
+    }
+    pintarPendiente();
   } else {
     $("salaMsg").innerHTML = '<span class="err">Esta sala ya tiene organizador. Elige otro nombre de sala abajo.</span>';
     $("tabs").style.display = "none";
@@ -846,6 +938,9 @@ let st = {
   presetMin:32, customPresets:[], resetSec:32*60, remaining:32*60, paused:true, endTime:null,
   view:"desktop", logo:"", timerColor:"#F4F0F5", negativeColor:"#D97F7D", timerSize:150,
   alarmData:"", alarmName:"",
+  /* Va en el estado y no en una clave aparte: asi viaja sola dentro de theme,
+     que ya se publica y ya se suscribe. Es por sala, o sea por juez. */
+  paleta:{ accion:PAL_DEF.accion, base:PAL_DEF.base, manual:{} },
   desktop:nuevaVista(), mobile:nuevaVista()
 };
 let alarmURL = "", alarmFired = false, audioCtx = null, escala = 1;
@@ -887,11 +982,112 @@ const V = () => st[st.view];
 const R_STATE = ref(db, BASE + "/timer/state");
 const R_THEME = ref(db, BASE + "/timer/theme");
 
+/* ------------------------------------------------------------
+   Apariencia con confirmacion
+   ------------------------------------------------------------
+   El tiempo tiene que llegar al toque: si el organizador aprieta Iniciar, los
+   jugadores lo ven ya. Todo lo demas -colores, fondo, imagenes, paleta, tamano
+   del reloj- espera a que se confirme, para que nadie vea la pantalla parpadear
+   mientras se prueba un color en medio de una ronda.
+
+   La trampa esta en que tres campos de APARIENCIA viajan dentro del paquete de
+   TIEMPO: timerColor, negativeColor y timerSize. Si snapState() los leyera de
+   st, se colarian en la primera publicacion de tiempo y la confirmacion seria
+   de mentira. Por eso existe apPub: la apariencia tal como esta publicada. */
+let apPub = { timerColor: st.timerColor, negativeColor: st.negativeColor,
+              timerSize: st.timerSize };
+let aparienciaSucia = false;
+let mediaSucia = false;
+
 function snapState(){
   return { endTime: st.paused ? null : st.endTime, paused: st.paused,
-           remaining: st.remaining, timerColor: st.timerColor,
-           negativeColor: st.negativeColor, timerSize: st.timerSize,
+           remaining: st.remaining, timerColor: apPub.timerColor,
+           negativeColor: apPub.negativeColor, timerSize: apPub.timerSize,
            updatedAt: Date.now() };
+}
+
+/* Huella de lo publicado, para saber al recargar si quedaron cambios sin
+   confirmar de la sesion anterior. Se calcula con el mismo codigo de los dos
+   lados, asi que no hay riesgo de falsos positivos por orden de claves. */
+function huellaApariencia(){
+  return JSON.stringify(snapTheme()).replace(/"updatedAt":\d+,?/, "")
+       + "|" + apPub.timerColor + apPub.negativeColor + apPub.timerSize;
+}
+function guardarHuella(){
+  try { localStorage.setItem(LS("apariencia"), huellaApariencia()); } catch(e){}
+}
+
+/* Copia de la apariencia publicada, para poder descartar. Se saca solo al
+   publicar y no en cada edicion: aca adentro van las imagenes en base64. */
+let apUltima = null;
+const CAMPOS_AP = ["logo","timerColor","negativeColor","timerSize","paleta","desktop","mobile"];
+function copiaApariencia(){
+  const o = {};
+  CAMPOS_AP.forEach(k => o[k] = st[k]);
+  return JSON.parse(JSON.stringify(o));
+}
+
+/* Lo que antes era publishTheme/publishMedia: ahora solo anota que hay algo
+   pendiente. Guarda local igual, para que una recarga no pierda el borrador. */
+function cambioApariencia(tocaMedia){
+  if (tocaMedia) mediaSucia = true;
+  aparienciaSucia = true;
+  saveLocal();
+  pintarPendiente();
+}
+
+function pintarPendiente(){
+  const bar = $("pendiente");
+  if (!bar) return;
+  bar.hidden = !aparienciaSucia;
+  if (aparienciaSucia){
+    $("pendienteTxt").textContent = mediaSucia
+      ? "Hay cambios de diseño sin publicar, incluidas imágenes."
+      : "Hay cambios de diseño sin publicar.";
+  }
+}
+
+async function publicarApariencia(){
+  const b = $("btnPublicar");
+  if (b){ b.disabled = true; b.textContent = "Publicando…"; }
+  try {
+    apPub = { timerColor: st.timerColor, negativeColor: st.negativeColor,
+              timerSize: st.timerSize };
+    await set(R_THEME, snapTheme());
+    if (mediaSucia){
+      await set(ref(db, BASE + "/timer/media"), snapMedia());
+      await set(ref(db, BASE + "/timer/mediaVersion"), Date.now());
+      mediaSucia = false;
+    }
+    /* Recien ahora los tres campos de apariencia que viven en state pueden
+       viajar: apPub ya quedo al dia. */
+    await set(R_STATE, snapState());
+    apUltima = copiaApariencia();
+    aparienciaSucia = false;
+    guardarHuella();
+    $("pendienteAviso").textContent = "Publicado ✓";
+    setTimeout(() => { const a = $("pendienteAviso"); if (a) a.textContent = ""; }, 2500);
+  } catch(e){
+    $("pendienteAviso").textContent = "No se pudo publicar. Revisa la conexión e intenta de nuevo.";
+  }
+  if (b){ b.disabled = false; b.textContent = "Publicar a los jugadores"; }
+  pintarPendiente();
+}
+
+function descartarApariencia(){
+  if (!apUltima){
+    $("pendienteAviso").textContent = "No hay una versión publicada en este equipo para volver.";
+    return;
+  }
+  if (!confirm("¿Descartar los cambios de diseño y volver a lo que ven los jugadores?")) return;
+  Object.assign(st, JSON.parse(JSON.stringify(apUltima)));
+  aparienciaSucia = false; mediaSucia = false;
+  saveLocal(); guardarHuella();
+  pintarFondo(); renderImgs(); renderClock(); refrescarAjustes(); renderPresets();
+  palPintarControles(); palAplicar(false);
+  pintarPendiente();
+  $("pendienteAviso").textContent = "Descartado.";
+  setTimeout(() => { const a = $("pendienteAviso"); if (a) a.textContent = ""; }, 2500);
 }
 function vistaLimpia(v){
   return { bgType:v.bgType, bgColor1:v.bgColor1, bgColor2:v.bgColor2, bgDir:v.bgDir,
@@ -904,7 +1100,8 @@ function vistaMedia(v){
            boxes:(v.boxes||[]).filter(b => b.src).map(b => ({ id:b.id, src:b.src })) };
 }
 function snapTheme(){
-  return { desktop: vistaLimpia(st.desktop), mobile: vistaLimpia(st.mobile), updatedAt: Date.now() };
+  return { desktop: vistaLimpia(st.desktop), mobile: vistaLimpia(st.mobile),
+           paleta: st.paleta, updatedAt: Date.now() };
 }
 function snapMedia(){
   return { logo: st.logo||"", desktop: vistaMedia(st.desktop), mobile: vistaMedia(st.mobile) };
@@ -932,39 +1129,15 @@ async function publishState(){
   }
 }
 
-/* Los deslizadores y el selector de color disparan "input" en cada pixel del
-   arrastre. Sin freno eso son decenas de escrituras por segundo a Firebase por
-   un solo gesto: caro, y además ninguna de las intermedias le importa a nadie.
-   Iniciar y pausar siguen yendo derecho, que es lo que tiene que llegar ya. */
-let estadoTimer = null;
-function publishStatePronto(){
-  saveLocal();
-  clearTimeout(estadoTimer);
-  estadoTimer = setTimeout(publishState, 250);
-}
+/* El freno de los deslizadores ya no hace falta acá: arrastrar el color o el
+   tamaño no escribe a Firebase, solo marca la apariencia como pendiente. Las
+   decenas de eventos por gesto mueren en memoria y sale una sola escritura al
+   confirmar. Iniciar y pausar siguen yendo derecho, que es lo que tiene que
+   llegar ya. */
 
-let themeTimer = null;
-function publishTheme(){
-  saveLocal();
-  clearTimeout(themeTimer);
-  themeTimer = setTimeout(async () => {
-    try { await set(R_THEME, snapTheme()); } catch(e){}
-  }, 400);
-}
 
-/* Se llama SOLO al cambiar una imagen. Sube el paquete pesado y avisa a los
-   celulares con una marca nueva para que lo vuelvan a guardar. */
-let mediaTimer = null;
-function publishMedia(){
-  publishTheme();
-  clearTimeout(mediaTimer);
-  mediaTimer = setTimeout(async () => {
-    try {
-      await set(ref(db, BASE + "/timer/media"), snapMedia());
-      await set(ref(db, BASE + "/timer/mediaVersion"), Date.now());
-    } catch(e){}
-  }, 500);
-}
+
+
 
 async function cleanAndPublish(){
   try { await set(T, { state: snapState(), theme: snapTheme(),
@@ -1201,7 +1374,7 @@ function agregarCaja(x,y){
     x: Math.max(0, Math.min(x!=null ? x : dim.w/2-75, dim.w-150)),
     y: Math.max(0, Math.min(y!=null ? y : dim.h/2-100, dim.h-200)),
     w:150, h:200, src:"", flip:false });
-  renderImgs(); publishTheme();
+  renderImgs(); cambioApariencia();
   return id;
 }
 function arrastrar(id, e){
@@ -1213,7 +1386,7 @@ function arrastrar(id, e){
     const el = document.querySelector('.box[data-id="'+id+'"]');
     if (el){ el.style.left = b.x+"px"; el.style.top = b.y+"px"; }
   };
-  const soltar = () => { window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
+  const soltar = () => { window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); cambioApariencia(); };
   window.addEventListener("mousemove", mover); window.addEventListener("mouseup", soltar);
 }
 function redimensionar(id, dir, e){
@@ -1230,7 +1403,7 @@ function redimensionar(id, dir, e){
     const el = document.querySelector('.box[data-id="'+id+'"]');
     if (el) el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
   };
-  const soltar = () => { window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); publishTheme(); };
+  const soltar = () => { window.removeEventListener("mousemove",mover); window.removeEventListener("mouseup",soltar); cambioApariencia(); };
   window.addEventListener("mousemove", mover); window.addEventListener("mouseup", soltar);
 }
 
@@ -1239,7 +1412,7 @@ function pedirImagen(id){ cajaObjetivo = id; $("fBox").value = ""; $("fBox").cli
 $("fBox").onchange = e => {
   const f = e.target.files && e.target.files[0];
   if (!f || cajaObjetivo == null) return;
-  compressImage(f, 700, .85, d => { const b = caja(cajaObjetivo); if (b){ b.src = d; renderImgs(); publishMedia(); } });
+  compressImage(f, 700, .85, d => { const b = caja(cajaObjetivo); if (b){ b.src = d; renderImgs(); cambioApariencia(true); } });
 };
 
 /* Menú de clic derecho */
@@ -1264,10 +1437,10 @@ function menuCaja(id, e){
   const b = caja(id);
   abrirMenu(e.clientX, e.clientY, [
     {label: b.src ? "Cambiar imagen o GIF" : "Poner imagen o GIF", fn: () => pedirImagen(id)},
-    {label: "Voltear (espejo)", fn: () => { b.flip = !b.flip; renderImgs(); publishTheme(); }},
+    {label: "Voltear (espejo)", fn: () => { b.flip = !b.flip; renderImgs(); cambioApariencia(); }},
     "-",
     {label: "Eliminar esta cajita", danger:true,
-     fn: () => { V().boxes = V().boxes.filter(x => x.id !== id); renderImgs(); publishMedia(); }}
+     fn: () => { V().boxes = V().boxes.filter(x => x.id !== id); renderImgs(); cambioApariencia(true); }}
   ]);
 }
 $("canvas").addEventListener("contextmenu", e => {
@@ -1328,26 +1501,35 @@ $("btnPaleta").onclick = () => {
   st.timerColor = PALETA.timer;
   st.negativeColor = PALETA.negativo;
   pintarFondo(); renderClock(); refrescarAjustes();
-  publishTheme();                      // el fondo viaja en "theme"
-  publishState();                      // los colores del reloj, en "state"
+  cambioApariencia();                  // queda pendiente de confirmar
   $("stPeso").textContent = V().bgType === "image"
     ? "Paleta aplicada. Ojo: esta vista está en modo imagen, así que el color nuevo se ve recién si cambias el fondo a Color."
     : "Paleta aplicada ✓";
 };
 
-function setBgType(t){ V().bgType = t; pintarFondo(); refrescarAjustes(); publishTheme(); }
+function setBgType(t){ V().bgType = t; pintarFondo(); refrescarAjustes(); cambioApariencia(); }
+$("btnPublicar").onclick  = publicarApariencia;
+$("btnDescartar").onclick = descartarApariencia;
+
+/* Cerrar la pestana con cambios sin publicar es justo el caso que esto viene a
+   evitar, asi que el navegador pregunta. */
+window.addEventListener("beforeunload", e => {
+  if (!aparienciaSucia) return;
+  e.preventDefault(); e.returnValue = "";
+});
+
 $("bgTColor").onclick = () => setBgType("color");
 $("bgTGrad").onclick  = () => setBgType("gradient");
 $("bgTImg").onclick   = () => setBgType("image");
-$("bgC1").oninput   = e => { V().bgColor1 = e.target.value; pintarFondo(); publishTheme(); };
-$("bgG1").oninput   = e => { V().bgColor1 = e.target.value; pintarFondo(); publishTheme(); };
-$("bgG2").oninput   = e => { V().bgColor2 = e.target.value; pintarFondo(); publishTheme(); };
-$("bgDir").onchange = e => { V().bgDir = e.target.value; pintarFondo(); publishTheme(); };
-$("bgBri").oninput  = e => { V().bgBrightness = +e.target.value; pintarFondo(); publishTheme(); };
-$("bgOpa").oninput  = e => { V().bgOpacity = +e.target.value; pintarFondo(); publishTheme(); };
-$("cTimer").oninput = e => { st.timerColor = e.target.value; renderClock(); publishStatePronto(); };
-$("cNeg").oninput   = e => { st.negativeColor = e.target.value; renderClock(); publishStatePronto(); };
-$("cSize").oninput  = e => { st.timerSize = +e.target.value; $("szVal").textContent = st.timerSize; renderClock(); publishStatePronto(); };
+$("bgC1").oninput   = e => { V().bgColor1 = e.target.value; pintarFondo(); cambioApariencia(); };
+$("bgG1").oninput   = e => { V().bgColor1 = e.target.value; pintarFondo(); cambioApariencia(); };
+$("bgG2").oninput   = e => { V().bgColor2 = e.target.value; pintarFondo(); cambioApariencia(); };
+$("bgDir").onchange = e => { V().bgDir = e.target.value; pintarFondo(); cambioApariencia(); };
+$("bgBri").oninput  = e => { V().bgBrightness = +e.target.value; pintarFondo(); cambioApariencia(); };
+$("bgOpa").oninput  = e => { V().bgOpacity = +e.target.value; pintarFondo(); cambioApariencia(); };
+$("cTimer").oninput = e => { st.timerColor = e.target.value; renderClock(); cambioApariencia(); };
+$("cNeg").oninput   = e => { st.negativeColor = e.target.value; renderClock(); cambioApariencia(); };
+$("cSize").oninput  = e => { st.timerSize = +e.target.value; $("szVal").textContent = st.timerSize; renderClock(); cambioApariencia(); };
 
 function compressImage(file, maxW, quality, cb, forceJpeg){
   const r = new FileReader();
@@ -1378,20 +1560,20 @@ function compressImage(file, maxW, quality, cb, forceJpeg){
 
 $("fLogo").onchange = e => {
   const f = e.target.files && e.target.files[0];
-  if (f) compressImage(f, 600, .9, d => { st.logo = d; pintarFondo(); refrescarAjustes(); publishMedia(); });
+  if (f) compressImage(f, 600, .9, d => { st.logo = d; pintarFondo(); refrescarAjustes(); cambioApariencia(true); });
 };
-$("btnDelLogo").onclick = () => { st.logo = ""; pintarFondo(); refrescarAjustes(); publishMedia(); };
+$("btnDelLogo").onclick = () => { st.logo = ""; pintarFondo(); refrescarAjustes(); cambioApariencia(true); };
 
 function subirFondo(vista, f){
   compressImage(f, 1280, .70, d => {
     st[vista].bgImage = d; st[vista].bgType = "image";
-    pintarFondo(); refrescarAjustes(); publishMedia();
+    pintarFondo(); refrescarAjustes(); cambioApariencia(true);
   }, true);
 }
 $("fBgDesktop").onchange = e => { const f = e.target.files && e.target.files[0]; if (f) subirFondo("desktop", f); };
 $("fBgMobile").onchange  = e => { const f = e.target.files && e.target.files[0]; if (f) subirFondo("mobile", f); };
-$("btnDelBgD").onclick = () => { st.desktop.bgImage = ""; pintarFondo(); refrescarAjustes(); publishMedia(); };
-$("btnDelBgM").onclick = () => { st.mobile.bgImage  = ""; pintarFondo(); refrescarAjustes(); publishMedia(); };
+$("btnDelBgD").onclick = () => { st.desktop.bgImage = ""; pintarFondo(); refrescarAjustes(); cambioApariencia(true); };
+$("btnDelBgM").onclick = () => { st.mobile.bgImage  = ""; pintarFondo(); refrescarAjustes(); cambioApariencia(true); };
 
 /* =========================================================
    10. Arranque de la interfaz
@@ -2318,7 +2500,7 @@ function filaEvento(ev, pasado){
   const g = document.createElement("a");
   g.href = urlGoogle(ev); g.target = "_blank"; g.rel = "noopener";
   g.className = "small"; g.textContent = "Ver en Google";
-  g.style.cssText = "border:1px solid var(--divider);color:var(--text);border-radius:var(--radio);padding:5px 10px;font-size:var(--t2);text-decoration:none;align-self:flex-start";
+  g.style.cssText = "border:1px solid var(--divider);color:var(--texto);border-radius:var(--radio);padding:5px 10px;font-size:var(--t2);text-decoration:none;align-self:flex-start";
   acc.appendChild(g);
   row.appendChild(acc);
   return row;
@@ -2352,6 +2534,189 @@ $("evIcsTodo").onclick = () => {
 };
 
 modoTodoDia();
+
+/* ============================================================
+   PALETA DEL SISTEMA — interfaz
+   ------------------------------------------------------------
+   La matematica vive en paleta.js porque la usan las dos pantallas. Aca queda
+   solo la interfaz: los dos colores, el mapa de tokens, los tres formatos y el
+   pegado desde afuera.
+
+   Viaja DENTRO de "theme", que ya se publica y ya se suscribe: no hay nodo
+   nuevo ni regla nueva que publicar en la consola. Y como ahora llega a la
+   pantalla proyectada, el lienzo ya NO se blinda: mostrar la paleta del
+   organizador dejo de ser una mentira y paso a ser el preview correcto.
+   ============================================================ */
+let palFmt = "hex";
+
+/* Lo que de verdad esta pintando el navegador ahora mismo. */
+function palActual(){
+  const cs = getComputedStyle(document.documentElement);
+  const t = {};
+  PAL_TOKENS.forEach(k => t[k] = leerColor(cs.getPropertyValue(k).trim()) || "#000000");
+  return t;
+}
+
+function palMuestras(t){
+  const m = $("palMuestra");
+  if (!m) return;
+  m.innerHTML = "";
+  ["--pagina","--sup","--sup-alta","--accion","--texto"].forEach(k => {
+    const sp = document.createElement("span");
+    sp.style.background = t[k];
+    m.appendChild(sp);
+  });
+}
+
+function palPintarMapa(t){
+  const cont = $("palMapa");
+  if (!cont || cont.hidden) return;
+  const malos = revisar(t);
+  cont.innerHTML = "";
+  PAL_MAPA.forEach(([tok, rol]) => {
+    const fila = document.createElement("div");
+    fila.className = "palfila";
+
+    const sw = document.createElement("span");
+    sw.className = "palsw";
+    sw.style.background = t[tok];
+
+    const lab = document.createElement("div");
+    lab.className = "palrol";
+    lab.textContent = rol;
+    const falla = malos.find(x => x.a === tok || x.b === tok);
+    if (falla){
+      const av = document.createElement("span");
+      av.className = "palmal";
+      av.textContent = falla.texto + ": " + falla.r + ":1, bajo " + falla.min;
+      lab.appendChild(av);
+    }
+
+    const cod = document.createElement("input");
+    cod.type = "text";
+    cod.className = "palcod";
+    cod.value = formatear(t[tok], palFmt);
+    cod.setAttribute("aria-label", "Codigo de color de " + rol);
+    cod.onchange = () => {
+      const c = leerColor(cod.value);
+      if (!c){ cod.value = formatear(t[tok], palFmt); return; }
+      st.paleta.manual = st.paleta.manual || {};
+      st.paleta.manual[tok] = c;
+      palAplicar(true);
+    };
+
+    fila.appendChild(sw); fila.appendChild(lab); fila.appendChild(cod);
+    cont.appendChild(fila);
+  });
+}
+
+/* Aplica lo que haya en st.paleta. `publicar` distingue el arranque (leer y
+   pintar) de un cambio del organizador (que ademas viaja a los jugadores). */
+function palAplicar(publicar){
+  /* Si la paleta ES la original no se calcula nada: se borran los tokens y
+     manda estilo.css. La rampa derivada se acerca pero no la clava. */
+  palAplicarEn(document.documentElement, esOriginal(st.paleta) ? null : resolver(st.paleta));
+
+  /* El mapa y las muestras leen lo que quedo RENDERIZANDO, no lo calculado:
+     asi son ciertos tanto con paleta propia como con la original. */
+  const t = palActual();
+  const meta = resolver(st.paleta);
+  t.corrigioBase = meta.corrigioBase; t.corrigioAccion = meta.corrigioAccion;
+
+  palMuestras(t);
+  palPintarMapa(t);
+
+  const av = $("palAviso");
+  if (av){
+    const notas = [];
+    if (t.corrigioBase)          notas.push("la base se oscurecio para que el texto siga leyendose");
+    if (t.corrigioAccion > 0)    notas.push("el acento se aclaro " + t.corrigioAccion + "% para que el texto encima pase 4,5:1");
+    const malos = revisar(t);
+    if (malos.length)            notas.push(malos.length + " reemplazo(s) manual(es) no pasan contraste, marcados en el mapa");
+    av.textContent = notas.length ? "Ajustado: " + notas.join("; ") + "." : "";
+  }
+  if (publicar){ saveLocal(); cambioApariencia(); }
+}
+
+function palPintarControles(){
+  $("palAccion").value = st.paleta.accion;
+  $("palBase").value   = st.paleta.base;
+}
+
+(function palInit(){
+  st.paleta = Object.assign({ accion:PAL_DEF.accion, base:PAL_DEF.base, manual:{} }, st.paleta || {});
+  st.paleta.manual = st.paleta.manual || {};
+
+  const cont = $("palPresets");
+  PAL_SETS.forEach(([nombre, accion, base]) => {
+    const b = document.createElement("button");
+    b.className = "tbtn"; b.textContent = nombre;
+    b.onclick = () => {
+      /* Un preset es una paleta completa, asi que borra los reemplazos: si no,
+         quedarian pegados encima y el preset no se veria como es. */
+      st.paleta = { accion, base, manual:{} };
+      palPintarControles(); palAplicar(true);
+    };
+    cont.appendChild(b);
+  });
+
+  const cambio = () => {
+    st.paleta.accion = $("palAccion").value;
+    st.paleta.base   = $("palBase").value;
+    palAplicar(true);
+  };
+  $("palAccion").oninput = cambio;
+  $("palBase").oninput   = cambio;
+
+  $("palFormato").querySelectorAll("button").forEach(b => {
+    b.onclick = () => {
+      palFmt = b.dataset.f;
+      $("palFormato").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+      palPintarMapa(palActual());
+    };
+  });
+
+  $("palVerMapa").onclick = () => {
+    const m = $("palMapa"), abre = m.hidden;
+    m.hidden = !abre;
+    $("palVerMapa").setAttribute("aria-expanded", String(abre));
+    $("palVerMapa").textContent = abre ? "Ocultar el mapa" : "Ver el mapa";
+    if (abre) palPintarMapa(palActual());
+  };
+
+  /* Pegar de afuera: el primer color se toma como base y el segundo como
+     acento, que es el orden en que suele venir una paleta (fondo primero).
+     Si vienen mas, los que sobran se reparten sobre los tokens en orden. */
+  $("palUsarPegado").onclick = () => {
+    const cols = extraerColores($("palPegar").value);
+    const av = $("palPegarAviso");
+    if (cols.length < 2){
+      av.textContent = "Se necesitan al menos dos colores. Acepta HEX, RGB y HSL mezclados.";
+      return;
+    }
+    st.paleta = { accion: cols[1], base: cols[0], manual:{} };
+    if (cols.length > 2){
+      /* Los extra se ordenan de oscuro a claro y caen sobre las superficies,
+         que es lo unico donde un color de afuera no rompe la legibilidad. */
+      const extra = cols.slice(2).sort((x, y) => x.localeCompare(y));
+      ["--campo","--lienzo","--sup","--sup-alta"].forEach((k, i) => {
+        if (extra[i]) st.paleta.manual[k] = extra[i];
+      });
+    }
+    av.textContent = "Listo: " + cols.length + " color(es). Base " + cols[0] + ", acento " + cols[1] + ".";
+    palPintarControles(); palAplicar(true);
+  };
+
+  $("palReset").onclick = () => {
+    st.paleta = { accion:PAL_DEF.accion, base:PAL_DEF.base, manual:{} };
+    $("palPegar").value = ""; $("palPegarAviso").textContent = "";
+    palPintarControles(); palAplicar(true);
+  };
+
+  palPintarControles();
+  palAplicar(false);
+})();
+
 </script>
 </body>
 </html>
