@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel del organizador</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="estilo.css?v=2">
+<link rel="stylesheet" href="estilo.css?v=5">
 <style>
   /* =========================================================
      1. Base y controles comunes
@@ -18,55 +18,49 @@
   :root{--bg:var(--campo);--surface:var(--sup);--text:var(--texto);
         --accent:var(--accion);--divider:rgba(244,240,245,.10);--radius:var(--radio);
 
-    /* El lienzo usaba sus propios --L-*; ahora son alias de la paleta
-       compartida para que no queden dos paletas conviviendo. */
-    --L-lienzo:var(--lienzo); --L-pagina:var(--pagina); --L-campo:var(--campo);
-    --L-sup:var(--sup); --L-sup-alta:var(--sup-alta); --L-texto:var(--texto);
-    --L-apagado:var(--apagado); --L-rotulo:var(--rotulo); --L-accion:var(--accion);
-    --L-accion-clara:var(--accion-clara); --L-info:var(--info); --L-alerta:var(--alerta);
-    --L-negativo:var(--negativo); --L-radio:var(--radio);
+
   }
   html,body{margin:0;min-height:100%;}
   body{background:var(--pagina);color:var(--text);font-family:var(--fuente);padding:18px;box-sizing:border-box;}
-  h1{font-size:18px;font-weight:500;margin:0 0 14px;}
+  h1{font-size:var(--t5);font-weight:500;margin:0 0 14px;}
   .card{background:var(--surface);border:1px solid var(--divider);border-radius:var(--radius);padding:16px;margin-bottom:14px;max-width:840px;}
   button{border:none;background:var(--accion);color:var(--campo);font-weight:600;
-         border-radius:var(--radio);padding:10px 20px;font-family:inherit;font-size:14px;
+         border-radius:var(--radio);padding:10px 20px;font-family:inherit;font-size:var(--t3);
          cursor:pointer;}
   button:hover{background:var(--accion-clara);}
   /* El secundario va un nivel MÁS ALTO que la tarjeta, no igual: sobre una
      tarjeta del mismo color desaparecía y parecía texto suelto. */
   button.sec{background:var(--sup-alta);color:var(--texto);font-weight:400;}
   button.sec:hover{background:var(--sup);box-shadow:inset 0 0 0 1px var(--rotulo);}
-  button.small{padding:5px 10px;font-size:12px;}
+  button.small{padding:5px 10px;font-size:var(--t2);}
   button:disabled{opacity:.4;cursor:default;}
-  input,select,textarea{background:var(--bg);border:1px solid var(--divider);border-radius:6px;color:var(--text);
-        padding:7px 9px;font-family:inherit;font-size:13px;box-sizing:border-box;}
-  label{font-size:12px;display:block;margin-top:10px;}
+  input,select,textarea{background:var(--campo);border:none;border-radius:var(--radio);color:var(--texto);
+        padding:7px 9px;font-family:inherit;font-size:var(--t2);box-sizing:border-box;}
+  label{font-size:var(--t2);display:block;margin-top:10px;}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-  .muted{font-size:12px;opacity:.6;} .ok{color:var(--ok);} .err{color:var(--negativo);} .warnc{color:var(--accion);}
+  .muted{font-size:var(--t2);opacity:.6;} .ok{color:var(--ok);} .err{color:var(--negativo);} .warnc{color:var(--accion);}
   .center{display:flex;flex-direction:column;align-items:center;}
 
   /* Misma píldora que usa la vista del jugador: relleno, radio 4, sin borde */
   #tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
   #tabs button{border:none;background:var(--sup);color:var(--apagado);
-    border-radius:var(--radio);padding:9px 18px;font-size:13.5px;}
+    border-radius:var(--radio);padding:9px 18px;font-size:var(--t3);}
   #tabs button:hover{background:var(--sup-alta);color:var(--texto);}
   #tabs button.on{background:var(--accion);color:var(--campo);font-weight:600;}
   .panel.hide{display:none;}
 
-  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px;}
+  table{border-collapse:collapse;width:100%;font-size:var(--t2);margin-top:10px;}
   td,th{border-bottom:1px solid var(--divider);padding:6px 8px;text-align:left;}
-  .rec{opacity:.6;font-size:11.5px;}
+  .rec{opacity:.6;font-size:var(--t2);}
 
   /* =========================================================
      2. Lienzo del timer
      ========================================================= */
   #stageWrap{width:100%;overflow:hidden;display:flex;justify-content:center}
   #scaler{transform-origin:top center}
-  #canvas{position:relative;overflow:hidden;border-radius:var(--L-radio);
+  #canvas{position:relative;overflow:hidden;border-radius:var(--radio);
     box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;
-    color:var(--L-texto);font-family:Figtree,system-ui,sans-serif}
+    color:var(--texto);font-family:Figtree,system-ui,sans-serif}
   #bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 
   /* Sin línea de 1 px: las hairlines desaparecen en proyección. La barra se
@@ -74,16 +68,16 @@
      proyector y a cualquier imagen que ponga la tienda debajo. */
   #topbar{position:relative;z-index:1;display:flex;align-items:center;gap:14px;
     padding:16px 26px;background:rgba(36,31,41,.55)}
-  #ttitle{font-weight:600;font-size:17px;line-height:1.2}
-  #tsubt{font-size:12.5px;color:var(--L-apagado);margin-top:2px;line-height:1.2}
+  #ttitle{font-weight:600;font-size:var(--t4);line-height:1.2}
+  #tsubt{font-size:var(--t2);color:var(--apagado);margin-top:2px;line-height:1.2}
   #tnombre{margin-right:auto;min-width:0}
   #logo{max-height:30px;max-width:120px;object-fit:contain}
-  .tbtn{border:none;background:var(--L-sup);color:var(--L-texto);
-    border-radius:var(--L-radio);padding:7px 13px;font-size:12px;cursor:pointer;
+  .tbtn{border:none;background:var(--sup);color:var(--texto);
+    border-radius:var(--radio);padding:7px 13px;font-size:var(--t2);cursor:pointer;
     white-space:nowrap;flex-shrink:0;font-family:inherit}
-  .tbtn:hover{background:var(--L-sup-alta)}
-  .tbtn.on{background:var(--L-accion);color:var(--L-campo);font-weight:600}
-  .soloorg{font-size:9.5px;letter-spacing:.14em;color:var(--L-rotulo);
+  .tbtn:hover{background:var(--sup-alta)}
+  .tbtn.on{background:var(--accion);color:var(--campo);font-weight:600}
+  .soloorg{font-size:var(--t1);letter-spacing:.14em;color:var(--rotulo);
     text-transform:uppercase;white-space:nowrap}
 
   /* En la vista de celular el lienzo mide 620 px de ancho: los cuatro botones
@@ -104,8 +98,8 @@
      legibilidad. */
   /* El rótulo es texto chico: sin nada detrás se pierde sobre una foto, así
      que conserva un velo, pero mucho más tenue que el del reloj. */
-  #ronda{font-size:15px;letter-spacing:.22em;text-transform:uppercase;
-    color:var(--L-apagado);padding:6px 14px;border-radius:var(--L-radio);
+  #ronda{font-size:var(--t4);letter-spacing:.22em;text-transform:uppercase;
+    color:var(--apagado);padding:6px 14px;border-radius:var(--radio);
     background:rgba(36,31,41,.28);
     text-shadow:0 1px 2px rgba(0,0,0,.9), 0 2px 10px rgba(0,0,0,.6);display:none}
   /* Sin caja detrás del número: tres sombras en capas protegen igual sobre un
@@ -117,43 +111,43 @@
   /* En pausa el número se apaga sin perder el color que eligió la tienda: a
      3 m se lee "no está corriendo" sin leer la palabra. */
   #clock.pausado{opacity:.5}
-  #clock.porvencer{color:var(--L-accion) !important}
+  #clock.porvencer{color:var(--accion) !important}
   #clockEdit{line-height:.95;width:320px;text-align:center;background:transparent;
-    border:none;border-bottom:2px solid var(--L-accion);outline:none;color:inherit;
+    border:none;border-bottom:2px solid var(--accion);outline:none;color:inherit;
     display:none;font-family:Newsreader,Georgia,serif;font-weight:300}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
   .pulsing{animation:pulse 1s ease-in-out infinite}
 
-  .mainbtn{border:none;background:var(--L-accion);color:var(--L-campo);font-weight:600;
-    border-radius:var(--L-radio);padding:14px 38px;font-size:16px;cursor:pointer;
+  .mainbtn{border:none;background:var(--accion);color:var(--campo);font-weight:600;
+    border-radius:var(--radio);padding:14px 38px;font-size:var(--t4);cursor:pointer;
     font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.3)}
-  .mainbtn:hover{background:var(--L-accion-clara)}
-  .greybtn{border:none;background:var(--L-sup);color:var(--L-texto);
-    border-radius:var(--L-radio);padding:14px 32px;font-size:16px;cursor:pointer;
+  .mainbtn:hover{background:var(--accion-clara)}
+  .greybtn{border:none;background:var(--sup);color:var(--texto);
+    border-radius:var(--radio);padding:14px 32px;font-size:var(--t4);cursor:pointer;
     font-family:inherit}
-  .greybtn:hover{background:var(--L-sup-alta)}
+  .greybtn:hover{background:var(--sup-alta)}
   #presets{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
-  .preset{border:none;background:var(--L-sup);color:var(--L-apagado);
-    border-radius:var(--L-radio);padding:7px 13px;font-size:12.5px;cursor:pointer;
+  .preset{border:none;background:var(--sup);color:var(--apagado);
+    border-radius:var(--radio);padding:7px 13px;font-size:var(--t2);cursor:pointer;
     font-family:inherit}
-  .preset.sel{background:var(--L-accion);color:var(--L-campo);font-weight:600}
-  .presetX{border:none;background:transparent;color:var(--L-apagado);opacity:.6;
-    cursor:pointer;font-size:14px}
+  .preset.sel{background:var(--accion);color:var(--campo);font-weight:600}
+  .presetX{border:none;background:transparent;color:var(--apagado);opacity:.6;
+    cursor:pointer;font-size:var(--t3)}
 
   /* Cajitas de imagen que se arrastran sobre el lienzo */
   .box{position:absolute;z-index:2;display:flex;flex-direction:column}
   .boxbar{height:16px;cursor:move;background:var(--sup);border:1px solid var(--divider);
-    border-bottom:none;border-radius:6px 6px 0 0}
-  .boxbody{flex:1;border-radius:0 0 8px 8px;border:1px dashed var(--divider);
+    border-bottom:none;border-radius:var(--radio)}
+  .boxbody{flex:1;border-radius:var(--radio);border:1px dashed var(--divider);
     position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .boxbody img{width:100%;height:100%;object-fit:contain}
-  .boxempty{font-size:11px;color:var(--apagado);text-align:center;padding:4px}
+  .boxempty{font-size:var(--t2);color:var(--apagado);text-align:center;padding:4px}
   .handle{position:absolute;background:transparent;z-index:3}
 
   #menu{position:fixed;z-index:60;display:none;min-width:190px;padding:5px;background:var(--sup);
-    border:1px solid var(--divider);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+    border:1px solid var(--divider);border-radius:var(--radio);box-shadow:0 18px 50px rgba(0,0,0,.45)}
   #menu button{display:block;width:100%;text-align:left;border:none;background:transparent;color:var(--texto);
-    font-size:13px;padding:8px 12px;border-radius:6px;cursor:pointer}
+    font-size:var(--t2);padding:8px 12px;border-radius:var(--radio);cursor:pointer}
   #menu button:hover{background:rgba(249,215,70,.18)}
   #menu hr{border:none;border-top:1px solid var(--divider);margin:4px 0}
   #menu .danger{color:var(--negativo)}
@@ -167,48 +161,53 @@
        los botones que contiene, esos botones desaparecen. */
     padding:18px;border-radius:var(--radio);background:var(--pagina);
     box-shadow:0 18px 50px rgba(0,0,0,.45)}
-  #sheet h2{font-size:19px;font-weight:500}
-  .lab{font-size:12px;display:block}
+  #sheet h2{font-size:var(--t5);font-weight:500}
+  .lab{font-size:var(--t2);display:block}
   .lab input[type=range]{display:block;width:100%;margin-top:4px}
   .col{display:block;width:100%;height:32px;margin-top:4px;border:1px solid var(--divider);
-    border-radius:6px;background:transparent;cursor:pointer}
-  .seg{display:inline-flex;border:1px solid var(--divider);border-radius:8px;overflow:hidden}
-  .seg button{padding:6px 12px;font-size:12px;border:none;background:transparent;
+    border-radius:var(--radio);background:transparent;cursor:pointer}
+  .seg{display:inline-flex;border:1px solid var(--divider);border-radius:var(--radio);overflow:hidden}
+  .seg button{padding:6px 12px;font-size:var(--t2);border:none;background:transparent;
     color:var(--apagado);cursor:pointer}
   .seg button.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-  .hint{font-size:11px;color:var(--apagado);margin-top:4px;line-height:1.4}
+  /* --t1 es para rótulos en mayúscula, no para frases. Estas son oraciones
+     completas que explican un control, así que van en el token de metadato. */
+  .hint{font-size:var(--t2);color:var(--apagado);margin-top:4px;line-height:1.45}
   .imgrow{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;}
-  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:4px;background:var(--bg);}
+  .imgrow img{height:44px;border:1px solid var(--divider);border-radius:var(--radio);background:var(--bg);}
 
   /* =========================================================
      3. Emparejamientos
      ========================================================= */
-  #drop{border:2px dashed var(--divider);border-radius:12px;padding:34px 16px;text-align:center;
+  #drop{border:2px dashed var(--divider);border-radius:var(--radio);padding:34px 16px;text-align:center;
     cursor:pointer;transition:border-color .15s, background .15s;}
   #drop:hover{border-color:var(--accent);}
   #drop.over{border-color:var(--accent);background:rgba(249,215,70,.12);}
   #drop.busy{opacity:.55;pointer-events:none;}
-  #drop .big{font-size:15.5px;font-weight:500;margin:8px 0 3px;}
-  #drop .sm{font-size:12.5px;opacity:.6;}
-  #drop .ico{font-size:26px;opacity:.5;line-height:1;}
-  .chk{display:flex;align-items:center;gap:7px;font-size:12.5px;opacity:.85;margin-top:10px;cursor:pointer;}
+  #drop .big{font-size:var(--t4);font-weight:500;margin:8px 0 3px;}
+  #drop .sm{font-size:var(--t2);opacity:.6;}
+  /* Icono dibujado, no un emoji: un emoji cambia de forma según el sistema
+     operativo y no pertenece a ningún sistema de diseño. */
+  #drop .ico{opacity:.5;line-height:0;color:var(--rotulo);}
+  .chk{display:flex;align-items:center;gap:7px;font-size:var(--t2);opacity:.85;margin-top:10px;cursor:pointer;}
 
   /* =========================================================
      4. Ruleta de sorteos
      ========================================================= */
   #sortLayout{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
   #sortCol{flex:1;min-width:260px;}
-  #rItems{width:100%;height:190px;resize:vertical;font-size:13px;line-height:1.5;}
-  #rGanadores{margin-top:12px;font-size:13px;}
+  #rItems{width:100%;height:190px;resize:vertical;font-size:var(--t2);line-height:1.5;}
+  #rGanadores{margin-top:12px;font-size:var(--t2);}
   #rGanadores div{padding:5px 0;border-bottom:1px solid var(--divider);}
 
   /* =========================================================
      3b. Vigilancia del .tdf
      ========================================================= */
-  #vigCard{border:1px solid var(--divider);border-radius:10px;padding:13px 14px;margin-bottom:14px;
-    background:rgba(145,132,217,.06);}
-  #vigCard.activo{border-color:var(--accent);background:rgba(249,215,70,.12);}
-  #vigEstado{font-size:12.5px;line-height:1.6;margin-top:8px;}
+  /* Hereda .card. El estado activo se marca con el realce interno amarillo,
+     que es como se marca todo lo activo en el sistema, y no con un tinte de
+     fondo propio que no estaba en la paleta. */
+  #vigCard.activo{box-shadow:inset 0 0 0 2px var(--accion);}
+  #vigEstado{font-size:var(--t2);line-height:1.6;margin-top:8px;}
   #vigEstado b{font-weight:600;}
   .latido{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);
     margin-right:7px;vertical-align:middle;}
@@ -220,7 +219,7 @@
      ========================================================= */
   .calDia:hover{border-color:var(--accent);}
   .calDia.hoy
-  .calHint{font-size:11.5px;color:var(--rotulo);margin-top:10px;}
+  .calHint{font-size:var(--t2);color:var(--rotulo);margin-top:10px;}
 
   /* En pantalla angosta la celda se achica y el evento queda como un punto de
      color con la hora: el título no cabe y cortarlo a dos letras no sirve. */
@@ -230,18 +229,18 @@
   .evRow{display:flex;gap:12px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid var(--divider);}
   .evRow.pasado{opacity:.45;}
   .evFecha{min-width:64px;text-align:center;flex-shrink:0;}
-  .evFecha .d{font-size:20px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
-  .evFecha .m{font-size:10px;letter-spacing:.1em;color:var(--apagado);font-weight:600;text-transform:uppercase;margin-top:3px;}
+  .evFecha .d{font-size:var(--t5);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+  .evFecha .m{font-size:var(--t1);letter-spacing:.1em;color:var(--apagado);font-weight:600;text-transform:uppercase;margin-top:3px;}
   .evMid{flex:1;min-width:0;}
-  .evTit{font-size:14.5px;font-weight:600;line-height:1.3;}
-  .evMeta{font-size:12px;color:var(--apagado);margin-top:3px;line-height:1.5;}
+  .evTit{font-size:var(--t4);font-weight:600;line-height:1.3;}
+  .evMeta{font-size:var(--t2);color:var(--apagado);margin-top:3px;line-height:1.5;}
   .evAcc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
-  #evForm.editando{box-shadow:inset 0 0 0 1px var(--accent);border-radius:8px;padding:10px;margin:-10px;}
+  #evForm.editando{box-shadow:inset 0 0 0 1px var(--accent);border-radius:var(--radio);padding:10px;margin:-10px;}
 
   /* =========================================================
      5. QR
      ========================================================= */
-  #qr{width:190px;height:190px;background:#fff;padding:8px;border-radius:6px;}
+  #qr{width:190px;height:190px;background:var(--qr-papel);padding:8px;border-radius:var(--radio);}
 </style>
 </head>
 <body>
@@ -263,7 +262,7 @@
 <!-- ============ Sala ============ -->
 <div class="card" id="salaCard">
   <div class="row">
-    <div style="font-size:14px">Sala: <b id="salaName"></b></div>
+    <div style="font-size:var(--t3)">Sala: <b id="salaName"></b></div>
     <span id="salaMsg" class="muted"></span>
     <span style="flex:1"></span>
     <button id="logoutBtn" class="small sec">Salir</button>
@@ -326,12 +325,12 @@
             </label>
             <div class="row" style="align-items:center">
               <span class="hint" id="stLogo" style="flex:1;margin:0"></span>
-              <button class="tbtn" id="btnDelLogo">Quitar</button>
+              <button class="tbtn" id="btnDelLogo" aria-label="Quitar el logo del evento" title="Quitar el logo del evento">Quitar</button>
             </div>
             <div class="hint" id="stPeso" style="margin:0 0 4px"></div>
 
             <div>
-              <div style="font-size:12px; margin-bottom:4px">Fondo — <span id="bgWhich"></span></div>
+              <div style="font-size:var(--t2); margin-bottom:4px">Fondo — <span id="bgWhich"></span></div>
               <div class="seg">
                 <button id="bgTColor">Color</button>
                 <button id="bgTGrad">Gradiente</button>
@@ -342,8 +341,8 @@
 
               <div id="bgGradWrap" style="display:none">
                 <div class="row" style="margin-top:8px">
-                  <input type="color" id="bgG1" style="flex:1;height:32px;border:1px solid var(--divider);border-radius:6px;background:transparent">
-                  <input type="color" id="bgG2" style="flex:1;height:32px;border:1px solid var(--divider);border-radius:6px;background:transparent">
+                  <input type="color" id="bgG1" style="flex:1;height:32px;border:1px solid var(--divider);border-radius:var(--radio);background:transparent">
+                  <input type="color" id="bgG2" style="flex:1;height:32px;border:1px solid var(--divider);border-radius:var(--radio);background:transparent">
                   <select id="bgDir" style="flex:1;height:32px">
                     <option value="to right">&rarr;</option>
                     <option value="to bottom">&darr;</option>
@@ -353,20 +352,20 @@
               </div>
 
               <div id="bgImgWrap" style="display:none">
-                <div style="margin-top:10px;padding:10px;border:1px solid var(--divider);border-radius:8px">
-                  <div style="font-size:12px">Imagen para computador <span class="muted">(horizontal 16:9)</span></div>
-                  <input type="file" accept="image/*" id="fBgDesktop" style="display:block;margin-top:4px;font-size:12px">
+                <div style="margin-top:10px">
+                  <div style="font-size:var(--t2);font-weight:600">Imagen para computador <span class="muted" style="font-weight:400">(horizontal 16:9)</span></div>
+                  <input type="file" accept="image/*" id="fBgDesktop" style="display:block;margin-top:6px;font-size:var(--t2)">
                   <div class="row" style="margin-top:4px;align-items:center">
                     <span class="hint" id="stDesktop" style="flex:1;margin:0"></span>
-                    <button class="tbtn" id="btnDelBgD">Quitar</button>
+                    <button class="tbtn" id="btnDelBgD" aria-label="Quitar la imagen de fondo para computador" title="Quitar la imagen de fondo para computador">Quitar</button>
                   </div>
                 </div>
-                <div style="margin-top:8px;padding:10px;border:1px solid var(--divider);border-radius:8px">
-                  <div style="font-size:12px">Imagen para celular <span class="muted">(vertical 9:16)</span></div>
-                  <input type="file" accept="image/*" id="fBgMobile" style="display:block;margin-top:4px;font-size:12px">
+                <div style="margin-top:18px">
+                  <div style="font-size:var(--t2);font-weight:600">Imagen para celular <span class="muted" style="font-weight:400">(vertical 9:16)</span></div>
+                  <input type="file" accept="image/*" id="fBgMobile" style="display:block;margin-top:6px;font-size:var(--t2)">
                   <div class="row" style="margin-top:4px;align-items:center">
                     <span class="hint" id="stMobile" style="flex:1;margin:0"></span>
-                    <button class="tbtn" id="btnDelBgM">Quitar</button>
+                    <button class="tbtn" id="btnDelBgM" aria-label="Quitar la imagen de fondo para celular" title="Quitar la imagen de fondo para celular">Quitar</button>
                   </div>
                 </div>
                 <div class="hint" id="bgHint" style="margin-top:8px"></div>
@@ -399,7 +398,7 @@
             </label>
 
             <div>
-              <div style="font-size:12px;margin-bottom:4px">Agregar tiempo personalizado</div>
+              <div style="font-size:var(--t2);margin-bottom:4px">Agregar tiempo personalizado</div>
               <div class="row">
                 <input type="number" id="newPreset" placeholder="minutos" style="flex:1">
                 <button class="tbtn" id="addPreset">Agregar</button>
@@ -407,12 +406,12 @@
             </div>
 
             <div>
-              <div style="font-size:12px;margin-bottom:4px">Sonido de alarma <span class="muted">(suena en este equipo)</span></div>
-              <input type="file" accept="audio/*" id="fAlarm" style="font-size:12px">
+              <div style="font-size:var(--t2);margin-bottom:4px">Sonido de alarma <span class="muted">(suena en este equipo)</span></div>
+              <input type="file" accept="audio/*" id="fAlarm" style="font-size:var(--t2)">
               <div class="row" style="margin-top:6px;align-items:center">
                 <span class="hint" id="alarmName" style="flex:1;margin:0"></span>
                 <button class="tbtn" id="testSound">Probar</button>
-                <button class="tbtn" id="clearSound">Quitar</button>
+                <button class="tbtn" id="clearSound" aria-label="Quitar el sonido de alarma" title="Quitar el sonido de alarma">Quitar</button>
               </div>
             </div>
 
@@ -437,10 +436,12 @@
      EMPAREJAMIENTOS
      ============================================================ -->
 <div class="panel hide" id="panelP">
-<div class="card">
-  <div id="vigCard">
+<!-- Tarjeta propia, no anidada dentro de la de abajo: sincronizar con TOM y
+     cargar un archivo a mano son dos caminos distintos para lo mismo, no uno
+     dentro del otro. -->
+<div class="card" id="vigCard">
     <div class="row" style="align-items:center">
-      <div style="flex:1;font-size:14px"><span class="latido" id="vigLuz" style="display:none"></span>Sincronizaci&oacute;n autom&aacute;tica con TOM</div>
+      <div style="flex:1;font-size:var(--t3)"><span class="latido" id="vigLuz" style="display:none"></span>Sincronizaci&oacute;n autom&aacute;tica con TOM</div>
       <button id="vigCarpeta" class="small sec">Vigilar carpeta</button>
       <button id="vigArchivo" class="small sec">Vigilar un archivo</button>
       <button id="vigParar" class="small sec" style="display:none">Detener</button>
@@ -450,11 +451,15 @@
       <code>_rN-begin</code> / <code>_rN-end</code> &mdash; los emparejamientos se publican sin que toques nada.</div>
     <div id="vigEstado" class="muted">Apagada. Por ahora hay que arrastrar el archivo a mano.</div>
     <label class="chk" style="margin-top:8px"><input type="checkbox" id="vigAuto" checked> Publicar apenas detecte un cambio</label>
-  </div>
+</div>
 
+<div class="card">
   <div style="margin-bottom:10px">O carga el <b>.tdf</b> a mano (el principal tras guardar, o un respaldo <code>_rN-begin</code> / <code>_rN-end</code>).</div>
   <div id="drop">
-    <div class="ico">&#128196;</div>
+    <div class="ico"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor"
+      stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/>
+      <path d="M9 13h6M9 17h4"/></svg></div>
     <div class="big">Arrastra aquí el archivo .tdf</div>
     <div class="sm">o haz clic para buscarlo en tu computador</div>
   </div>
@@ -482,7 +487,7 @@
 </div>
 
 <div class="card">
-  <div style="font-size:14px;margin-bottom:6px">Cierre del torneo</div>
+  <div style="font-size:var(--t3);margin-bottom:6px">Cierre del torneo</div>
   <div class="muted" style="margin-bottom:8px">Cuando el torneo termin&oacute; de verdad, arch&iacute;valo aqu&iacute;.
     Reci&eacute;n entonces suma a la clasificaci&oacute;n mensual. TOM no avisa cu&aacute;l es la &uacute;ltima ronda, as&iacute; que el bot&oacute;n es manual.</div>
   <div class="row" style="align-items:center">
@@ -493,7 +498,7 @@
 </div>
 
 <div class="card">
-  <div style="font-size:14px;margin-bottom:6px">Puntos por puesto</div>
+  <div style="font-size:var(--t3);margin-bottom:6px">Puntos por puesto</div>
   <div class="muted" style="margin-bottom:8px">Puntos que gana cada puesto en la clasificaci&oacute;n mensual.
     Separa con comas: el primer n&uacute;mero es el 1&ordm; lugar, el segundo el 2&ordm;, y as&iacute;.</div>
   <div class="row">
@@ -505,7 +510,7 @@
 </div>
 
 <div class="card">
-  <div style="font-size:14px;margin-bottom:6px">Torneos archivados</div>
+  <div style="font-size:var(--t3);margin-bottom:6px">Torneos archivados</div>
   <div id="histList" class="muted">Cargando&hellip;</div>
 </div>
 </div>
@@ -575,7 +580,7 @@
 </div>
 
 <div class="card">
-  <div style="font-size:14px;margin-bottom:6px">Fechas de torneo</div>
+  <div style="font-size:var(--t3);margin-bottom:6px">Fechas de torneo</div>
   <div class="muted" style="margin-bottom:12px">Lo que agregues acá aparece en la pesta&ntilde;a <b>Agenda</b> de los jugadores,
     con un bot&oacute;n para meterlo a su Google Calendar de un toque.</div>
 
@@ -623,7 +628,7 @@
 
 <div class="card">
   <div class="row" style="align-items:center;margin-bottom:8px">
-    <div style="font-size:14px;flex:1">Pr&oacute;ximos torneos</div>
+    <div style="font-size:var(--t3);flex:1">Pr&oacute;ximos torneos</div>
     <button id="evIcsTodo" class="small sec">Descargar .ics</button>
   </div>
   <div id="evLista" class="muted">Cargando&hellip;</div>
@@ -631,7 +636,7 @@
 
 <div class="card">
   <div class="row" style="align-items:center">
-    <div style="font-size:14px;flex:1">Fechas pasadas</div>
+    <div style="font-size:var(--t3);flex:1">Fechas pasadas</div>
     <button id="evVerPasados" class="small sec">Mostrar</button>
   </div>
   <div id="evPasados" style="display:none;margin-top:8px"></div>
@@ -640,7 +645,7 @@
 
 <!-- ============ QR (común a todas las pestañas) ============ -->
 <div class="card center">
-  <div style="font-size:14px;margin-bottom:8px">QR para los jugadores — timer, emparejamientos y sorteo en una sola página</div>
+  <div style="font-size:var(--t3);margin-bottom:8px">QR para los jugadores — timer, emparejamientos y sorteo en una sola página</div>
   <img id="qr" alt="QR">
   <div class="row" style="margin-top:8px;width:100%;max-width:460px">
     <input id="shareUrl" readonly style="flex:1">
@@ -1475,7 +1480,7 @@ function showPreview(d){
   const last = d.rounds[d.rounds.length-1];
   let html = `<div style="margin-top:10px"><b>${esc(d.name)}</b> — se publicará hasta la <b>ronda ${last.number}</b>`;
   if (d.standings.length) html += ` + tabla de posiciones`;
-  html += `</div><div style="margin-top:6px;font-size:12.5px">` + (d.phase === "results"
+  html += `</div><div style="margin-top:6px;font-size:var(--t2)">` + (d.phase === "results"
     ? '<span class="ok">Todos los resultados de esta ronda están cargados</span> — los jugadores verán el aviso para revisarlos.'
     : '<span class="warnc">Faltan '+d.pendientes+' resultado(s)</span> — se publicará como ronda en juego.') +
     `</div><table><tr><th>Mesa</th><th>Jugador 1</th><th>Jugador 2</th><th>Resultado</th></tr>`;
@@ -1487,7 +1492,7 @@ function showPreview(d){
   });
   html += `</table>`;
   if (d.standings.length){
-    html += `<div style="margin-top:14px;font-size:13px"><b>Posiciones</b></div>
+    html += `<div style="margin-top:14px;font-size:var(--t2)"><b>Posiciones</b></div>
       <table><tr><th>#</th><th>Jugador</th><th>V-D-E</th><th>Puntos</th></tr>`;
     d.standings.forEach(s => html += `<tr><td>${s.place}</td><td>${esc(s.name)}</td><td>${s.w}-${s.l}-${s.t}</td><td>${s.pts}</td></tr>`);
     html += `</table>`;
@@ -1888,8 +1893,12 @@ onValue(R_HIST, snap => {
    ========================================================= */
 const R_SORT = ref(db, BASE + "/sorteo");
 const TAU = Math.PI * 2;
-const COLORES_RULETA = ["#9184d9","#5aa8e0","#7fd98a","#e0a95a","#d97f9c",
-                        "#8ad9d0","#c98be0","#b0b4c6"];
+/* Los ocho sectores salen de la familia de tonos del sistema, no de la
+   paleta fría anterior. Todos pasan 4.5:1 con el texto oscuro que va
+   encima, y el nombre impreso en cada sector hace que el color no sea
+   nunca el único código. */
+const COLORES_RULETA = ["#DDCC88","#DDA288","#DD88DD","#AB88DD",
+                        "#88C1DD","#88DDC1","#88DD88","#BADD88"];
 const norm = a => ((a % TAU) + TAU) % TAU;
 const easeOut = t => 1 - Math.pow(1 - t, 4);
 
@@ -1927,7 +1936,7 @@ function dibujarRueda(cv, items, rotacion){
     ctx.translate(cx, cy);
     ctx.rotate(a0 + seg/2);
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#12131c";
+    ctx.fillStyle = "#241F29";
     ctx.font = "600 " + fuente + "px Inter, system-ui, sans-serif";
     const txt = items[i].length > 22 ? items[i].slice(0,21) + "…" : items[i];
     ctx.fillText(txt, R - 16, 0);
@@ -1935,7 +1944,7 @@ function dibujarRueda(cv, items, rotacion){
   }
 
   ctx.beginPath(); ctx.arc(cx, cy, R*0.13, 0, TAU);
-  ctx.fillStyle = "#0e0f18"; ctx.fill();
+  ctx.fillStyle = "#2A242F"; ctx.fill();
   ctx.strokeStyle = "rgba(233,233,237,.28)"; ctx.lineWidth = 2; ctx.stroke();
 }
 
@@ -2250,7 +2259,7 @@ function filaEvento(ev, pasado){
   const g = document.createElement("a");
   g.href = urlGoogle(ev); g.target = "_blank"; g.rel = "noopener";
   g.className = "small"; g.textContent = "Ver en Google";
-  g.style.cssText = "border:1px solid var(--divider);color:var(--text);border-radius:8px;padding:5px 10px;font-size:12px;text-decoration:none;align-self:flex-start";
+  g.style.cssText = "border:1px solid var(--divider);color:var(--text);border-radius:var(--radio);padding:5px 10px;font-size:var(--t2);text-decoration:none;align-self:flex-start";
   acc.appendChild(g);
   row.appendChild(acc);
   return row;

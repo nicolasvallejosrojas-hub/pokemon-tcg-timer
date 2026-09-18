@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Torneo — Timer y emparejamientos</title>
-<link rel="stylesheet" href="estilo.css?v=2">
+<link rel="stylesheet" href="estilo.css?v=5">
 <style>
   /* Lo compartido vive en estilo.css. Acá queda solo el acomodo de esta
      página: el reloj a pantalla completa, la rejilla de mesas y las tarjetas.
@@ -19,7 +19,7 @@
       display:none;transition:opacity .2s;}
   .page{position:fixed;inset:0;box-sizing:border-box;z-index:1;}
   .page.hide{display:none !important;}
-  .sub{font-size:12.5px;color:var(--apagado);}
+  .sub{font-size:var(--t2);color:var(--apagado);}
 
   /* =========================================================
      Barra inferior de 5 iconos
@@ -36,7 +36,7 @@
     position:relative;min-width:0;}
   #tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;
     stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
-  #tabbar button span{font-size:10.5px;font-weight:500;letter-spacing:.01em;}
+  #tabbar button span{font-size:var(--t1);font-weight:500;letter-spacing:.01em;}
   #tabbar button.on{color:var(--accion);}
   #dot{position:absolute;top:4px;right:calc(50% - 17px);width:7px;height:7px;
     border-radius:50%;background:var(--accion);visibility:hidden;}
@@ -56,7 +56,7 @@
               max-width:100%;}
   /* Mismo rótulo que el lienzo de la tienda: espaciado y en mayúsculas, para
      que se lea "en qué vamos" sin competir con el número. */
-  #pronda{font-size:clamp(11px,3.2vw,15px);letter-spacing:.22em;text-transform:uppercase;
+  #pronda{font-size:clamp(var(--t1),3.2vw,var(--t3));letter-spacing:.22em;text-transform:uppercase;
     color:var(--apagado);text-shadow:0 1px 3px rgba(0,0,0,.85);display:none;}
   /* La cabecera va arriba a la izquierda y no estorba al reloj, que sigue
      centrado en la pantalla completa. */
@@ -64,13 +64,16 @@
     gap:11px;padding:14px 16px;text-align:left;min-width:0;}
   #logo{max-height:38px;max-width:38vw;object-fit:contain;display:none;flex-shrink:0;}
   #cabtxt{min-width:0;}
-  #ctitulo{font-size:15px;font-weight:600;line-height:1.25;overflow-wrap:anywhere;
+  #ctitulo{font-size:var(--t4);font-weight:600;line-height:1.25;overflow-wrap:anywhere;
     text-shadow:0 1px 3px rgba(0,0,0,.85);}
-  #csub{font-size:12px;color:var(--apagado);margin-top:2px;line-height:1.25;
+  #csub{font-size:var(--t2);color:var(--apagado);margin-top:2px;line-height:1.25;
     text-shadow:0 1px 3px rgba(0,0,0,.85);}
   #names{display:none;}
-  #clock{font-size:clamp(64px,22vw,220px);}
-  #tstatus{position:absolute;left:0;right:0;bottom:88px;font-size:13px;
+  #clock{font-size:var(--d1);}
+  /* Visible solo para lectores de pantalla */
+  .solo-lectores{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+  #tstatus{position:absolute;left:0;right:0;bottom:88px;font-size:var(--t2);
            color:var(--apagado);min-height:1.3em;text-shadow:0 1px 3px rgba(0,0,0,.85);}
   .imgbox{position:fixed;z-index:0;pointer-events:none;}
   .imgbox img{width:100%;height:100%;object-fit:contain;}
@@ -80,18 +83,20 @@
      ========================================================= */
   #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
          background:var(--pagina);}
-  #tname{font-family:var(--fuente-reloj);font-weight:300;font-size:27px;margin:0 0 2px;}
-  #tsub{font-size:12px;color:var(--rotulo);margin-bottom:14px;}
-  .banner{background:var(--sup);border-left:3px solid var(--accion);
-    border-radius:var(--radio);padding:11px 14px;font-size:13px;margin-bottom:14px;
-    line-height:1.5;}
+  #tname{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d3);margin:0 0 2px;}
+  #tsub{font-size:var(--t2);color:var(--rotulo);margin-bottom:14px;}
+  /* Superficie teñida en vez de borde lateral de color, igual que .aviso: el
+     borde grueso de un solo lado es el recurso más reconocible de interfaz
+     hecha a destajo, y el fondo comunica lo mismo mejor. */
+  .banner{background:#6D5F4C;border-radius:var(--radio);padding:11px 14px;
+    font-size:var(--t2);margin-bottom:14px;line-height:1.5;}
 
   /* El buscador es lo primero que toca el jugador, por eso va grande */
-  #q{width:100%;font-size:16px;padding:14px 16px;margin-bottom:14px;}
+  #q{width:100%;font-size:var(--t4);padding:14px 16px;margin-bottom:14px;}
 
   #rounds{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
   #rounds button{border:none;background:var(--sup);color:var(--apagado);
-    border-radius:var(--radio);padding:8px 15px;font-size:13.5px;
+    border-radius:var(--radio);padding:8px 15px;font-size:var(--t3);
     font-family:inherit;cursor:pointer;}
   #rounds button.on{background:var(--accion);color:var(--campo);font-weight:600;}
 
@@ -103,30 +108,41 @@
   .match.hl{box-shadow:inset 0 0 0 2px var(--accion);}
   .mnum{display:flex;align-items:baseline;justify-content:center;gap:6px;
     padding:5px 8px;background:var(--campo);}
-  .mlbl{font-size:9px;letter-spacing:.14em;color:var(--rotulo);font-weight:600;}
-  .mval{font-size:17px;font-weight:700;color:var(--accion);
+  .mlbl{font-size:var(--t1);letter-spacing:.14em;color:var(--rotulo);font-weight:600;}
+  .mval{font-size:var(--t4);font-weight:700;color:var(--accion);
         font-variant-numeric:tabular-nums;}
   .mbody{flex:1;display:flex;flex-direction:column;gap:7px;padding:11px 12px;}
-  .prow{display:flex;align-items:center;gap:8px;}
-  .pinfo{flex:1;min-width:0;}
+  /* Si el récord y la marca de resultado no caben juntos, la marca baja a su
+     propia línea en vez de recortar el récord: "3-0-0 · 9 pts · 10…" se lee
+     como 10% y no como 100%. Un dato a medias miente. */
+  .prow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  /* El récord se lleva la fila completa y la marca de resultado baja debajo.
+     Compitiendo en la misma línea, el récord se partía en dos y las tarjetas
+     quedaban desparejas; así cada dato ocupa un renglón entero y limpio. */
+  .pinfo{flex:1 1 100%;min-width:0;}
   /* A 375 px con dos columnas el nombre y el récord se parten feo. Se achican
      lo justo para que la mayoría entre en una línea; el récord no se parte
      nunca, se recorta, porque leerlo a medias confunde más que no verlo. */
-  .pname{font-size:13.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere;}
-  .pmeta{font-size:11px;color:var(--apagado);margin-top:3px;
-         font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
-         text-overflow:ellipsis;}
+  .pname{font-size:var(--t3);font-weight:600;line-height:1.3;overflow-wrap:anywhere;}
+  /* El récord se parte en sus propios separadores si no cabe, en vez de
+     recortarse: "3-0-0 · 9 pts · 10…" se lee como 10% y no como 100%. Un dato
+     a medias miente, y dos líneas no. */
+  /* El récord usa el token de metadato, no el de rótulo. Estaba en el piso de
+     11 px solo porque competía con la marca de resultado por el ancho; ahora
+     que tiene la fila entera, puede respirar. */
+  .pmeta{font-size:var(--t2);color:var(--apagado);margin-top:3px;
+         font-variant-numeric:tabular-nums;line-height:1.35;}
   .mbody{padding:10px;}
-  .win,.tie{font-size:8.5px;padding:3px 6px;}
+  .win,.tie{font-size:var(--t1);padding:3px 6px;}
   .prow.won .pname{color:var(--accion);}
-  .win,.tie{font-size:9px;letter-spacing:.1em;font-weight:700;padding:3px 7px;
-    border-radius:2px;white-space:nowrap;}
+  .win,.tie{font-size:var(--t1);letter-spacing:.1em;font-weight:700;padding:3px 7px;
+    border-radius:var(--radio-marca);white-space:nowrap;}
   .win{background:var(--accion);color:var(--campo);}
   .tie{background:var(--sup-alta);color:var(--apagado);}
-  .byetag{font-size:12px;color:var(--apagado);}
+  .byetag{font-size:var(--t2);color:var(--apagado);}
   .byetag b{color:var(--texto);}
 
-  .secLabel,.chead{font-size:10px;letter-spacing:.12em;color:var(--rotulo);
+  .secLabel,.chead{font-size:var(--t1);letter-spacing:.12em;color:var(--rotulo);
     font-weight:600;padding:0 2px 10px;display:flex;justify-content:space-between;}
   .frow,.crow{display:flex;align-items:center;gap:12px;padding:12px 10px;
     background:var(--sup);border-radius:var(--radio);margin-bottom:5px;}
@@ -139,20 +155,20 @@
   #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
          background:var(--pagina);}
   #pClas h1,#rTitle,#aTitle{font-family:var(--fuente-reloj);font-weight:300;
-    font-size:27px;margin:0 0 12px;}
-  #mes{min-width:190px;font-size:14px;}
+    font-size:var(--d3);margin:0 0 12px;}
+  #mes{min-width:190px;font-size:var(--t3);}
   #cstatus,#sstatus,#astatus,#pstatus{text-align:center;color:var(--apagado);
-    font-size:12.5px;margin-top:16px;}
+    font-size:var(--t2);margin-top:16px;}
   .crow{cursor:pointer;}
   .crow.sel{box-shadow:inset 0 0 0 2px var(--accion);}
   .cdet{display:none;gap:22px;margin:-3px 0 5px;padding:12px 14px;
     background:var(--campo);border-radius:var(--radio);}
   .cdet.open{display:flex;}
-  .cdet span{display:block;font-size:10px;letter-spacing:.1em;color:var(--rotulo);
+  .cdet span{display:block;font-size:var(--t1);letter-spacing:.1em;color:var(--rotulo);
     font-weight:600;}
-  .cdet b{font-size:15px;font-weight:600;}
+  .cdet b{font-size:var(--t4);font-weight:600;}
   .cdet b.ac{color:var(--accion);}
-  .chint{font-size:12px;color:var(--rotulo);padding:14px 4px 0;text-align:center;}
+  .chint{font-size:var(--t2);color:var(--rotulo);padding:14px 4px 0;text-align:center;}
 
   /* Podio del top 3. El primero va al centro y más alto, como en un podio de
      verdad; el orden en pantalla es 2 · 1 · 3. Los colores salen de la paleta
@@ -164,17 +180,17 @@
   #podio::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;
     background:var(--sup-alta);border-radius:0 0 var(--radio) var(--radio);}
   .pod{display:flex;flex-direction:column;align-items:center;min-width:0;}
-  .podNom{font-size:12.5px;font-weight:600;text-align:center;line-height:1.25;
+  .podNom{font-size:var(--t2);font-weight:600;text-align:center;line-height:1.25;
     margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;
     -webkit-box-orient:vertical;overflow-wrap:anywhere;}
-  .podPts{font-size:11.5px;color:var(--apagado);margin-bottom:7px;
+  .podPts{font-size:var(--t2);color:var(--apagado);margin-bottom:7px;
     font-variant-numeric:tabular-nums;white-space:nowrap;}
   .podCaja{width:100%;border-radius:var(--radio) var(--radio) 0 0;display:flex;
     align-items:center;justify-content:center;font-family:var(--fuente-reloj);
     font-weight:300;color:var(--campo);line-height:1;}
-  .p1 .podCaja{height:104px;background:var(--podio1);font-size:42px;}
-  .p2 .podCaja{height:76px; background:var(--podio2);font-size:34px;}
-  .p3 .podCaja{height:58px; background:var(--podio3);font-size:30px;}
+  .p1 .podCaja{height:104px;background:var(--podio1);font-size:var(--d2);}
+  .p2 .podCaja{height:76px; background:var(--podio2);font-size:var(--d3);}
+  .p3 .podCaja{height:58px; background:var(--podio3);font-size:var(--d3);}
   /* Con uno o dos jugadores el podio se ve raro, así que ahí no se muestra */
   #podio.hide{display:none;}
 
@@ -195,25 +211,31 @@
   .evCard.prox{box-shadow:inset 0 0 0 2px var(--accion);}
   .evCard.destacada{box-shadow:inset 0 0 0 2px var(--accion-clara);}
   .evCal{min-width:52px;text-align:center;flex-shrink:0;}
-  .evCal .d{font-family:var(--fuente-reloj);font-weight:300;font-size:32px;
+  .evCal .d{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d3);
             line-height:1;font-variant-numeric:tabular-nums;}
-  .evCal .m{font-size:10px;letter-spacing:.1em;color:var(--rotulo);font-weight:600;
+  .evCal .m{font-size:var(--t1);letter-spacing:.1em;color:var(--rotulo);font-weight:600;
             margin-top:2px;}
   .evBody{flex:1;min-width:0;}
-  .evTit{font-size:16px;font-weight:600;line-height:1.3;}
-  .evCuando{font-size:12.5px;color:var(--apagado);margin-top:4px;line-height:1.5;}
-  .evFalta{display:inline-block;font-size:10px;letter-spacing:.08em;font-weight:700;
-    color:var(--campo);background:var(--accion);border-radius:2px;padding:3px 8px;
+  .evTit{font-size:var(--t4);font-weight:600;line-height:1.3;}
+  .evCuando{font-size:var(--t2);color:var(--apagado);margin-top:4px;line-height:1.5;}
+  .evFalta{display:inline-block;font-size:var(--t1);letter-spacing:.08em;font-weight:700;
+    color:var(--campo);background:var(--accion);border-radius:var(--radio-marca);padding:3px 8px;
     margin-top:8px;text-transform:uppercase;}
-  .evDet{font-size:12.5px;color:var(--apagado);margin-top:8px;line-height:1.5;
+  .evDet{font-size:var(--t2);color:var(--apagado);margin-top:8px;line-height:1.5;
          white-space:pre-wrap;}
   .evBtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
   /* Sobre la tarjeta (--sup) el botón necesita ser --sup-alta o se pierde */
   .evBtns a,.evBtns button{border:none;background:var(--sup-alta);color:var(--texto);
-    border-radius:var(--radio);padding:9px 14px;font-size:12.5px;font-family:inherit;
+    border-radius:var(--radio);padding:9px 14px;font-size:var(--t2);font-family:inherit;
     cursor:pointer;text-decoration:none;white-space:nowrap;}
   .evBtns a.gcal{background:var(--accion);color:var(--campo);font-weight:600;}
   #calCaja{margin-bottom:20px;}
+  /* 44 px de lado en TODO lo que se toca. Es una regla de dedo, así que aplica
+     a esta superficie y no al panel, que se usa con mouse a 30 cm. Pesa más
+     acá porque hay jugadores en edad escolar. */
+  #calNav button,#rounds button,#mes{min-height:44px;}
+  #calNav button{min-width:44px;display:inline-flex;align-items:center;justify-content:center;}
+  .evBtns a,.evBtns button{min-height:44px;display:inline-flex;align-items:center;}
 </style>
 </head>
 <body>
@@ -223,14 +245,15 @@
 
 <!-- Barra abajo: cinco pestañas con texto no caben a 375 px, y abajo se
      llega con el pulgar mientras la otra mano sostiene el mazo. -->
-<div id="tabbar">
-  <button id="tabT" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Timer</span></button>
+<nav id="tabbar" aria-label="Secciones">
+  <button id="tabT" class="on" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Timer</span></button>
   <button id="tabP"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7"/><rect x="13.5" y="4" width="7.5" height="7"/><rect x="3" y="13" width="7.5" height="7"/><rect x="13.5" y="13" width="7.5" height="7"/></svg><span>Mesas</span><i id="dot"></i></button>
   <button id="tabC"><svg viewBox="0 0 24 24"><path d="M9 20V10M15 20V4M3 20h18M21 20v-6"/></svg><span>Ranking</span></button>
   <button id="tabS"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 5v16M4 13h16M6.3 7.3l11.4 11.4M17.7 7.3L6.3 18.7"/></svg><span>Sorteo</span></button>
   <button id="tabA"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span></button>
-</div>
+</nav>
 
+<main>
 <!-- ============ Timer ============ -->
 <div class="page" id="pTimer">
   <!-- Misma cabecera que la pantalla de la tienda, sin los botones de control
@@ -245,21 +268,24 @@
   <div id="names"><span id="n1"></span><span class="vs">vs</span><span id="n2"></span></div>
   <!-- Rótulo y reloj van juntos en un grupo, y ese grupo es lo que se centra:
        si se centrara solo el reloj, el rótulo lo empujaría hacia abajo. -->
-  <div id="relojGrupo">
+  <!-- El reloj se lee visualmente; para lector de pantalla se anuncia solo
+       en hitos desde #avisoReloj, porque narrar cada segundo sería inusable. -->
+  <div id="relojGrupo" aria-hidden="true">
     <div id="pronda"></div>
     <div id="clock" class="reloj">--:--</div>
   </div>
-  <div id="tstatus">Conectando…</div>
+  <div id="tstatus" role="status" aria-live="polite">Conectando…</div>
+  <p id="avisoReloj" class="solo-lectores" role="status" aria-live="polite"></p>
 </div>
 
 <!-- ============ Emparejamientos ============ -->
 <div class="page hide" id="pPair">
   <h1 id="tname">Emparejamientos</h1>
   <div id="tsub"></div>
-  <div id="banner" class="banner" style="display:none"></div>
+  <div id="banner" class="banner" role="status" aria-live="polite" style="display:none"></div>
   <input id="q" placeholder="Escribe tu nombre">
   <div id="rounds"></div>
-  <div id="list"></div>
+  <div id="list" aria-live="polite" aria-relevant="additions text"></div>
   <div id="pstatus">Conectando…</div>
 </div>
 
@@ -267,6 +293,7 @@
 <div class="page hide" id="pClas">
   <h1>Ranking</h1>
   <div class="row" style="justify-content:center;margin:6px 0 10px">
+    <label for="mes" class="solo-lectores">Mes de la clasificación</label>
     <select id="mes"></select>
   </div>
   <div id="podio" class="hide"></div>
@@ -298,8 +325,8 @@
     <div id="calNav">
       <div id="calMes">&nbsp;</div>
       <button id="calHoy">Hoy</button>
-      <button id="calAnt" aria-label="Mes anterior">&lsaquo;</button>
-      <button id="calSig" aria-label="Mes siguiente">&rsaquo;</button>
+      <button id="calAnt" aria-label="Mes anterior"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button id="calSig" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
     <div class="calGrid" id="calDows"></div>
     <div class="calGrid" id="calGrid"></div>
@@ -312,6 +339,8 @@
   <div id="aLista"></div>
   <div id="astatus">Cargando&hellip;</div>
 </div>
+
+</main>
 
 <script src="config.js"></script>
 <script type="module">
@@ -365,6 +394,8 @@ function show(t){
   for (const [k, [pagina, boton]] of Object.entries(PAGINAS)){
     $(pagina).classList.toggle("hide", k !== t);
     $(boton).classList.toggle("on", k === t);
+    if (k === t) $(boton).setAttribute("aria-current", "page");
+    else $(boton).removeAttribute("aria-current");
   }
   document.querySelectorAll(".imgbox").forEach(e => e.style.display = t==="timer" ? "block" : "none");
   $("bg").style.opacity = t==="timer" ? "1" : "0";
@@ -444,7 +475,7 @@ function dibujarReloj(){
                                        : Math.round((S.endTime - ahora())/1000);
   const c = $("clock");
   c.textContent = fmt(sec);
-  c.style.color = sec < 0 ? (S.negativeColor||"#e05a5a") : (S.timerColor||"#e9e9ed");
+  c.style.color = sec < 0 ? (S.negativeColor||"#D97F7D") : (S.timerColor||"#F4F0F5");
   const porVencer = !S.paused && sec <= 10 && sec >= 0;
   c.classList.toggle("porvencer", porVencer);
   c.classList.toggle("pulsing", porVencer);
@@ -458,6 +489,22 @@ function dibujarReloj(){
    más y el número quede clavado. Un intervalo no se muere, y como el reloj
    muestra segundos enteros nadie nota la diferencia. */
 setInterval(() => { try { dibujarReloj(); } catch(e){} }, 250);
+
+/* Anuncio para lector de pantalla. Solo en hitos: narrar cada segundo dejaría
+   la app inusable. Se dispara al cruzar cada umbral, una sola vez. */
+const HITOS = [600, 300, 60, 10, 0];
+let ultimoHito = null;
+setInterval(() => {
+  if (!S || S.paused || !S.endTime) return;
+  const s = Math.round((S.endTime - ahora())/1000);
+  const hito = HITOS.find(h => s <= h && s > h - 2);
+  if (hito == null || hito === ultimoHito) return;
+  ultimoHito = hito;
+  $("avisoReloj").textContent = hito === 0 ? "Tiempo cumplido."
+    : hito === 10 ? "Quedan diez segundos."
+    : hito === 60 ? "Queda un minuto."
+    : "Quedan " + (hito/60) + " minutos.";
+}, 1000);
 
 // Al volver a primer plano se redibuja de inmediato, sin esperar el intervalo
 ["visibilitychange","pageshow","focus","online"].forEach(ev =>
@@ -518,12 +565,12 @@ function applyTheme(){
   if (V.bgType === "image" && bgSrc){
     $("bg").src = bgSrc; $("bg").style.display = "block";
     $("bg").style.filter = `opacity(${V.bgOpacity??100}%) brightness(${V.bgBrightness??100}%)`;
-    document.body.style.background = "#0e0f18";
+    document.body.style.background = "var(--pagina)";
   } else {
     $("bg").style.display = "none";
     document.body.style.background = V.bgType === "gradient"
-      ? `linear-gradient(${V.bgDir||"to right"}, ${V.bgColor1||"#161826"}, ${V.bgColor2||"#2b2741"})`
-      : (V.bgColor1 || "#161826");
+      ? `linear-gradient(${V.bgDir||"to right"}, ${V.bgColor1||"#362F3C"}, ${V.bgColor2||"#2A242F"})`
+      : (V.bgColor1 || "#362F3C");
   }
 
   if (logoSrc){ $("logo").src = logoSrc; $("logo").style.display = "block"; }
@@ -839,8 +886,12 @@ function renderClas(soloTabla){
    servidor, así todos ven la rueda frenar en el mismo nombre al mismo tiempo.
    ========================================================= */
 const TAU = Math.PI * 2;
-const COLORES_RULETA = ["#9184d9","#5aa8e0","#7fd98a","#e0a95a","#d97f9c",
-                        "#8ad9d0","#c98be0","#b0b4c6"];
+/* Los ocho sectores salen de la familia de tonos del sistema, no de la
+   paleta fría anterior. Todos pasan 4.5:1 con el texto oscuro que va
+   encima, y el nombre impreso en cada sector hace que el color no sea
+   nunca el único código. */
+const COLORES_RULETA = ["#DDCC88","#DDA288","#DD88DD","#AB88DD",
+                        "#88C1DD","#88DDC1","#88DD88","#BADD88"];
 const norm = a => ((a % TAU) + TAU) % TAU;
 const easeOut = t => 1 - Math.pow(1 - t, 4);
 
@@ -866,7 +917,7 @@ function dibujarRueda(cv, items, rot){
     ctx.translate(cx, cy);
     ctx.rotate(a0 + seg/2);
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#12131c";
+    ctx.fillStyle = "#241F29";
     ctx.font = "600 " + fuente + "px Inter, system-ui, sans-serif";
     const txt = items[i].length > 22 ? items[i].slice(0,21) + "…" : items[i];
     ctx.fillText(txt, R - 16, 0);
@@ -874,7 +925,7 @@ function dibujarRueda(cv, items, rot){
   }
 
   ctx.beginPath(); ctx.arc(cx, cy, R*0.13, 0, TAU);
-  ctx.fillStyle = "#0e0f18"; ctx.fill();
+  ctx.fillStyle = "#2A242F"; ctx.fill();
   ctx.strokeStyle = "rgba(233,233,237,.28)"; ctx.lineWidth = 2; ctx.stroke();
 }
 
