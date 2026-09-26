@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Newsreader:opsz,wght@6..72,300&display=swap');
 
 /* =========================================================
    estilo.css — el sistema visual, compartido por el panel del
@@ -18,46 +18,92 @@
    Si se cambia algo acá, hay que SUBIR EL NÚMERO en las dos, o el navegador
    de alguien que ya visitó el sitio va a mezclar el HTML nuevo con esta hoja
    vieja. Misma regla que agenda.js.
-   Versión actual: v=5
+   Versión actual: v=8
+
+   ---------------------------------------------------------
+   25-09-2026: pasa a estilo Apple. Letra del sistema (la del iPhone en un
+   iPhone, Inter en el resto), esquinas de 12 px, botones que responden al
+   tacto y barras translúcidas. El reloj NO cambia: sigue en Newsreader fina,
+   que es el sello propio del producto. La paleta es «menta y coral», CLARA,
+   elegida por el usuario entre nueve; la pantalla de la tienda sigue oscura.
    ========================================================= */
 
 :root{
-  /* Paleta ciruela. El azul casi negro que había antes se ensucia bajo tubo
-     fluorescente; la ciruela se proyecta limpia y cansa menos en cinco horas
-     de sala. */
-  --lienzo:#362F3C;        /* fondo del lienzo que se proyecta */
-  --pagina:#2A242F;        /* fondo de página */
-  --campo:#241F29;         /* campos de texto y huecos */
-  --sup:#453D4E;           /* superficie: tarjetas, botones secundarios */
-  --sup-alta:#52465B;      /* superficie elevada, hover */
+  /* Paleta «menta y coral» (25-09-2026), CLARA. La eligió el usuario entre
+     nueve después de pedir una más animada. Fondo menta muy suave, tarjetas
+     blancas, franja verde azulado y el coral como única acción.
 
-  --texto:#F4F0F5;
-  --apagado:#C3B8C9;
-  /* Subido de #A79BB0 el 17-09: sobre --sup daba 3.92:1 y fallaba AA en
-     cada rótulo que cae sobre una tarjeta (MESA, SEP, puestos 4+). */
-  --rotulo:#B2A8BA;
+     Dos cosas que una paleta clara obliga y que antes no hacían falta:
+       - El coral sirve de FONDO (botón, chip GANA) y de anillo, pero como
+         TEXTO sobre blanco da 3,3:1. Para texto está --accion-texto.
+       - Las medallas del podio son claras y como texto se pierden: para eso
+         está --podioN-texto. De relleno siguen siendo --podioN.
+     Los contrastes están medidos, no estimados: todos pasan AA. */
+  --lienzo:#0F2E2A;        /* la pantalla de la tienda: oscura también acá */
+  --pagina:#EEF8F4;        /* fondo de página */
+  --campo:#DDEFE7;         /* barras de pestañas, huecos, celdas vacías */
+  --sup:#FFFFFF;           /* superficie: grupos, tarjetas */
+  --sup-alta:#E4F1EA;      /* botones secundarios, fila propia, avatar */
+  --sup-hover:#D3E8DD;     /* hover, pista apagada del interruptor */
+  /* Relleno de campos, como en iOS: un velo que funciona igual sobre la
+     página que sobre una tarjeta. */
+  --relleno:rgba(15,80,60,.07);
 
-  --accion:#F9D746;        /* amarillo: acción primaria y últimos 10 s */
-  --accion-clara:#FFE57A;
-  --info:#83689A;          /* violeta: avisos informativos */
-  --alerta:#8B403F;        /* ladrillo: superficie de alerta */
-  --negativo:#D97F7D;      /* rosa: error y tiempo negativo */
-  --ok:#8FCB9B;
+  --texto:#10231E;
+  --apagado:#3F5A52;       /* 6,3:1 sobre --campo */
+  --rotulo:#526B65;        /* 4,7:1 sobre --campo, que es su peor caso */
 
-  --podio1:#F9D746;
-  --podio2:#CFC6D6;
-  /* Bronce propio. Antes reutilizaba --negativo, y eso era doblemente malo:
-     daba 3.59:1 sobre --sup, y pintaba el tercer lugar del mismo color que
-     un error. Un puesto de podio no es un estado de falla. */
-  --podio3:#CEA477;
+  --accion:#F45B45;        /* coral: acción primaria, anillo, últimos 10 s */
+  --accion-clara:#FF7A63;
+  --accion-texto:#B8392A;  /* el coral cuando es texto: 4,8:1 hasta sobre --campo */
+  --alerta:#F8D7DA;        /* superficie de alerta */
+  --negativo:#C62828;      /* error: 5,6:1 sobre blanco */
+  --ok:#0A7462;
 
-  --radio:4px;
-  --radio-marca:2px;   /* marcas chicas: chip GANA, evento en una celda de mes */
+  /* Oro de medalla y no el acento: en coral, el podio se leería como botón. */
+  --podio1:#E0A800;  --podio1-texto:#8A6400;
+  --podio2:#8A97AD;  --podio2-texto:#5E6B80;
+  --podio3:#C07A3A;  --podio3-texto:#9A5A1F;
+
+  /* Lo que va ENCIMA de un color. Antes se escribía --campo en todas partes
+     «porque es oscuro», y eso amarraba el sistema a una paleta oscura. */
+  --sobre-accion:#10231E;  /* texto sobre el coral: 5:1 */
+  --sobre-podio:#1A1633;   /* texto sobre las medallas */
+  /* El lienzo es «la pantalla de la tienda» y es oscuro en toda paleta: una
+     tele encendida no es blanca. Lo que va encima usa estos dos (ver .isla). */
+  --sobre-lienzo:#F3FFFB;
+  --sobre-lienzo-2:#9DBDB4; /* secundario sobre el lienzo: 7,2:1 */
+  /* Segundo color vivo, para ilustraciones y variedad; nunca para una acción. */
+  --acento2:#FFB020;
+  /* La franja de marca de la portada, la barra de arriba estilo red social. */
+  --franja:#0B7F6C;
+  --sobre-franja:#FFFFFF;
+  --vidrio:rgba(255,255,255,.78);
+  --aviso:#E1F3EC;
+  --aviso-accion:#FFF1D6;  /* ámbar: te pido algo */
+  --aviso-mal:#FBE0E0;     /* rojo: algo salió mal */
+  --esquema:light;         /* color-scheme: lo que dibuja el navegador solo */
+
+  /* Línea de 1 px. Vivía suelta en admin.html, y ahora el muro también
+     necesita hairlines: dos definiciones del mismo valor es como empezó la
+     divergencia de slug(). Va acá, que es donde vive el resto de la paleta.
+     El muro la usa de verdad; el panel y la vista proyectada casi no, porque
+     una línea de 1 px se pierde contra una pared. */
+  --divider:rgba(15,60,50,.12);
+
+  /* Esquinas de iOS: grandes en lo que agrupa, más chicas en lo que se toca
+     de a uno. Antes era un radio único de 4 px en todo. */
+  --radio:12px;        /* grupos, tarjetas, botones */
+  --radio-chico:10px;  /* campos, celdas del calendario, botones chicos */
+  --radio-marca:5px;   /* marcas chicas: chip GANA, evento en una celda de mes */
   /* Un QR necesita zona blanca alrededor o los lectores fallan. Es la única
      superficie blanca del sistema y existe por una razón funcional, no
      estética: va como token para que no parezca deriva. */
   --qr-papel:#FFFFFF;
-  --fuente:Figtree,system-ui,-apple-system,sans-serif;
+  /* La letra del sistema primero: en un iPhone o un Mac sale la de Apple, que
+     no se puede publicar como archivo. En Android y Windows, Inter, que es la
+     que más se le parece y viene de Google Fonts igual que antes Figtree. */
+  --fuente:-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif;
   --fuente-reloj:Newsreader,Georgia,serif;
 
   /* Escala tipográfica. Antes había 26 tamaños distintos repartidos entre los
@@ -67,11 +113,12 @@
      El piso es 11 px: por debajo, un texto funcional falla en pantallas densas
      y encoge el objetivo táctil. Los rótulos en mayúscula con tracking también
      cuentan como funcionales. */
+  /* 25-09: un escalón más cerca de los tamaños de iOS (13, 15, 17, 20). */
   --t1:11px;      /* rótulo en mayúscula con tracking: MESA, SEP, días, GANA  */
-  --t2:12.5px;    /* metadato: récords, texto apagado, pistas                 */
-  --t3:14px;      /* cuerpo: texto corrido, botones, campos, píldoras         */
-  --t4:16px;      /* título: nombre de jugador, título de tarjeta, buscador   */
-  --t5:19px;      /* dato destacado: puntos, número de mesa                   */
+  --t2:13px;      /* metadato: récords, texto apagado, pistas                 */
+  --t3:15px;      /* cuerpo: texto corrido, botones, campos, píldoras         */
+  --t4:17px;      /* título: nombre de jugador, título de tarjeta, buscador   */
+  --t5:20px;      /* dato destacado: puntos, número de mesa                   */
   --d1:clamp(64px,22vw,220px);  /* el reloj, y solo el reloj                  */
   --d2:40px;      /* serif grande: primer lugar del podio                     */
   --d3:28px;      /* serif de título: páginas, mes, ganador, día de evento    */
@@ -84,19 +131,36 @@
    1. Base
    ========================================================= */
 html,body{margin:0;}
+/* El tracking de esta letra se cierra a medida que crece: el cuerpo va casi
+   en cero y los títulos, apretados. */
 body{background:var(--pagina);color:var(--texto);font-family:var(--fuente);
-     -webkit-font-smoothing:antialiased;}
+     -webkit-font-smoothing:antialiased;letter-spacing:-.01em;
+     font-optical-sizing:auto;-webkit-tap-highlight-color:transparent;}
+h1,h2,h3{letter-spacing:-.021em;}
 
-/* Radio único de 4 px en todo, y los límites se marcan cambiando el fondo, no
-   con líneas de 1 px: las hairlines desaparecen en proyección. */
+/* Los límites se marcan cambiando el fondo, no con líneas de 1 px: las
+   hairlines desaparecen en proyección. */
+
+/* Lo que el navegador dibuja solo —la selección de texto, el cursor de
+   escritura, las barras de desplazamiento, las casillas, el subrayado— salía
+   con los colores de fábrica: azul de selección, casilla azul, barra gris
+   clara sobre una página ciruela. Son las piezas que nadie diseña, y por eso
+   delatan cuando nadie las diseñó. */
+::selection{background:var(--accion);color:var(--sobre-accion);}
+/* color-scheme le avisa al navegador que la página es oscura: sin eso, el
+   ícono del campo de fecha salía casi negro sobre --campo y el calendario
+   nativo se abría en blanco. */
+html{caret-color:var(--accion);accent-color:var(--accion);color-scheme:var(--esquema);
+     scrollbar-color:var(--sup-hover) var(--pagina);}
+a{text-underline-offset:.2em;}
 
 /* =========================================================
    2. Tipografía
    ========================================================= */
-.rotulo{font-size:var(--t1);letter-spacing:.12em;text-transform:uppercase;
+.rotulo{font-size:var(--t1);letter-spacing:.08em;text-transform:uppercase;
         color:var(--rotulo);font-weight:600;}
 .muted{color:var(--apagado);font-size:var(--t2);}
-.ok{color:var(--ok);} .err{color:var(--negativo);} .warnc{color:var(--accion);}
+.ok{color:var(--ok);} .err{color:var(--negativo);} .warnc{color:var(--accion-texto);}
 
 /* Todo número que cambia en su lugar va tabular, o baila al contar */
 .num{font-variant-numeric:tabular-nums;}
@@ -104,27 +168,28 @@ body{background:var(--pagina);color:var(--texto);font-family:var(--fuente);
 /* =========================================================
    3. Botones y píldoras
    ========================================================= */
-.btn{border:none;background:var(--sup);color:var(--texto);border-radius:var(--radio);
-     padding:11px 20px;font-family:inherit;font-size:var(--t3);cursor:pointer;
-     white-space:nowrap;}
-.btn:hover{background:var(--sup-alta);}
-.btn.primario{background:var(--accion);color:var(--campo);font-weight:600;}
-.btn.primario:hover{background:var(--accion-clara);}
-.btn.chico{padding:6px 12px;font-size:var(--t2);}
+/* El botón responde al apretarlo, no al soltarlo: se hunde un 3 % al tiro.
+   Es lo que hace que la pantalla se sienta escuchando. */
+.btn{border:none;background:var(--sup-alta);color:var(--texto);border-radius:var(--radio);
+     padding:12px 20px;font-family:inherit;font-size:var(--t3);font-weight:500;cursor:pointer;
+     white-space:nowrap;letter-spacing:inherit;touch-action:manipulation;
+     transition:transform 160ms cubic-bezier(.23,1,.32,1),background-color 150ms ease;}
+.btn:active:not(:disabled){transform:scale(.97);}
+.btn.primario{background:var(--accion);color:var(--sobre-accion);font-weight:600;}
+.btn.chico{padding:7px 13px;font-size:var(--t2);border-radius:var(--radio-chico);}
 .btn:disabled{opacity:.4;cursor:default;}
-.btn.peligro:hover{background:var(--alerta);}
+/* El hover solo donde hay mouse: en el teléfono el toque lo deja pegado. */
+@media (hover:hover){
+  .btn:hover{background:var(--sup-hover);}
+  .btn.primario:hover{background:var(--accion-clara);}
+  .btn.peligro:hover{background:var(--alerta);}
+}
 
 /* Píldora: pestañas, rondas, presets. Misma pieza en las dos páginas. */
-.pill{border:none;background:var(--sup);color:var(--apagado);border-radius:var(--radio);
-      padding:8px 15px;font-family:inherit;font-size:var(--t3);cursor:pointer;
-      white-space:nowrap;flex-shrink:0;}
-.pill:hover{background:var(--sup-alta);color:var(--texto);}
-.pill.on{background:var(--accion);color:var(--campo);font-weight:600;}
-
 /* =========================================================
    4. Campos
    ========================================================= */
-input,select,textarea{background:var(--campo);border:none;border-radius:var(--radio);
+input,select,textarea{background:var(--relleno);border:none;border-radius:var(--radio-chico);
   color:var(--texto);padding:10px 12px;font-family:inherit;font-size:var(--t3);
   box-sizing:border-box;outline:none;}
 input:focus,select:focus,textarea:focus{box-shadow:inset 0 0 0 2px var(--accion);}
@@ -147,16 +212,42 @@ input::placeholder,textarea::placeholder{color:var(--rotulo);}
    tono semántico. Antes era un borde lateral de 3 px, que es el recurso más
    reconocible de interfaz generada a destajo y además no aporta nada que el
    fondo no diga mejor. Los tres tintes pasan AA con el texto encima. */
-.aviso{background:#53465F;border-radius:var(--radio);
+.aviso{background:var(--aviso);border-radius:var(--radio);
   padding:11px 14px;font-size:var(--t2);line-height:1.5;}
-.aviso.accion{background:#6D5F4C;}
-.aviso.mal{background:#543E4B;}
+.aviso.accion{background:var(--aviso-accion);}
+.aviso.mal{background:var(--aviso-mal);}
+
+/* Isla oscura: lo que muestra la pantalla de la tienda —el timer, la vitrina
+   de la cuenta, el lienzo del panel— es oscuro en toda paleta. Adentro se
+   invierten los tokens de texto, así cualquier pieza del sistema se lee
+   encima sin tener que saber dónde está. El fondo lo pone cada una. */
+.isla{color:var(--sobre-lienzo);
+  --texto:var(--sobre-lienzo);--apagado:var(--sobre-lienzo-2);--rotulo:var(--sobre-lienzo-2);
+  --accion-texto:var(--accion);--divider:rgba(255,255,255,.14);--relleno:rgba(255,255,255,.12);
+  --sup:rgba(255,255,255,.07);--sup-alta:rgba(255,255,255,.13);}
+
+/* Barra translúcida, como las de iOS: el contenido pasa por debajo y se ve
+   borroso. Quien pidió menos transparencia en su sistema la ve sólida. */
+.vidrio{background:var(--vidrio);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  backdrop-filter:blur(20px) saturate(180%);box-shadow:inset 0 -1px 0 var(--divider);}
+@media (prefers-reduced-transparency:reduce){
+  .vidrio{background:var(--campo);-webkit-backdrop-filter:none;backdrop-filter:none;}
+}
 
 /* Estado vacío. Se olvidan siempre y en esta app son frecuentes, porque una
    tienda nueva empieza con todo en blanco. */
 .vacio{padding:var(--e6) var(--e3);text-align:center;}
 .vacio b{font-size:var(--t4);font-weight:600;display:block;margin-bottom:var(--e1);}
 .vacio div{font-size:var(--t2);color:var(--apagado);line-height:1.5;}
+
+/* Medidor de contraseña: seis tramos, uno por requisito, y debajo (.falta)
+   SOLO lo que falta. Lo usan la cuenta y la portada. */
+.medidor{display:flex;gap:4px;}
+.medidor i{flex:1;height:4px;border-radius:var(--radio-marca);background:var(--sup-alta);}
+.medidor i.si{background:var(--accion);}
+.medidor.lista i{background:var(--ok);}
+.falta b{color:var(--texto);font-weight:600;}
+.falta.ok{color:var(--ok);}
 
 /* =========================================================
    6. Rejilla de calendario
@@ -166,22 +257,22 @@ input::placeholder,textarea::placeholder{color:var(--rotulo);}
 .calGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--e1);}
 .calDow{font-size:var(--t1);letter-spacing:.08em;color:var(--rotulo);font-weight:600;
         text-align:center;padding:2px 0 6px;}
-.calDia{min-height:var(--cal-alto,68px);background:var(--campo);border-radius:var(--radio);
+.calDia{min-height:var(--cal-alto,68px);background:var(--campo);border-radius:var(--radio-chico);
         padding:var(--e1);display:flex;flex-direction:column;gap:2px;overflow:hidden;}
 .calDia.fuera{opacity:.3;}
 .calDia.hoy{background:var(--sup-alta);box-shadow:inset 0 0 0 2px var(--accion);}
 .calNum{font-size:var(--t2);font-weight:600;color:var(--rotulo);font-variant-numeric:tabular-nums;}
-.calDia.hoy .calNum{color:var(--accion);}
-.calEv{font-size:var(--t1);line-height:1.3;background:var(--accion);color:var(--campo);
+.calDia.hoy .calNum{color:var(--accion-texto);}
+.calEv{font-size:var(--t1);line-height:1.3;background:var(--accion);color:var(--sobre-accion);
   border-radius:var(--radio-marca);padding:1px 4px;font-weight:600;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
 .calEv:hover{background:var(--accion-clara);}
 .calEv.pasado{background:var(--sup-alta);color:var(--apagado);font-weight:400;}
 #calNav{display:flex;align-items:center;gap:var(--e2);margin-bottom:var(--e3);}
-#calNav button{border:none;background:var(--sup);color:var(--texto);
-  border-radius:var(--radio);padding:7px 13px;font-family:inherit;font-size:var(--t2);
+#calNav button{border:none;background:var(--sup-alta);color:var(--texto);
+  border-radius:var(--radio-chico);padding:7px 13px;font-family:inherit;font-size:var(--t2);
   cursor:pointer;}
-#calNav button:hover{background:var(--sup-alta);}
+#calNav button:hover{background:var(--sup-hover);}
 #calNav button:disabled{opacity:.4;cursor:default;}
 #calMes{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d3);flex:1;
         text-transform:capitalize;}
@@ -198,14 +289,14 @@ input::placeholder,textarea::placeholder{color:var(--rotulo);}
 #rWinner{text-align:center;margin-top:var(--e3);min-height:2.6em;}
 #rWinner .lbl{font-size:var(--t1);letter-spacing:.12em;color:var(--rotulo);font-weight:600;}
 #rWinner .who{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d3);
-  color:var(--accion);line-height:1.2;margin-top:var(--e1);}
+  color:var(--accion-texto);line-height:1.2;margin-top:var(--e1);}
 
 /* =========================================================
    8. Posiciones y clasificación
    ========================================================= */
 .fpos{min-width:28px;text-align:center;font-size:var(--t3);font-weight:700;color:var(--rotulo);
       font-variant-numeric:tabular-nums;}
-.fpos.pod1{color:var(--podio1);} .fpos.pod2{color:var(--podio2);} .fpos.pod3{color:var(--podio3);}
+.fpos.pod1{color:var(--podio1-texto);} .fpos.pod2{color:var(--podio2-texto);} .fpos.pod3{color:var(--podio3-texto);}
 .fname{font-size:var(--t4);font-weight:500;line-height:1.25;}
 .fmeta{font-size:var(--t2);color:var(--apagado);margin-top:3px;font-variant-numeric:tabular-nums;}
 .fpts{font-size:var(--t5);font-weight:600;font-variant-numeric:tabular-nums;}
@@ -243,3 +334,58 @@ input::placeholder,textarea::placeholder{color:var(--rotulo);}
   .reloj.porvencer{text-decoration:underline;text-decoration-thickness:.06em;
     text-underline-offset:.12em;}
 }
+
+/* --- interruptor --- */
+/* El de iOS: pista en píldora y perilla blanca redonda. Apagado, la pista es
+   --sup-hover, que se separa de la fila --sup; con --sup-alta daba 1,2:1 y
+   el interruptor se leía como un hueco suelto. */
+.sw{appearance:none;-webkit-appearance:none;width:51px;height:31px;border-radius:999px;
+  background:var(--sup-hover);position:relative;flex:none;cursor:pointer;margin:0;
+  transition:background-color 200ms ease;}
+.sw::after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;
+  border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);
+  transition:transform 250ms cubic-bezier(.23,1,.32,1);}
+.sw:checked{background:var(--accion);}
+.sw:checked::after{transform:translateX(20px);}
+.sw:focus-visible{outline:2px solid var(--accion);outline-offset:2px;}
+
+/* ------------------------------------------------------------
+   Insignias. Las dibuja insignias.js; las usan el muro y el panel.
+   Permanentes: medalla redonda. De tienda: parche cuadrado con la sigla.
+   El anillo es el nivel (bronce, plata, oro) en las que tienen niveles.
+   ------------------------------------------------------------ */
+.med,.par{--s:64px;position:relative;width:var(--s);height:var(--s);display:grid;place-items:center;flex:none;
+  color:var(--tinta,#fff);background:linear-gradient(145deg,var(--c1),var(--c2));
+  box-shadow:inset 0 0 0 calc(var(--s)*.05) rgba(255,255,255,.32),0 8px 16px -10px var(--c2);
+  transition:transform 160ms ease;}
+.med{border-radius:50%;}
+.par{border-radius:calc(var(--s)*.28);--tinta:#fff;}
+.med svg,.par svg{width:44%;height:44%;}
+.par svg{margin-top:-10%;}
+.med .beta{font-family:var(--fuente-reloj);font-size:calc(var(--s)*.56);line-height:1;margin-top:-6%;}
+.par em{position:absolute;bottom:calc(var(--s)*-.09);left:50%;transform:translateX(-50%);font-style:normal;font-weight:800;
+  font-size:max(9px,calc(var(--s)*.16));letter-spacing:.06em;line-height:1.35;background:var(--sup);color:var(--c2);
+  padding:0 calc(var(--s)*.09);border-radius:999px;box-shadow:0 0 0 2px var(--c2);white-space:nowrap;}
+.par.evento::before{content:"";position:absolute;inset:calc(var(--s)*.1);border-radius:calc(var(--s)*.2);
+  border:1.5px dashed rgba(255,255,255,.55);}
+.nivel.n-bronce{--anillo:#C07A3A;} .nivel.n-plata{--anillo:#9AA6B8;} .nivel.n-oro{--anillo:#E0A800;}
+.med.nivel,.par.nivel{box-shadow:0 0 0 calc(var(--s)*.06) var(--fondo-ins,var(--sup)),0 0 0 calc(var(--s)*.11) var(--anillo),
+  inset 0 0 0 calc(var(--s)*.05) rgba(255,255,255,.32),0 8px 16px -10px var(--c2);}
+.med.no,.par.no{background:var(--sup-alta);color:var(--rotulo);box-shadow:inset 0 0 0 2px var(--divider);}
+.par.no em{color:var(--rotulo);box-shadow:0 0 0 2px var(--divider);}
+.cand{position:absolute;right:-4px;top:-4px;width:24px;height:24px;border-radius:50%;background:var(--sup);
+  display:grid;place-items:center;color:var(--rotulo);box-shadow:0 0 0 2px var(--sup),inset 0 0 0 1px var(--divider);}
+.cand svg{width:12px;height:12px;margin:0;}
+/* La ficha: insignia, nombre y lo que dice debajo. Es un botón: abre el detalle. */
+.ins{display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;position:relative;
+  background:none;border:none;padding:4px 2px;font:inherit;color:inherit;cursor:pointer;border-radius:var(--radio);}
+.ins:focus-visible{outline:2px solid var(--accion);outline-offset:2px;}
+.ins b{font-size:var(--t3);line-height:1.2;color:var(--texto);margin-top:6px;}
+.ins small{font-size:var(--t2);color:var(--apagado);line-height:1.35;max-width:14em;}
+.ins small.raro{color:var(--rotulo);font-size:var(--t1);letter-spacing:.02em;}
+.ins.no b{color:var(--apagado);font-weight:600;}
+.ins .prog{width:74px;height:4px;border-radius:var(--radio-marca);background:var(--sup-alta);overflow:hidden;margin-top:3px;}
+.ins .prog i{display:block;height:100%;background:var(--accion);}
+.ins .nueva{position:absolute;top:-6px;left:calc(50% + 12px);background:var(--accion);color:var(--sobre-accion);z-index:1;
+  font-size:var(--t1);font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;}
+@media (hover:hover){ .ins:hover .med:not(.no),.ins:hover .par:not(.no){transform:translateY(-2px);} }

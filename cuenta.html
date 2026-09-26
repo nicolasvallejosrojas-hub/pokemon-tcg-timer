@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis Torneos — Cuenta</title>
+<link rel="stylesheet" href="estilo.css?v=10">
+<style>
+  /* =========================================================
+     Cuenta de jugador: entrar, crear cuenta y ajustes
+     ---------------------------------------------------------
+     La entrada depende de cómo llega la persona:
+
+       · Desde cero (el QR de la tienda, la página de inicio, un enlace
+         guardado): la pantalla es «Entra», directo al formulario, y crear
+         cuenta son tres pasos cortos que caben enteros en un teléfono.
+       · Desde el enlace de un torneo que está corriendo: arriba va la
+         vitrina con la ronda y su reloj, y pestañas Ingresar | Crear cuenta.
+         Quien se registra en plena ronda no pierde de vista cuánto le queda.
+
+     El registro es el mismo en los dos casos. Lo que cambia es la entrada.
+
+     La sesión sigue siendo OPCIONAL: el timer se ve sin cuenta, como siempre.
+     La cuenta agrega historial y perfil, no permiso de entrada.
+
+     Colores, tipografía, botones y campos salen de estilo.css.
+     ========================================================= */
+  html,body{margin:0;min-height:100%;}
+  body{display:flex;flex-direction:column;min-height:100vh;}
+
+  /* --- barra superior --- */
+  .sup{display:flex;align-items:center;gap:var(--e3);padding:var(--e2) var(--e4);
+    position:sticky;top:0;z-index:10;min-height:60px;box-sizing:border-box;}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);
+    margin-right:auto;text-decoration:none;color:var(--texto);
+    display:inline-flex;align-items:center;min-height:44px;}
+
+  /* --- botones: los del sistema, con piso táctil de 44 px --- */
+  .btn{min-height:44px;font-weight:500;}
+  .btn.ancho{display:block;width:100%;text-align:center;}
+  a.btn{display:inline-flex;align-items:center;justify-content:center;
+    text-decoration:none;box-sizing:border-box;}
+  .fant{background:none;border:none;color:var(--apagado);font-family:inherit;
+    font-size:var(--t3);cursor:pointer;min-height:44px;padding:0 var(--e3);
+    display:flex;align-items:center;justify-content:center;text-decoration:none;}
+  .fant:hover{color:var(--texto);}
+  .enlace{color:var(--apagado);font-size:var(--t3);text-decoration:underline;
+    display:inline-flex;align-items:center;min-height:44px;background:none;border:none;
+    font-family:inherit;cursor:pointer;padding:0;}
+  .enlace:hover{color:var(--texto);}
+
+  /* --- columna --- */
+  main{flex:1;width:100%;}
+  .centro{max-width:440px;margin:0 auto;padding:var(--e5) var(--e4);box-sizing:border-box;
+    display:flex;flex-direction:column;gap:var(--e4);min-height:calc(100vh - 60px);}
+  .vista{display:flex;flex-direction:column;gap:var(--e4);flex:1;}
+  .titulo{font-weight:700;font-size:var(--d3);
+    line-height:1.1;margin:0;}
+  .titulo:focus{outline:none;}
+  .bajada{font-size:var(--t3);color:var(--apagado);margin:var(--e1) 0 0;line-height:1.5;}
+  /* En el teléfono, el botón principal baja a donde llega el pulgar. En
+     escritorio eso lo alejaría de los campos a media pantalla de distancia,
+     así que ahí se queda pegado al formulario. */
+  .abajo{display:flex;flex-direction:column;gap:var(--e1);margin-top:var(--e2);}
+  @media (max-width:600px){ .abajo{margin-top:auto;padding-top:var(--e4);} }
+  .enlaces{display:flex;justify-content:space-between;gap:var(--e3);flex-wrap:wrap;}
+  .linea{height:1px;background:var(--divider);}
+
+  /* --- campos --- */
+  .campo{display:flex;flex-direction:column;gap:7px;}
+  .campo > span:not(.pista){font-size:var(--t1);letter-spacing:.06em;text-transform:uppercase;
+    color:var(--apagado);}
+  .opcional{letter-spacing:0;text-transform:none;color:var(--rotulo);}
+  .campo input{width:100%;padding:14px 15px;font-size:var(--t4);}
+  .pista{font-size:var(--t2);color:var(--apagado);line-height:1.45;}
+  /* El botón Ver va dentro del campo: en el teléfono, escribir una clave de
+     diez caracteres con símbolos sin poder mirarla es donde más se equivoca
+     la gente. */
+  .conVer{position:relative;}
+  .conVer input{padding-right:84px;}
+  .ver{position:absolute;right:4px;top:50%;transform:translateY(-50%);height:44px;
+    background:none;border:none;color:var(--apagado);font-family:inherit;
+    font-size:var(--t2);cursor:pointer;padding:0 var(--e3);}
+  .ver:hover{color:var(--texto);}
+
+  /* --- medidor de contraseña --- */
+  /* Seis tramos, uno por requisito, y debajo SOLO lo que falta. Antes eran
+     seis viñetas siempre a la vista, que en el teléfono ocupaban lo mismo
+     que el resto del formulario. */
+  /* .medidor y .falta viven en estilo.css: la portada también los usa. */
+
+  /* --- riel de pasos --- */
+  .riel{display:flex;gap:6px;align-items:center;}
+  .riel i{flex:1;height:4px;border-radius:var(--radio-marca);background:var(--sup-alta);}
+  .riel i.si{background:var(--accion);}
+  .riel em{font-style:normal;font-size:var(--t2);color:var(--apagado);margin-left:var(--e2);
+    white-space:nowrap;font-variant-numeric:tabular-nums;}
+  /* Div y no fieldset: el fieldset no estira su caja interna al alto
+     disponible, y el botón de abajo no llegaba a la zona del pulgar. */
+  .paso{display:flex;flex-direction:column;gap:var(--e4);flex:1;}
+
+  /* --- interruptor: .sw vive en estilo.css, lo usa también el muro --- */
+
+  /* --- vitrina: la sala en vivo, solo si llegaste desde un torneo --- */
+  .vitrina{background:var(--lienzo);border-radius:var(--radio);padding:var(--e3) var(--e4);}
+  .vivo{display:flex;align-items:center;gap:var(--e2);font-size:var(--t2);color:var(--apagado);}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;}
+  .punto.pausa{background:var(--rotulo);}
+  /* Mismo gesto que .reloj.pausado del sistema: detenido se lee sin leer la
+     palabra. */
+  .vitrina.pausa .relojMini{opacity:.5;}
+  .relojMini{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d2);
+    line-height:1;font-variant-numeric:tabular-nums;margin:var(--e2) 0 var(--e1);}
+  .vtProx{border-top:1px solid var(--divider);margin-top:var(--e3);padding-top:var(--e2);}
+  .vtProx b{color:var(--texto);font-weight:600;}
+  /* Mientras se registra, la vitrina se achica a una línea: el reloj sigue a
+     la vista sin empujar el formulario fuera de la pantalla. */
+  .vitrina.compacta{padding:11px var(--e4);}
+  .vitrina.compacta .relojMini,.vitrina.compacta .vtRonda,.vitrina.compacta .vtProx{display:none;}
+  .vitrina .vtLinea{display:none;}
+  .vitrina.compacta .vtLinea{display:inline;}
+  .vitrina.compacta .vtNombre{display:none;}
+
+  .pestanas{display:flex;gap:var(--e1);padding:var(--e1);border-radius:var(--radio);
+    background:var(--campo);}
+  .pestanas a{flex:1;text-align:center;padding:11px 0;border-radius:var(--radio);
+    font-size:var(--t3);color:var(--apagado);text-decoration:none;min-height:44px;
+    box-sizing:border-box;display:flex;align-items:center;justify-content:center;}
+  .pestanas a[aria-current="page"]{background:var(--sup);color:var(--texto);font-weight:600;
+    box-shadow:0 1px 3px rgba(16,35,30,.12);}
+  /* En vivo, las pestañas ya ofrecen el otro camino: el pie «¿Primera vez?» y
+     el «Ya tengo cuenta» del primer paso sobran. */
+  .en-vivo .solo-frio{display:none !important;}
+  /* El título «Entra» repetía la pestaña Ingresar y bajaba el botón unos 50 px.
+     En vivo se esconde a la vista pero no al lector de pantalla, que sigue
+     necesitando el encabezado de la página. */
+  .en-vivo #vIngresar .encabezado{position:absolute;width:1px;height:1px;margin:-1px;
+    padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+
+  /* --- ajustes --- */
+  .grupo{display:flex;flex-direction:column;gap:var(--e2);}
+  .grupo h2{font-size:var(--t1);letter-spacing:.1em;text-transform:uppercase;
+    color:var(--apagado);font-weight:500;margin:0;}
+  .filas{display:flex;flex-direction:column;border-radius:var(--radio);overflow:hidden;}
+  .filaj{display:flex;align-items:center;gap:var(--e3);padding:13px var(--e4);
+    background:var(--sup);min-height:52px;box-sizing:border-box;width:100%;
+    border:none;font-family:inherit;color:var(--texto);text-align:left;font-size:var(--t3);}
+  button.filaj{cursor:pointer;}
+  button.filaj:hover{background:var(--sup-alta);}
+  .filaj .k{flex:1;min-width:0;}
+  .filaj .k small{display:block;font-size:var(--t2);color:var(--apagado);margin-top:3px;line-height:1.4;}
+  .filaj .v{color:var(--apagado);text-align:right;overflow-wrap:anywhere;}
+  .filaj .v small{display:block;font-size:var(--t2);color:var(--rotulo);}
+  .filaj svg{flex:none;color:var(--rotulo);}
+  label.filaj{cursor:pointer;}
+  /* Va DESPUÉS de .filaj: ese border:none, que limpia el borde de los
+     botones, se comía el divisor entre filas. */
+  .filas > * + *{border-top:1px solid var(--divider);}
+  .edicion{background:var(--sup);padding:var(--e3) var(--e4) var(--e4);
+    display:flex;flex-direction:column;gap:var(--e3);}
+  .edicion .acciones{display:flex;justify-content:flex-end;gap:var(--e2);}
+
+  .oculto{display:none !important;}
+  .solo-lector{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+</style>
+</head>
+<body>
+
+<header class="sup vidrio">
+  <a class="marca" href="index.html">Mis Torneos</a>
+  <a class="btn oculto" id="aPerfil" href="muro.html">Mi perfil</a>
+</header>
+
+<main>
+<div class="centro">
+
+  <!-- La vitrina y las pestañas solo aparecen si llegaste desde un torneo que
+       está corriendo (?desde=torneo y hay ronda en la sala). -->
+  <div class="vitrina isla oculto" id="vitrina">
+    <div class="vivo"><span class="punto" id="vtPunto"></span>
+      <span class="vtNombre" id="vtNombre">En vivo</span>
+      <span class="vtLinea" id="vtLinea"></span></div>
+    <div class="relojMini" id="vtReloj" aria-hidden="true">--:--</div>
+    <div class="pista vtRonda" id="vtRonda"></div>
+    <div class="pista vtProx oculto" id="vtProx"></div>
+  </div>
+  <nav class="pestanas oculto" id="pestanas" aria-label="Cuenta">
+    <a href="#ingresar" id="tabIn">Ingresar</a>
+    <a href="#crear" id="tabCr">Crear cuenta</a>
+  </nav>
+
+  <!-- =====================================================
+       ENTRAR
+       ===================================================== -->
+  <section id="vIngresar" class="vista oculto">
+    <form class="vista" id="formIngresar" novalidate>
+      <div class="encabezado">
+        <h1 class="titulo">Entra</h1>
+        <p class="bajada">Tu historial, tu mesa y tus tiendas.</p>
+      </div>
+      <label class="campo"><span>Correo</span>
+        <input type="email" id="inCorreo" autocomplete="email" placeholder="tu@correo.cl" required>
+      </label>
+      <label class="campo"><span>Contraseña</span>
+        <div class="conVer">
+          <input type="password" id="inClave" autocomplete="current-password" required>
+          <button type="button" class="ver" data-ver="inClave" aria-controls="inClave">Ver</button>
+        </div>
+      </label>
+      <div class="aviso mal oculto" id="errIngresar" role="alert"></div>
+      <button class="btn primario ancho" type="submit" id="btnIngresar">Entrar</button>
+      <div class="enlaces">
+        <button class="enlace" type="button" id="btnOlvide">Olvidé mi contraseña</button>
+        <a class="enlace" id="aPanel" href="admin.html">Soy organizador</a>
+      </div>
+      <div class="abajo solo-frio" id="pieCrear">
+        <div class="linea" style="margin-bottom:var(--e3)"></div>
+        <p class="pista" style="text-align:center;margin:0 0 var(--e1)">¿Primera vez? Son tres pasos cortos.</p>
+        <a class="btn ancho" href="#crear">Crear mi cuenta</a>
+      </div>
+    </form>
+  </section>
+
+  <!-- =====================================================
+       RECUPERAR LA CONTRASEÑA
+       Firebase manda el correo con el enlace. Si en la consola (Authentication
+       → Plantillas → URL de acción) el enlace apunta a esta página, vuelve acá
+       con ?mode=resetPassword y la contraseña nueva se crea en #nueva, con las
+       mismas reglas del registro. Si no, lo atiende la página de Firebase.
+       ===================================================== -->
+  <section id="vOlvide" class="vista oculto">
+    <form class="vista" id="formOlvide" novalidate>
+      <div>
+        <h1 class="titulo">Recupera tu contraseña</h1>
+        <p class="bajada">Te mandamos un enlace a tu correo para que crees una nueva.</p>
+      </div>
+      <label class="campo"><span>Correo de tu cuenta</span>
+        <input type="email" id="olCorreo" autocomplete="email" placeholder="tu@correo.cl" required>
+      </label>
+      <div class="aviso oculto" id="okOlvide" role="status"></div>
+      <div class="aviso mal oculto" id="errOlvide" role="alert"></div>
+      <div class="abajo">
+        <button class="btn primario ancho" type="submit" id="btnMandar">Mandarme el enlace</button>
+        <a class="fant" href="#ingresar">Volver a entrar</a>
+      </div>
+    </form>
+  </section>
+
+  <!-- El enlace del correo de confirmación, si la URL de acción apunta acá. -->
+  <section id="vConfirma" class="vista oculto">
+    <div class="vista">
+      <div>
+        <h1 class="titulo" id="cfTitulo">Confirmando tu correo…</h1>
+        <p class="bajada" id="cfTexto"></p>
+      </div>
+      <div class="abajo"><a class="btn primario ancho oculto" id="cfSeguir" href="cuenta.html">Entrar</a></div>
+    </div>
+  </section>
+
+  <section id="vNueva" class="vista oculto">
+    <form class="vista" id="formNueva" novalidate>
+      <div>
+        <h1 class="titulo" id="nvTitulo">Crea tu nueva contraseña</h1>
+        <p class="bajada" id="nvPara">Revisando el enlace…</p>
+      </div>
+      <!-- Para que el gestor de contraseñas la guarde con la cuenta correcta. -->
+      <input type="email" id="nvCorreo" autocomplete="username" hidden>
+      <label class="campo" id="nvCampo"><span>Contraseña nueva</span>
+        <div class="conVer">
+          <input type="password" id="nvClave" autocomplete="new-password" aria-describedby="nvFalta">
+          <button type="button" class="ver" data-ver="nvClave" aria-controls="nvClave">Ver</button>
+        </div>
+        <div class="medidor" id="nvMedidor" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <span class="pista falta" id="nvFalta" aria-live="polite">Mínimo 10 caracteres, con minúscula, mayúscula, número y símbolo.</span>
+      </label>
+      <div class="aviso mal oculto" id="errNueva" role="alert"></div>
+      <div class="abajo">
+        <button class="btn primario ancho" type="submit" id="btnNueva">Guardar y entrar</button>
+        <a class="fant" href="cuenta.html#olvide" id="nvOtro">Pedir otro enlace</a>
+      </div>
+    </form>
+  </section>
+
+  <!-- =====================================================
+       CREAR CUENTA — tres pasos
+       El orden importa: el nombre va primero porque la contraseña no puede
+       contenerlo, y el medidor necesita saberlo para avisar a tiempo.
+       ===================================================== -->
+  <section id="vCrear" class="vista oculto">
+    <form class="vista" id="formCrear" novalidate>
+      <div class="riel" aria-hidden="true"><i id="r1"></i><i id="r2"></i><i id="r3"></i>
+        <em id="pasoTxt">1 de 3</em></div>
+
+      <div class="paso" data-paso="1" role="group" aria-labelledby="tp1">
+        <div>
+          <h1 class="titulo" tabindex="-1" id="tp1"><span class="solo-lector">Paso 1 de 3: </span>¿Cómo te inscribe la tienda?</h1>
+          <p class="bajada">Con esto calzamos tus resultados del torneo.</p>
+        </div>
+        <label class="campo"><span>Nombre y apellido</span>
+          <input type="text" id="crNombre" autocomplete="name" placeholder="Camila Ríos" maxlength="80">
+          <span class="pista">Igual que en la hoja de inscripción de la tienda.</span>
+        </label>
+        <label class="campo"><span>Fecha de nacimiento</span>
+          <input type="date" id="crNacimiento">
+          <span class="pista">Define tu división por edad. Solo la ve la tienda.</span>
+        </label>
+        <div class="aviso mal oculto" id="err1" role="alert"></div>
+        <div class="abajo">
+          <button class="btn primario ancho" type="submit">Seguir</button>
+          <a class="fant solo-frio" href="#ingresar">Ya tengo cuenta</a>
+        </div>
+      </div>
+
+      <div class="paso oculto" data-paso="2" role="group" aria-labelledby="tp2">
+        <div>
+          <h1 class="titulo" tabindex="-1" id="tp2"><span class="solo-lector">Paso 2 de 3: </span>Tu cuenta</h1>
+          <p class="bajada">Con esto entras desde cualquier teléfono.</p>
+        </div>
+        <label class="campo"><span>Correo</span>
+          <input type="email" id="crCorreo" autocomplete="email" placeholder="tu@correo.cl">
+        </label>
+        <label class="campo"><span>Contraseña</span>
+          <div class="conVer">
+            <input type="password" id="crClave" autocomplete="new-password" aria-describedby="falta">
+            <button type="button" class="ver" data-ver="crClave" aria-controls="crClave">Ver</button>
+          </div>
+          <div class="medidor" id="medidor" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="pista falta" id="falta" aria-live="polite">Mínimo 10 caracteres, con minúscula, mayúscula, número y símbolo.</span>
+        </label>
+        <div class="aviso mal oculto" id="err2" role="alert"></div>
+        <div class="abajo">
+          <button class="btn primario ancho" type="submit">Seguir</button>
+          <button class="fant" type="button" data-atras>Atrás</button>
+        </div>
+      </div>
+
+      <div class="paso oculto" data-paso="3" role="group" aria-labelledby="tp3">
+        <div>
+          <h1 class="titulo" tabindex="-1" id="tp3"><span class="solo-lector">Paso 3 de 3: </span>Tu torneo</h1>
+          <p class="bajada">Las dos son opcionales y las puedes poner después en ajustes. El ID, eso
+            sí, no se cambia una vez guardado.</p>
+        </div>
+        <label class="campo"><span>ID de jugador <span class="opcional">— opcional</span></span>
+          <input type="text" id="crId" inputmode="numeric" placeholder="7 u 8 dígitos" maxlength="8">
+          <span class="pista">Es el número con que la tienda te inscribe en el torneo. Revísalo bien.</span>
+        </label>
+        <div class="filas">
+          <label class="filaj"><span class="k">Salir con mi nombre en la clasificación
+            <small>En las tiendas con las que compartas tu ID. Si no, tu fila sale como «Jugador reservado».</small></span>
+            <input type="checkbox" role="switch" class="sw" id="crPublico"></label>
+        </div>
+        <div class="aviso mal oculto" id="err3" role="alert"></div>
+        <div class="abajo">
+          <button class="btn primario ancho" type="submit" id="btnCrear">Crear mi cuenta</button>
+          <button class="fant" type="button" data-atras>Atrás</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- =====================================================
+       AJUSTES — las mismas tres partes del registro
+       ===================================================== -->
+  <section id="vAjustes" class="vista oculto">
+    <h1 class="titulo">Ajustes</h1>
+
+    <div class="aviso mal oculto" id="pfIncompleto" role="alert">
+      Tu cuenta existe, pero tus datos no alcanzaron a guardarse. Puede ser la
+      conexión, o que la base todavía no tenga permitido guardar perfiles.
+      Avísale al organizador y vuelve a entrar más tarde.
+    </div>
+
+    <div class="grupo">
+      <h2>Tu cuenta</h2>
+      <div class="filas">
+        <div class="filaj"><span class="k">Correo</span><span class="v" id="ajCorreo"></span></div>
+        <button class="filaj" type="button" id="ajClave"><span class="k">Contraseña</span>
+          <span class="v">Cambiar</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>
+      </div>
+      <div class="aviso oculto" id="msgCuenta" role="status"></div>
+    </div>
+
+    <div class="grupo">
+      <h2>Tú</h2>
+      <div class="filas">
+        <div id="edNombre">
+          <button class="filaj" type="button" aria-expanded="false" aria-controls="formNombre">
+            <span class="k">Nombre</span><span class="v" id="ajNombre"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>
+          <form class="edicion oculto" id="formNombre" novalidate>
+            <label class="campo"><span>Nombre y apellido</span>
+              <input type="text" id="nuevoNombre" autocomplete="name" maxlength="80">
+              <span class="pista">Igual que en la hoja de inscripción de la tienda: así calzan tus resultados.</span>
+            </label>
+            <div class="aviso mal oculto" id="errNombre" role="alert"></div>
+            <div class="acciones"><button class="fant" type="button" data-cancelar>Cancelar</button>
+              <button class="btn primario" type="submit">Guardar</button></div>
+          </form>
+        </div>
+        <div id="edNac">
+          <button class="filaj" type="button" aria-expanded="false" aria-controls="formNac">
+            <span class="k">Nacimiento</span><span class="v" id="ajNac"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>
+          <form class="edicion oculto" id="formNac" novalidate>
+            <label class="campo"><span>Fecha de nacimiento</span>
+              <input type="date" id="nuevoNac">
+              <span class="pista">Con ella se sabe en qué categoría de edad juegas.</span>
+            </label>
+            <div class="aviso mal oculto" id="errNac" role="alert"></div>
+            <div class="acciones"><button class="fant" type="button" data-cancelar>Cancelar</button>
+              <button class="btn primario" type="submit">Guardar</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="aviso oculto" id="msgTu" role="status"></div>
+    </div>
+
+    <div class="grupo">
+      <h2>Tu torneo</h2>
+      <div class="filas">
+        <!-- Con ID: fijo, con candado. Sin ID: se puede poner, una sola vez. -->
+        <div class="filaj oculto" id="idFijo"><span class="k">ID de jugador
+          <small>No se cambia. Si está mal, habla con la tienda.</small></span>
+          <span class="v" id="ajIdFijo"></span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></div>
+        <div id="edId">
+          <button class="filaj" type="button" aria-expanded="false" aria-controls="formId">
+            <span class="k">ID de jugador</span><span class="v" id="ajId"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>
+          <form class="edicion oculto" id="formId" novalidate>
+            <label class="campo"><span>ID de jugador</span>
+              <input type="text" id="nuevoId" inputmode="numeric" placeholder="7 u 8 dígitos" maxlength="8">
+              <span class="pista">Revísalo bien: una vez guardado, no se puede cambiar.</span>
+            </label>
+            <div class="aviso mal oculto" id="errId" role="alert"></div>
+            <div class="acciones"><button class="fant" type="button" data-cancelar>Cancelar</button>
+              <button class="btn primario" type="submit">Guardar</button></div>
+          </form>
+        </div>
+        <label class="filaj"><span class="k">Salir con mi nombre en la clasificación
+          <small>En las tiendas con las que compartes tu ID. Apagado, tu fila sale como «Jugador reservado».</small></span>
+          <input type="checkbox" role="switch" class="sw" id="ajPublico"></label>
+      </div>
+      <div class="aviso oculto" id="msgTorneo" role="status"></div>
+    </div>
+
+    <div class="abajo"><button class="btn ancho" type="button" id="btnSalir">Cerrar sesión</button></div>
+  </section>
+
+</div>
+</main>
+
+<script src="config.js?v=7"></script>
+<script type="module">
+import { ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail,
+         verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { fechaLegible, ordenar, MES_LARGO } from "./agenda.js?v=4";
+import { BASE } from "./sala.js?v=2";
+/* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
+   contraseña y el registro viven en sesion.js: la portada registra igual. */
+import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
+         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=3";
+
+const $ = id => document.getElementById(id);
+
+/* ------------------------------------------------------------
+   Vistas por hash, para que el botón "atrás" del navegador sirva también
+   entre los pasos del registro: #crear, #crear-2, #crear-3.
+   ------------------------------------------------------------ */
+const VISTAS = { ingresar:"vIngresar", crear:"vCrear", ajustes:"vAjustes", olvide:"vOlvide", nueva:"vNueva",
+                 confirma:"vConfirma" };
+/* Los enlaces de los correos de Firebase, si llegaron a esta página:
+   cambiar la contraseña o confirmar el correo. */
+const Q = new URLSearchParams(location.search);
+const OOB = Q.get("oobCode");
+const ACCION = OOB && { resetPassword: "nueva", verifyEmail: "confirma" }[Q.get("mode")];
+/* Nombres viejos que siguen llegando por enlaces guardados: la portada ya no
+   existe (la entrada es «Entra») y el perfil ahora vive en el muro; lo que
+   quedó acá son los ajustes. */
+const ALIAS = { "": "ingresar", portada: "ingresar", perfil: "ajustes" };
+let usuario = null, perfil = null, vista = "ingresar", paso = 1;
+/* Mientras se crea una cuenta, onAuthStateChanged dispara ANTES de que los
+   datos terminen de guardarse. Si en ese momento redirigiera al muro, la
+   escritura podía quedar cortada a medio camino y la cuenta, huérfana. */
+let registrando = false;
+
+/* El hash TAL COMO LLEGÓ. mostrar() corre a nivel de módulo, cuando la sesión
+   todavía no resolvió, y reescribe la URL: sin esta copia, el enlace
+   «Ajustes» del muro perdía su destino y la sesión lo rebotaba al muro. */
+const HASH_INICIAL = ALIAS[location.hash.slice(1)] ?? location.hash.slice(1);
+
+function leerHash(h){
+  h = ALIAS[h] ?? h;
+  const m = /^crear-([23])$/.exec(h);
+  if (m) return ["crear", +m[1]];
+  return [VISTAS[h] ? h : "ingresar", 1];
+}
+
+function mostrar(hash){
+  let [v, n] = leerHash(hash);
+  /* El enlace del correo manda aunque haya otra sesión abierta en el teléfono. */
+  if (ACCION) v = ACCION;
+  else if (v === "nueva" || v === "confirma") v = "ingresar";
+  else if (usuario && !registrando) v = "ajustes";
+  if (!usuario && v === "ajustes") v = "ingresar";
+  /* No se puede saltar a un paso si los anteriores no están completos: un
+     enlace a #crear-3 cae en el primer paso que falte. */
+  paso = v === "crear" ? pasoAlcanzable(n) : 1;
+  vista = v;
+  Object.entries(VISTAS).forEach(([k, id]) => $(id).classList.toggle("oculto", k !== v));
+  if (v === "crear") pintarPaso();
+  const destino = v === "crear" && paso > 1 ? "crear-" + paso : v;
+  if (location.hash.slice(1) !== destino) history.replaceState(null, "", "#" + destino);
+  document.title = { ajustes: "Ajustes", crear: "Crear cuenta", olvide: "Recuperar la contraseña",
+                     nueva: "Contraseña nueva", confirma: "Confirmar el correo" }[v] ?? "Entra";
+  document.title += " — Mis Torneos";
+  $("tabIn").removeAttribute("aria-current");
+  $("tabCr").removeAttribute("aria-current");
+  if (v === "ingresar") $("tabIn").setAttribute("aria-current", "page");
+  if (v === "crear")    $("tabCr").setAttribute("aria-current", "page");
+  pintarVitrina();
+}
+window.addEventListener("hashchange", () => mostrar(location.hash.slice(1)));
+
+function aviso(id, msg){
+  const e = $(id);
+  e.textContent = msg;
+  e.classList.toggle("oculto", !msg);
+}
+
+/* Ver / ocultar contraseña */
+document.querySelectorAll("[data-ver]").forEach(b => b.onclick = () => {
+  const i = $(b.dataset.ver);
+  const ver = i.type === "password";
+  i.type = ver ? "text" : "password";
+  b.textContent = ver ? "Ocultar" : "Ver";
+});
+
+/* ------------------------------------------------------------
+   Entrar
+   ------------------------------------------------------------ */
+$("formIngresar").onsubmit = async e => {
+  e.preventDefault();
+  aviso("errIngresar", "");
+  const b = $("btnIngresar");
+  b.disabled = true; b.textContent = "Entrando…";
+  try {
+    await signInWithEmailAndPassword(auth, $("inCorreo").value.trim(), $("inClave").value);
+    return;   // onAuthStateChanged lleva al muro
+  } catch(err){
+    aviso("errIngresar", decir(err));
+  }
+  b.disabled = false; b.textContent = "Entrar";
+};
+
+/* ------------------------------------------------------------
+   Recuperar la contraseña
+   ------------------------------------------------------------ */
+$("btnOlvide").onclick = () => {
+  $("olCorreo").value = $("inCorreo").value.trim();
+  location.hash = "olvide";
+  $("olCorreo").focus();
+};
+
+$("formOlvide").onsubmit = async e => {
+  e.preventDefault();
+  aviso("errOlvide", ""); aviso("okOlvide", "");
+  const correo = $("olCorreo").value.trim();
+  if (!CORREO_OK(correo)){ aviso("errOlvide", "Revisa el correo."); return; }
+  const b = $("btnMandar");
+  b.disabled = true; b.textContent = "Mandando…";
+  try {
+    await sendPasswordResetEmail(auth, correo);
+    /* Firebase no cuenta si ese correo tiene cuenta, para que nadie averigüe
+       quién está registrado. El mensaje tampoco lo afirma. */
+    aviso("okOlvide", "Listo. Si " + correo + " tiene cuenta, en unos minutos te llega un correo con el enlace. " +
+      "Revisa también spam y promociones. El enlace dura una hora.");
+    b.textContent = "Mandar de nuevo";
+  } catch(err){ aviso("errOlvide", decir(err)); b.textContent = "Mandarme el enlace"; }
+  b.disabled = false;
+};
+
+let nvCorreo = "";
+const pintarNueva = () => medir($("nvClave").value, "", nvCorreo, "nvMedidor", "nvFalta");
+$("nvClave").addEventListener("input", pintarNueva);
+function enlaceMalo(){
+  $("nvTitulo").textContent = "Este enlace ya no sirve";
+  $("nvPara").textContent = "Ya se usó o venció (cada enlace dura una hora). Pide otro y usa el último que te llegue.";
+  $("nvCampo").classList.add("oculto"); $("btnNueva").classList.add("oculto");
+  $("nvOtro").className = "btn primario ancho";
+}
+if (ACCION === "nueva"){
+  $("nvOtro").href = urlCuenta("olvide");
+  verifyPasswordResetCode(auth, OOB).then(correo => {
+    nvCorreo = correo;
+    $("nvCorreo").value = correo;
+    $("nvPara").textContent = "Para " + correo + ". Al guardarla entras directo.";
+  }, err => /action-code/.test(err.code) ? enlaceMalo() : aviso("errNueva", decir(err)));
+}
+
+/* Confirmar el correo. El enlace sirve con o sin sesión abierta en este
+   teléfono: la cuenta queda confirmada igual. */
+if (ACCION === "confirma") (async () => {
+  let err = null;
+  try { await applyActionCode(auth, OOB); } catch(e){ err = e; }
+  await auth.authStateReady();
+  if (auth.currentUser) try { await auth.currentUser.reload(); } catch(e){}
+  $("cfTitulo").textContent = err ? "Este enlace ya no sirve" : "Correo confirmado";
+  $("cfTexto").textContent = !err
+    ? "Listo. Si algún día olvidas la contraseña, la recuperas con este correo."
+    : /action-code/.test(err.code)
+    ? "Ya se usó o venció. Si ya habías confirmado tu correo, no tienes que hacer nada más; si no, pide otro desde tu muro."
+    : decir(err);
+  const s = $("cfSeguir");
+  s.href = auth.currentUser ? urlMuro() : urlCuenta("ingresar");
+  s.textContent = auth.currentUser ? "Ir a mi muro" : "Entrar";
+  s.classList.remove("oculto");
+})();
+
+$("formNueva").onsubmit = async e => {
+  e.preventDefault();
+  aviso("errNueva", "");
+  if (!claveOk(pintarNueva())){
+    aviso("errNueva", "A la contraseña todavía le falta algo: está escrito debajo.");
+    $("nvClave").focus(); return;
+  }
+  const b = $("btnNueva"), clave = $("nvClave").value;
+  b.disabled = true; b.textContent = "Guardando…";
+  try { await confirmPasswordReset(auth, OOB, clave); }
+  catch(err){
+    b.disabled = false; b.textContent = "Guardar y entrar";
+    if (/action-code/.test(err.code)) enlaceMalo(); else aviso("errNueva", decir(err));
+    return;
+  }
+  /* Ya cambió: se entra con la nueva. Si eso fallara, a entrar a mano. */
+  try { await signInWithEmailAndPassword(auth, nvCorreo, clave); location.replace(urlMuro()); }
+  catch(err){ location.replace(urlCuenta("ingresar")); }
+};
+
+/* ------------------------------------------------------------
+   Crear cuenta
+   ------------------------------------------------------------ */
+/* El medidor del registro y el de la contraseña nueva. */
+function medir(clave, nombre, correo, medidor, falta){
+  const r = revisarClave(clave, nombre, correo);
+  const cuantos = Object.values(r).filter(Boolean).length;
+  const lista = claveOk(r);
+  $(medidor).classList.toggle("lista", lista);
+  [...$(medidor).children].forEach((i, k) => i.classList.toggle("si", k < cuantos));
+  const f = $(falta);
+  f.classList.toggle("ok", lista);
+  f.innerHTML = textoFalta(clave, r);
+  return r;
+}
+function pintarMedidor(){ return medir($("crClave").value, $("crNombre").value, $("crCorreo").value, "medidor", "falta"); }
+["crClave", "crCorreo"].forEach(id => $(id).addEventListener("input", pintarMedidor));
+
+/* Cada paso sabe decir qué le falta: [campo, mensaje], o null si está bien. */
+function errorPaso(n){
+  if (n === 1){
+    const nombre = $("crNombre").value.trim();
+    if (nombre.length < 3) return ["crNombre", "Escribe tu nombre y apellido."];
+    const malNac = errorNacimiento($("crNacimiento").value);
+    if (malNac) return ["crNacimiento", malNac];
+  }
+  if (n === 2){
+    const correo = $("crCorreo").value.trim();
+    if (!CORREO_OK(correo)) return ["crCorreo", "Revisa el correo."];
+    if (!claveOk(pintarMedidor())) return ["crClave", "A la contraseña todavía le falta algo: está escrito debajo."];
+  }
+  if (n === 3){
+    const id = $("crId").value.trim();
+    if (id && !ID_OK(id)) return ["crId", "El ID de jugador son 7 u 8 dígitos, o déjalo vacío."];
+  }
+  return null;
+}
+function pasoAlcanzable(n){
+  for (let k = 1; k < n; k++) if (errorPaso(k)) return k;
+  return n;
+}
+
+function pintarPaso(){
+  document.querySelectorAll(".paso").forEach(f =>
+    f.classList.toggle("oculto", +f.dataset.paso !== paso));
+  [1, 2, 3].forEach(k => $("r" + k).classList.toggle("si", k <= paso));
+  $("pasoTxt").textContent = paso + " de 3";
+  ["err1", "err2", "err3"].forEach(id => aviso(id, ""));
+}
+document.querySelectorAll("[data-atras]").forEach(b => b.onclick = () => history.back());
+
+$("formCrear").onsubmit = async e => {
+  e.preventDefault();
+  const falla = errorPaso(paso);
+  if (falla){
+    aviso("err" + paso, falla[1]);
+    $(falla[0]).focus();
+    return;
+  }
+  if (paso < 3){
+    location.hash = "crear-" + (paso + 1);
+    /* Al cambiar de paso, el foco va al título: un lector de pantalla anuncia
+       dónde quedó, y en el teléfono no abre el teclado de golpe. */
+    setTimeout(() => {
+      const h = document.querySelector('.paso[data-paso="' + paso + '"] .titulo');
+      if (h) h.focus();
+    }, 0);
+    return;
+  }
+  crearCuenta();
+};
+
+async function crearCuenta(){
+  const nombre = $("crNombre").value.trim();
+  const correo = $("crCorreo").value.trim();
+  const idJug  = $("crId").value.trim();
+  const b = $("btnCrear");
+  b.disabled = true; b.textContent = "Creando…";
+  registrando = true;
+  try {
+    await registrar({ nombre, correo, clave: $("crClave").value, nacimiento: $("crNacimiento").value,
+                      playerId: idJug, publico: $("crPublico").checked });
+    /* Recién ahora, con los datos guardados, se sale al muro. */
+    location.replace(urlMuro("perfil"));
+  } catch(err){
+    registrando = false;
+    /* Si lo que falló fue el set y no la creación, la sesión ya está abierta:
+       los ajustes muestran el aviso de cuenta incompleta, en vez de dejarla
+       huérfana en silencio. */
+    if (auth.currentUser){
+      usuario = auth.currentUser; perfil = null;
+      pintarAjustes(); mostrar("ajustes");
+      return;
+    }
+    /* Un correo ya usado se corrige en el paso 2, no en el 3. */
+    const code = err && err.code;
+    if (code === "auth/email-already-in-use" || code === "auth/invalid-email" || code === "auth/weak-password"){
+      location.hash = "crear-2";
+      setTimeout(() => aviso("err2", decir(err)), 0);
+    } else {
+      aviso("err3", decir(err));
+    }
+    b.disabled = false; b.textContent = "Crear mi cuenta";
+  }
+}
+
+/* ------------------------------------------------------------
+   Ajustes
+   ------------------------------------------------------------ */
+function pintarAjustes(){
+  if (!usuario) return;
+  /* Sesión sin perfil = cuenta huérfana: pasa si el set falló al registrarse
+     o si las reglas de la base no estaban publicadas. Hay que decirlo. */
+  $("pfIncompleto").classList.toggle("oculto", !!perfil);
+  const p = perfil || {};
+  $("ajCorreo").textContent = usuario.email || "—";
+  $("ajNombre").textContent = p.nombre || usuario.displayName || "—";
+  /* Las cuentas creadas antes de la fecha completa guardaron solo el año. */
+  /* Sin el día de la semana: en una fecha de nacimiento no dice nada y hacía
+     saltar el valor a dos líneas. */
+  const nac = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p.nacimiento || "");
+  $("ajNac").textContent = nac ? +nac[3] + " de " + MES_LARGO[+nac[2] - 1] + " de " + nac[1]
+                               : (p.anio ? "Año " + p.anio : "—");
+  $("idFijo").classList.toggle("oculto", !p.playerId);
+  $("edId").classList.toggle("oculto", !!p.playerId);
+  $("ajIdFijo").textContent = p.playerId || "";
+  $("ajId").textContent = "Agregar";
+  $("ajPublico").checked = !!p.publico;
+}
+
+/* Filas que se abren para editar en su lugar. Una abierta a la vez. */
+function abrir(cont, abierto){
+  const btn = cont.querySelector("button.filaj"), form = cont.querySelector("form");
+  btn.setAttribute("aria-expanded", abierto);
+  btn.classList.toggle("oculto", abierto);
+  form.classList.toggle("oculto", !abierto);
+  if (abierto){ const i = form.querySelector("input"); i.focus(); i.select(); }
+}
+function editable(id, valorActual){
+  const cont = $(id);
+  cont.querySelector("button.filaj").onclick = () => {
+    ["edNombre", "edNac", "edId"].forEach(o => { if (o !== id) abrir($(o), false); });
+    cont.querySelector("input").value = valorActual();
+    aviso(cont.querySelector(".aviso").id, "");
+    abrir(cont, true);
+  };
+  cont.querySelector("[data-cancelar]").onclick = () => abrir(cont, false);
+}
+editable("edNombre", () => (perfil && perfil.nombre) || usuario.displayName || "");
+editable("edNac",    () => (perfil && perfil.nacimiento) || "");
+editable("edId",     () => "");
+
+/* El nombre y la preferencia de clasificación también viven en el enlace de
+   cada tienda con la que el jugador compartió su ID, que es lo único que el
+   panel del organizador puede leer. Se escriben en UNA sola operación: si
+   fallara a medias, el perfil diría una cosa y la tienda publicaría otra. */
+async function guardar(campos, msgId, texto){
+  const rutas = {};
+  Object.entries(campos).forEach(([k, v]) => { rutas["usuarios/" + usuario.uid + "/" + k] = v; });
+  const tiendas = (perfil && perfil.tiendas) || {};
+  Object.keys(tiendas).filter(s => tiendas[s] && tiendas[s].compartirId).forEach(s => {
+    const en = "enlaces/" + s + "/" + usuario.uid;
+    if ("nombre" in campos)  rutas[en + "/nombre"]  = campos.nombre;
+    if ("publico" in campos) rutas[en + "/publico"] = campos.publico;
+    /* El ID no pasa por acá: se pone una vez y no cambia (lo aseguran las
+       reglas), y sin ID no hay enlaces que actualizar. */
+  });
+  await update(ref(db), rutas);
+  perfil = Object.assign({}, perfil, campos);
+  pintarAjustes();
+  aviso(msgId, texto);
+}
+
+$("formNombre").onsubmit = async e => {
+  e.preventDefault();
+  const v = $("nuevoNombre").value.trim().replace(/\s+/g, " ");
+  if (v.length < 3) return aviso("errNombre", "Escribe tu nombre y apellido.");
+  try {
+    await guardar({ nombre: v }, "msgTu", "Nombre guardado.");
+    await updateProfile(usuario, { displayName: v });
+    abrir($("edNombre"), false);
+  } catch(err){ aviso("errNombre", "No se pudo guardar. Revisa la conexión."); }
+};
+
+$("formNac").onsubmit = async e => {
+  e.preventDefault();
+  const v = $("nuevoNac").value;
+  const mal = errorNacimiento(v);
+  if (mal) return aviso("errNac", mal);
+  try {
+    await guardar({ nacimiento: v }, "msgTu", "Fecha guardada.");
+    abrir($("edNac"), false);
+  } catch(err){ aviso("errNac", "No se pudo guardar. Revisa la conexión."); }
+};
+
+$("formId").onsubmit = async e => {
+  e.preventDefault();
+  const v = $("nuevoId").value.trim();
+  if (!ID_OK(v)) return aviso("errId", "El ID de jugador son 7 u 8 dígitos.");
+  try {
+    await guardar({ playerId: v }, "msgTorneo", "ID guardado.");
+    abrir($("edId"), false);
+  } catch(err){ aviso("errId", "No se pudo guardar. Revisa la conexión."); }
+};
+
+$("ajPublico").onchange = async e => {
+  const v = e.target.checked;
+  try {
+    await guardar({ publico: v }, "msgTorneo",
+      v ? "Listo: sales con tu nombre en la clasificación."
+        : "Listo: en los próximos torneos sales como «Jugador reservado».");
+  } catch(err){
+    e.target.checked = !v;   // lo que se ve tiene que ser lo que quedó guardado
+    aviso("msgTorneo", "No se pudo guardar. Revisa la conexión.");
+  }
+};
+
+$("ajClave").onclick = async () => {
+  try {
+    await sendPasswordResetEmail(auth, usuario.email);
+    aviso("msgCuenta", "Te mandamos un correo a " + usuario.email + " para cambiarla. Revisa también el spam.");
+  } catch(err){ aviso("msgCuenta", decir(err)); }
+};
+
+$("btnSalir").onclick = () => signOut(auth);
+
+/* ------------------------------------------------------------
+   Vitrina: la sala en vivo, para quien llega desde un torneo
+   ------------------------------------------------------------
+   Solo se enciende si el enlace lo dice (?desde=torneo, que lo pone la vista
+   del torneo) Y la sala tiene algo corriendo. Si el enlace lo dice pero la
+   ronda ya terminó, la entrada es la normal: una vitrina vacía era justo lo
+   que hacía débil esta opción. Quien llega desde cero no descarga nada de
+   esto. */
+const DESDE_TORNEO = new URLSearchParams(location.search).get("desde") === "torneo";
+const VT = { pair: null, estado: null, agenda: [], offset: 0 };
+const ahora = () => Date.now() + VT.offset;
+
+function segundos(){
+  const e = VT.estado;
+  if (!e) return null;
+  if (e.paused || !e.endTime) return typeof e.remaining === "number" ? Math.round(e.remaining) : null;
+  return Math.round((e.endTime - ahora()) / 1000);
+}
+const fmt = s => (s < 0 ? "-" : "") + String(Math.floor(Math.abs(s) / 60)).padStart(2, "0") +
+                 ":" + String(Math.abs(s) % 60).padStart(2, "0");
+const rondaActual = () => VT.pair && VT.pair.rounds && VT.pair.rounds.length
+  ? VT.pair.rounds[VT.pair.rounds.length - 1] : null;
+function hayTorneo(){
+  const e = VT.estado;
+  const corriendo = !!(e && !e.paused && e.endTime);
+  /* Emparejamientos de hace más de 12 horas son de un torneo que ya pasó y
+     que el organizador no borró. */
+  const reciente = !!(rondaActual() && Date.now() - (VT.pair.updatedAt || 0) < 12 * 3600e3);
+  return corriendo || reciente;
+}
+
+function pintarVitrina(){
+  const vivo = DESDE_TORNEO && !usuario && vista !== "ajustes" && hayTorneo();
+  document.body.classList.toggle("en-vivo", vivo);
+  $("vitrina").classList.toggle("oculto", !vivo);
+  $("pestanas").classList.toggle("oculto", !vivo);
+  if (!vivo) return;
+  $("vitrina").classList.toggle("compacta", vista === "crear");
+  const p = VT.pair, r = rondaActual();
+  const pausa = !!(VT.estado && VT.estado.paused);
+  $("vtPunto").classList.toggle("pausa", pausa);
+  $("vitrina").classList.toggle("pausa", pausa);
+  $("vtNombre").textContent = "En vivo" + (p && p.name ? " · " + p.name : "");
+  $("vtRonda").textContent = (r ? "Ronda " + r.number + (p.rondasTotales ? " de " + p.rondasTotales : "") : "Ronda") +
+    (pausa ? " · en pausa" : p && p.phase === "results" ? " · resultados publicados" : " · en curso");
+  const prox = ordenar(VT.agenda).find(ev => (ev.inicioMs || 0) > Date.now());
+  $("vtProx").classList.toggle("oculto", !prox);
+  if (prox){
+    $("vtProx").innerHTML = "Próximo: <b></b> · " + fechaLegible(prox.fecha) + (prox.hora ? ", " + prox.hora : "");
+    $("vtProx").querySelector("b").textContent = prox.titulo;
+  }
+  pintarReloj();
+}
+function pintarReloj(){
+  if (!document.body.classList.contains("en-vivo")) return;
+  const s = segundos(), r = rondaActual();
+  $("vtReloj").textContent = s == null ? "--:--" : fmt(s);
+  $("vtLinea").textContent = (r ? "Ronda " + r.number : "Ronda") +
+    (VT.estado && VT.estado.paused ? " en pausa" : " en curso") + (s == null ? "" : " · " + fmt(s));
+}
+
+if (DESDE_TORNEO){
+  onValue(ref(db, ".info/serverTimeOffset"), s => { VT.offset = s.val() || 0; });
+  onValue(ref(db, BASE + "/pairings"),    s => { VT.pair = s.val(); pintarVitrina(); }, () => {});
+  onValue(ref(db, BASE + "/timer/state"), s => { VT.estado = s.val(); pintarVitrina(); }, () => {});
+  onValue(ref(db, BASE + "/agenda"), s => {
+    const v = s.val() || {};
+    VT.agenda = Object.keys(v).map(k => Object.assign({ id: k }, v[k]));
+    pintarVitrina();
+  }, () => {});
+  setInterval(pintarReloj, 1000);
+}
+
+/* ------------------------------------------------------------
+   Sesión
+   ------------------------------------------------------------ */
+onAuthStateChanged(auth, async u => {
+  usuario = u;
+  $("aPerfil").classList.toggle("oculto", !u);
+  if (u){
+    if (registrando) return;   // crearCuenta() se encarga de salir al muro
+    if (ACCION) return;        // esas vistas salen solas cuando terminan
+    try { perfil = (await get(ref(db, "usuarios/" + u.uid))).val(); }
+    catch(e){ perfil = null; }
+    pintarAjustes();
+    /* Con sesión, el hogar del jugador es el muro. Acá solo se queda quien pidió
+       explícitamente los ajustes, porque si no los dos se rebotarían el uno al
+       otro para siempre. */
+    if (HASH_INICIAL === "ajustes"){ mostrar("ajustes"); return; }
+    location.replace(urlMuro());
+    return;
+  }
+  perfil = null;
+  /* Los formularios quedan limpios al salir: en la tienda este teléfono puede
+     pasar de mano en mano. */
+  $("formIngresar").reset(); $("formCrear").reset();
+  pintarMedidor();
+  ["errIngresar", "err1", "err2", "err3"].forEach(id => aviso(id, ""));
+  mostrar(location.hash.slice(1));
+});
+
+$("aPanel").href  = urlPanel();
+$("aPerfil").href = urlMuro("perfil");
+mostrar(location.hash.slice(1));
+</script>
+</body>
+</html>

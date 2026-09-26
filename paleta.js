@@ -5,7 +5,7 @@
    organizador la edita y la proyectada la recibe por Firebase. La misma razón
    por la que existen estilo.css y agenda.js.
 
-   Versión actual: v=1   (subir el ?v= al tocar este archivo)
+   Versión actual: v=4   (subir el ?v= al tocar este archivo)
 
    Por qué se piden DOS colores y no diecisiete: una paleta completa a mano
    garantiza que tarde o temprano alguien deje texto ilegible sobre su fondo.
@@ -30,10 +30,39 @@ export const MAPA = [
 ];
 export const TOKENS = MAPA.map(([t]) => t);
 
-export const DEF = { accion: "#F9D746", base: "#2A242F" };
+/* La original es clara (menta y coral), pero lo que se deriva de un acento y
+   una base es oscuro: una tienda que elige su paleta la quiere para proyectar.
+   Estos tokens no se muestran en el mapa del panel, pero una paleta oscura
+   los necesita, o heredaría los de la clara: avisos blancos, texto de error
+   que no se lee, el navegador dibujando en claro. */
+const OSCURA = {
+  "--relleno": "rgba(255,255,255,.10)", "--divider": "rgba(255,255,255,.10)",
+  "--esquema": "dark", "--negativo": "#FF5B52", "--ok": "#63E6BE", "--alerta": "#7C2D45",
+  "--aviso-accion": "#3F2D2A", "--aviso-mal": "#542436",
+  "--podio1": "#FFD60A", "--podio2": "#C9C6E0", "--podio3": "#D9A273",
+  "--podio1-texto": "#FFD60A", "--podio2-texto": "#C9C6E0", "--podio3-texto": "#D9A273",
+};
+const EXTRA = Object.keys(OSCURA).concat(["--sup-hover", "--vidrio", "--aviso",
+  "--accion-texto", "--sobre-accion"]);
+
+/* 25-09-2026: la original pasa a menta y coral, clara. La ciruela con
+   amarillo que hubo hasta entonces queda como preset, igual que el índigo con
+   coral que duró un día. */
+export const DEF = { accion: "#F45B45", base: "#EEF8F4" };
+
+/* La original de antes. Cada diseño guardado hasta el 25-09 la trae grabada
+   como su paleta aunque nadie la haya elegido —era el valor por defecto—, así
+   que se sigue tratando como «la original» y esas salas pasan solas a la
+   nueva. Sin esto, el timer y el panel de la tienda seguirían en ciruela y la
+   cuenta y el muro en índigo. */
+const LEGADOS = [{ accion: "#F9D746", base: "#2A242F" }, { accion: "#FF6B81", base: "#120F2B" }];
 
 export const PRESETS = [
-  ["Original", "#F9D746", "#2A242F"],
+  ["Original", "#F45B45", "#EEF8F4"],
+  /* Un punto más claras que LEGADOS a propósito (#2B2530, #13102C): con el
+     valor exacto las tomaría por la original y elegirlas no haría nada. */
+  ["Ciruela y amarillo", "#F9D746", "#2B2530"],
+  ["Índigo y coral", "#FF6B81", "#13102C"],
   ["Brasa",    "#FF9A52", "#2B211C"],
   ["Bosque",   "#7FD69B", "#1E2A24"],
   ["Hielo",    "#7FD1E8", "#1D2630"],
@@ -41,10 +70,19 @@ export const PRESETS = [
   ["Arena",    "#E8D2A0", "#2A2620"],
 ];
 
+/* Los colores del lienzo del timer que venían por defecto hasta el 25-09.
+   Cada diseño guardado los trae grabados aunque la tienda nunca los haya
+   elegido, así que se leen como sus equivalentes nuevos. Un color que la
+   tienda sí eligió no está en esta lista y pasa tal cual. */
+const LIENZO_LEGADO = { "#362f3c": "#0F2E2A", "#2a242f": "#0A221F", "#f4f0f5": "#F3FFFB",
+                        "#d97f7d": "#FF7A6B", "#16133a": "#0F2E2A", "#120f2b": "#0A221F",
+                        "#f7f5ff": "#F3FFFB", "#ff5b52": "#FF7A6B" };
+export const alDia = c => (c && LIENZO_LEGADO[String(c).toLowerCase()]) || c;
+
 /* ------------------------------------------------------------
    Conversión entre los tres formatos
    ------------------------------------------------------------ */
-export function aHsl(hex){
+function aHsl(hex){
   const n = parseInt(hex.slice(1), 16);
   const r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
@@ -56,7 +94,7 @@ export function aHsl(hex){
   return { h, s: (d ? d / (1 - Math.abs(2 * l - 1)) : 0) * 100, l: l * 100 };
 }
 
-export function aHex(c){
+function aHex(c){
   const s = Math.max(0, Math.min(100, c.s)) / 100;
   const l = Math.max(0, Math.min(100, c.l)) / 100;
   const h = ((c.h % 360) + 360) % 360;
@@ -67,7 +105,7 @@ export function aHex(c){
   return "#" + t.map(v => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");
 }
 
-export function aRgb(hex){
+function aRgb(hex){
   const n = parseInt(hex.slice(1), 16);
   return [n >> 16 & 255, n >> 8 & 255, n & 255];
 }
@@ -125,7 +163,7 @@ export function extraerColores(txt){
 /* ------------------------------------------------------------
    Contraste (WCAG 2.1)
    ------------------------------------------------------------ */
-export function luz(hex){
+function luz(hex){
   return aRgb(hex)
     .map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); })
     .reduce((a, v, i) => a + v * [.2126, .7152, .0722][i], 0);
@@ -149,11 +187,12 @@ export function derivar(accionHex, baseHex){
   const b = aHsl(baseHex);
 
   /* El producto es oscuro a propósito: se proyecta en una tienda y el panel se
-     mira al lado. Se respeta el tono y la saturación elegidos, no la claridad;
-     sin esto un celeste claro deja texto blanco sobre fondo blanco. */
-  const corrigioBase = b.l > 20 || b.l < 8 || b.s > 30;
+     mira al lado. Se respeta el tono elegido, no la claridad; sin esto un
+     celeste claro deja texto blanco sobre fondo blanco. La saturación se topa
+     en 50 y no en 30 desde que la original es un índigo con color (48). */
+  const corrigioBase = b.l > 20 || b.l < 8 || b.s > 50;
   b.l = Math.max(8, Math.min(20, b.l));
-  b.s = Math.min(b.s, 30);
+  b.s = Math.min(b.s, 50);
 
   const campo   = aHex({ h: b.h, s: b.s, l: Math.max(4, b.l - 4) });
   const sup     = aHex({ h: b.h, s: b.s, l: b.l + 10 });
@@ -190,20 +229,28 @@ export function derivar(accionHex, baseHex){
     "--apagado":      legible({ h: b.h, s: Math.min(b.s, 14), l: 78 }, supAlta, 4.5),
     "--rotulo":       legible({ h: b.h, s: Math.min(b.s, 14), l: 70 }, supAlta, 4.5),
   };
+  /* Los que no están en el mapa del panel, derivados o fijos para oscuro. */
+  Object.assign(t, OSCURA, {
+    "--sup-hover":    aHex({ h: b.h, s: b.s, l: b.l + 18 }),
+    "--aviso":        supAlta,
+    "--accion-texto": t["--accion"],
+    "--sobre-accion": campo,
+    "--vidrio":       "rgba(" + aRgb(campo).join(",") + ",.72)",
+  });
   t.corrigioBase = corrigioBase;
   t.corrigioAccion = Math.round(a.l - lIni);
   return t;
 }
 
 /* La rampa derivada se acerca a la disenada pero no la clava (--sup da
-   #493f52 y el token es #453D4E). Cuando la paleta ES la original conviene no
+   #221c51 y el token es #1E1A40). Cuando la paleta ES la original conviene no
    calcular nada y devolver el control a estilo.css: "volver a la original"
    tiene que devolver la original, no una aproximacion. */
 export function esOriginal(pal){
   if (!pal) return true;
-  return (pal.accion || DEF.accion).toLowerCase() === DEF.accion.toLowerCase()
-      && (pal.base   || DEF.base).toLowerCase()   === DEF.base.toLowerCase()
-      && !Object.keys(pal.manual || {}).length;
+  if (Object.keys(pal.manual || {}).length) return false;
+  const a = (pal.accion || DEF.accion).toLowerCase(), b = (pal.base || DEF.base).toLowerCase();
+  return [DEF, ...LEGADOS].some(p => a === p.accion.toLowerCase() && b === p.base.toLowerCase());
 }
 
 /* Tokens finales: la rampa derivada con los reemplazos manuales encima. */
@@ -241,7 +288,7 @@ export function revisar(t){
 /* Escribe los tokens en un elemento. `null` los borra y devuelve el control a
    estilo.css, que es lo que hace "volver a la original". */
 export function aplicar(el, t){
-  TOKENS.forEach(k => {
+  TOKENS.concat(EXTRA).forEach(k => {
     if (t && t[k]) el.style.setProperty(k, t[k]);
     else el.style.removeProperty(k);
   });

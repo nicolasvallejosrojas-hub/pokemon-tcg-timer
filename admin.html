@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel del organizador</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="estilo.css?v=5">
+<link rel="stylesheet" href="estilo.css?v=10">
 <style>
   /* =========================================================
      1. Base y controles comunes
@@ -15,18 +15,11 @@
      reescribirla. El divisor no desaparece del todo: la regla de "sin líneas
      de 1 px" se justificaba por la proyección, y el panel se mira en un
      notebook a 30 cm, donde una línea sutil ordena. */
-  :root{
-    /* Unico valor propio del panel. El resto eran alias que ya apuntaban a su
-       token del sistema, o sea indireccion pura, y se colapsaron. La linea de
-       1 px sobrevive a la regla de "sin hairlines" porque esa se justificaba
-       por la proyeccion, y el panel se mira en un notebook a 30 cm. */
-    --divider:rgba(244,240,245,.10);
-  }
   html,body{margin:0;min-height:100%;}
   body{background:var(--pagina);color:var(--texto);font-family:var(--fuente);padding:18px;box-sizing:border-box;}
   h1{font-size:var(--t5);font-weight:500;margin:0 0 14px;}
   .card{background:var(--sup);border:1px solid var(--divider);border-radius:var(--radio);padding:16px;margin-bottom:14px;max-width:840px;}
-  button{border:none;background:var(--accion);color:var(--campo);font-weight:600;
+  button{border:none;background:var(--accion);color:var(--sobre-accion);font-weight:600;
          border-radius:var(--radio);padding:10px 20px;font-family:inherit;font-size:var(--t3);
          cursor:pointer;}
   button:hover{background:var(--accion-clara);}
@@ -40,16 +33,78 @@
         padding:7px 9px;font-family:inherit;font-size:var(--t2);box-sizing:border-box;}
   label{font-size:var(--t2);display:block;margin-top:10px;}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-  .muted{font-size:var(--t2);opacity:.6;} .ok{color:var(--ok);} .err{color:var(--negativo);} .warnc{color:var(--accion);}
+  .muted{font-size:var(--t2);color:var(--apagado);} .ok{color:var(--ok);} .err{color:var(--negativo);} .warnc{color:var(--accion-texto);}
   .center{display:flex;flex-direction:column;align-items:center;}
 
   /* Misma píldora que usa la vista del jugador: relleno, radio 4, sin borde */
-  #tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
-  #tabs button{border:none;background:var(--sup);color:var(--apagado);
+  nav#tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  nav#tabs button{border:none;background:var(--sup);color:var(--apagado);
     border-radius:var(--radio);padding:9px 18px;font-size:var(--t3);}
-  #tabs button:hover{background:var(--sup-alta);color:var(--texto);}
-  #tabs button.on{background:var(--accion);color:var(--campo);font-weight:600;}
+  nav#tabs button:hover{background:var(--sup-alta);color:var(--texto);}
+  nav#tabs button.on{background:var(--accion);color:var(--sobre-accion);font-weight:600;}
   .panel.hide{display:none;}
+  [hidden]{display:none !important;}
+  a{color:var(--accion-texto);}
+
+  /* --- tiendas: selector, invitación y pestaña Tienda --- */
+  .h2p{font-size:var(--t4);font-weight:600;margin:0 0 6px;}
+  .logoT{flex:none;display:inline-grid;place-items:center;border-radius:50%;background:var(--c, var(--franja));
+    color:#fff;font-weight:700;letter-spacing:-.02em;}
+  .tfila{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--pagina);
+    color:var(--texto);border-radius:var(--radio);padding:12px 14px;margin-top:8px;font-weight:400;
+    box-shadow:inset 0 0 0 1px var(--divider);}
+  .tfila:hover{background:var(--sup-alta);}
+  .tfila b{display:block;font-size:var(--t4);}
+  .tfila small{display:block;font-size:var(--t2);color:var(--apagado);margin-top:2px;}
+  .tfila .txt{flex:1;min-width:0;}
+  .crear{margin-top:16px;padding-top:14px;border-top:1px solid var(--divider);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
+  .grid2 input{width:100%;font-size:var(--t3);padding:9px 10px;margin-top:4px;}
+  .grid2 input[type=color]{height:38px;padding:3px;}
+  .miembro{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--divider);}
+  .miembro:first-child{border-top:none;}
+  .miembro .txt{flex:1;min-width:0;}
+  .miembro small{display:block;font-size:var(--t2);color:var(--apagado);}
+  .invLink{display:flex;gap:8px;align-items:center;margin-top:8px;}
+  .invLink input{flex:1;font-size:var(--t2);}
+  /* Mantenimiento (solo quien administra) */
+  .mantPanel{display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center;margin-top:6px;}
+  .mantPanel .txt b{display:block;} .mantPanel small{display:block;font-size:var(--t2);color:var(--apagado);}
+  .mantPanel input{grid-column:1 / -1;font-size:var(--t3);padding:9px 10px;}
+  .mantPanel.cerrado b{color:var(--negativo);}
+  /* Insignias de la tienda (el dibujo, en estilo.css) */
+  .insFila{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--divider);}
+  .insFila:first-child{border-top:none;}
+  .insFila .txt{flex:1;min-width:0;} .insFila b{display:block;}
+  .insFila small{display:block;font-size:var(--t2);color:var(--apagado);}
+  .chipIns{font-size:var(--t1);font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;
+    border-radius:999px;background:var(--sup-alta);color:var(--apagado);white-space:nowrap;}
+  .h3ins{font-size:var(--t3);font-weight:600;margin:20px 0 2px;}
+  .insForm{display:grid;grid-template-columns:1fr 200px;gap:18px;margin-top:14px;padding-top:14px;border-top:1px solid var(--divider);}
+  .insForm label.campoIns{display:block;margin-bottom:12px;font-size:var(--t2);color:var(--apagado);}
+  .insForm label.campoIns input{display:block;width:100%;margin-top:4px;font-size:var(--t3);padding:9px 10px;}
+  .insForm .lbl{font-size:var(--t2);color:var(--apagado);margin:0 0 6px;}
+  .icos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .icos .ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--sup-alta);
+    color:var(--apagado);border:none;padding:0;cursor:pointer;}
+  .icos .ico svg{width:20px;height:20px;}
+  .icos .ico.on{background:var(--texto);color:var(--sup);}
+  .opIns{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:var(--t3);}
+  .opIns input[type=number]{width:64px;padding:5px 8px;}
+  .elegidos{max-height:180px;overflow:auto;margin:4px 0 8px 24px;font-size:var(--t2);}
+  .elegidos label{display:flex;align-items:center;gap:6px;padding:3px 0;}
+  .prevIns{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--pagina);
+    border-radius:14px;padding:20px;text-align:center;align-self:start;}
+  .prevIns .par{--fondo-ins:var(--pagina);margin-bottom:6px;}
+  .prevIns small{color:var(--apagado);font-size:var(--t2);}
+  @media (max-width:640px){ .insForm{grid-template-columns:1fr;} }
+  /* Todas las tiendas: solo quien administra. */
+  .adm .estado{flex:none;font-size:var(--t2);font-weight:600;color:var(--apagado);}
+  .adm .estado.e0{color:var(--accion-texto);}
+  .adm .estado.e1{color:var(--ok);}
+  .adm .acc{flex:none;display:flex;gap:6px;}
+  @media (max-width:640px){ .adm{flex-wrap:wrap;} .adm .acc{width:100%;padding-left:50px;} }
+  @media (max-width:640px){ .grid2{grid-template-columns:1fr;} }
 
   table{border-collapse:collapse;width:100%;font-size:var(--t2);margin-top:10px;}
   td,th{border-bottom:1px solid var(--divider);padding:6px 8px;text-align:left;}
@@ -60,9 +115,10 @@
      ========================================================= */
   #stageWrap{width:100%;overflow:hidden;display:flex;justify-content:center}
   #scaler{transform-origin:top center}
-  #canvas{position:relative;overflow:hidden;border-radius:var(--radio);
+  /* El fondo de la tienda lo pone el diseño; mientras no llega, el lienzo. */
+  #canvas{position:relative;overflow:hidden;border-radius:var(--radio);background:var(--lienzo);
     box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;
-    color:var(--texto);font-family:Figtree,system-ui,sans-serif}
+    color:var(--texto);font-family:var(--fuente)}
   #bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 
   /* Sin línea de 1 px: las hairlines desaparecen en proyección. La barra se
@@ -78,7 +134,7 @@
     border-radius:var(--radio);padding:7px 13px;font-size:var(--t2);cursor:pointer;
     white-space:nowrap;flex-shrink:0;font-family:inherit}
   .tbtn:hover{background:var(--sup-alta)}
-  .tbtn.on{background:var(--accion);color:var(--campo);font-weight:600}
+  .tbtn.on{background:var(--accion);color:var(--sobre-accion);font-weight:600}
 
   /* Los cuatro botones del organizador salieron del lienzo, asi que el apano
      de envolver la barra en dos filas ya no hace falta: aca solo queda lo que
@@ -115,7 +171,7 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
   .pulsing{animation:pulse 1s ease-in-out infinite}
 
-  .mainbtn{border:none;background:var(--accion);color:var(--campo);font-weight:600;
+  .mainbtn{border:none;background:var(--accion);color:var(--sobre-accion);font-weight:600;
     border-radius:var(--radio);padding:14px 38px;font-size:var(--t4);cursor:pointer;
     font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.3)}
   .mainbtn:hover{background:var(--accion-clara)}
@@ -127,7 +183,7 @@
   .preset{border:none;background:var(--sup);color:var(--apagado);
     border-radius:var(--radio);padding:7px 13px;font-size:var(--t2);cursor:pointer;
     font-family:inherit}
-  .preset.sel{background:var(--accion);color:var(--campo);font-weight:600}
+  .preset.sel{background:var(--accion);color:var(--sobre-accion);font-weight:600}
   .presetX{border:none;background:transparent;color:var(--apagado);opacity:.6;
     cursor:pointer;font-size:var(--t3)}
 
@@ -191,7 +247,7 @@
   /* El secundario va un nivel MAS ALTO que la superficie que lo contiene: el
      rail es --surface y .tbtn tambien, asi que sin esto desaparecerian. */
   #settings .tbtn{background:var(--sup-alta);min-height:36px}
-  #settings .tbtn:hover{background:var(--accion);color:var(--campo)}
+  #settings .tbtn:hover{background:var(--accion);color:var(--sobre-accion)}
   /* El piso de 44 px es para la vista de jugador, que se toca con el dedo en
      un telefono. Este rail se maneja con mouse en un notebook, asi que baja a
      36: sigue muy por encima del minimo AA de 24 y deja ver mas controles sin
@@ -236,7 +292,7 @@
   .seg{display:inline-flex;border:1px solid var(--divider);border-radius:var(--radio);overflow:hidden}
   .seg button{padding:6px 12px;font-size:var(--t2);border:none;background:transparent;
     color:var(--apagado);cursor:pointer}
-  .seg button.on{color:var(--accion);box-shadow:inset 0 0 0 1px var(--accion)}
+  .seg button.on{color:var(--accion-texto);box-shadow:inset 0 0 0 1px var(--accion)}
   /* --t1 es para rótulos en mayúscula, no para frases. Estas son oraciones
      completas que explican un control, así que van en el token de metadato. */
   .hint{font-size:var(--t2);color:var(--apagado);margin-top:4px;line-height:1.45}
@@ -279,6 +335,12 @@
   .latido{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);
     margin-right:7px;vertical-align:middle;}
   #vigCard.activo .latido{animation:latir 2s ease-in-out infinite;}
+  /* Sin movimiento el latido se congela y deja de decir "esto esta vivo".
+     El anillo del propio punto lo reemplaza: estatico, pero distinto de
+     apagado. Tiene que ir despues de la regla que lo anima. */
+  @media (prefers-reduced-motion: reduce){
+    #vigCard.activo .latido{animation:none;box-shadow:0 0 0 3px rgba(143,203,155,.35);}
+  }
   @keyframes latir{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
 
   /* =========================================================
@@ -322,31 +384,75 @@
     <button id="loginBtn">Entrar</button>
   </div>
   <div id="loginMsg" class="muted" style="margin-top:8px"></div>
+  <div class="muted" style="margin-top:8px"><a href="cuenta.html#olvide" id="aOlvide">¿Olvidaste tu contraseña?</a></div>
+  <div class="muted" style="margin-top:8px">¿No tienes cuenta? <a href="cuenta.html#crear" id="aCrearCuenta">Créala en Mi cuenta</a>
+    y vuelve a abrir el enlace que te mandaron.</div>
+</div>
+
+<!-- ============ Elegir tienda ============
+     Una cuenta por persona, y la persona organiza una o varias tiendas.
+     Lo que se publica queda en la tienda elegida. -->
+<div class="card" id="elegirCard" style="display:none">
+  <h2 class="h2p">¿Para qué tienda organizas hoy?</h2>
+  <div class="muted">Todo lo que publiques —timer, mesas, resultados— queda en la tienda que elijas.</div>
+  <div id="elegirAviso" class="aviso accion" style="margin-top:10px" hidden></div>
+  <div id="elegirLista"></div>
+  <div class="crear">
+    <div style="font-weight:600;font-size:var(--t3)">Crear una tienda</div>
+    <div class="muted" style="margin:2px 0 8px">Quedas de dueño. Puedes usar el timer al tiro; sale en el directorio
+      de tiendas cuando la verifiquemos.</div>
+    <div class="row"><input id="nuevaNombre" placeholder="Nombre de la tienda" maxlength="60" style="flex:1;max-width:320px"
+      aria-label="Nombre de la tienda nueva"><button id="nuevaBtn">Crear</button></div>
+    <div id="nuevaMsg" class="muted" style="margin-top:6px"></div>
+  </div>
+  <div class="row" style="margin-top:12px"><span style="flex:1"></span><button class="small sec" id="logoutBtn2">Salir</button></div>
+</div>
+
+<!-- ============ Todas las tiendas ============
+     Solo para quien administra el sistema (admins/<uid> = true en la consola). -->
+<div class="card" id="adminCard" style="display:none">
+  <h2 class="h2p">Mantenimiento del sitio</h2>
+  <div class="mantPanel">
+    <div class="txt"><b id="mantEstado">…</b><small id="mantDesc"></small></div>
+    <input id="mantMensaje" maxlength="200" placeholder="Mensaje para los jugadores (opcional)" aria-label="Mensaje de mantenimiento">
+    <button id="mantBtn" disabled>…</button>
+  </div>
+  <h2 class="h2p" style="margin-top:18px">Todas las tiendas</h2>
+  <div class="muted" id="adminResumen"></div>
+  <div id="adminLista" style="margin-top:6px"></div>
+</div>
+
+<!-- ============ Invitación a organizar ============ -->
+<div class="card" id="unirseCard" style="display:none">
+  <div id="unirseTxt"></div>
+  <div class="row" style="margin-top:12px"><button id="unirseSi">Aceptar y organizar</button>
+    <button class="sec" id="unirseNo">Ir a mis tiendas</button></div>
+  <div id="unirseMsg" class="muted" style="margin-top:8px"></div>
 </div>
 
 <div id="all" style="display:none">
 
-<!-- ============ Sala ============ -->
+<!-- ============ La tienda que se está organizando ============ -->
 <div class="card" id="salaCard">
   <div class="row">
-    <div style="font-size:var(--t3)">Sala: <b id="salaName"></b></div>
+    <span id="salaLogo"></span>
+    <div style="font-size:var(--t3)"><b id="salaName"></b> <span id="salaRol" class="muted"></span></div>
     <span id="salaMsg" class="muted"></span>
     <span style="flex:1"></span>
+    <button id="cambiarTienda" class="small sec">Cambiar de tienda</button>
     <button id="logoutBtn" class="small sec">Salir</button>
-  </div>
-  <div class="row" style="margin-top:8px">
-    <input id="salaInput" placeholder="nombre-de-sala" style="max-width:220px">
-    <button id="salaGo" class="small sec">Cambiar de sala</button>
-    <span class="muted">Cada sala es un torneo independiente, con su propio QR.</span>
   </div>
 </div>
 
-<div id="tabs">
+<nav id="tabs" aria-label="Secciones del panel">
   <button id="tabT" class="on">Timer</button>
   <button id="tabP">Emparejamientos</button>
   <button id="tabS">Sorteo</button>
   <button id="tabC">Calendario</button>
-</div>
+  <button id="tabO">Tienda</button>
+</nav>
+
+<main>
 
 <!-- ============================================================
      TIMER
@@ -375,7 +481,7 @@
 
   <div id="stageWrap">
     <div id="scaler">
-      <div id="canvas">
+      <div id="canvas" class="isla">
         <img id="bgImg" alt="">
 
         <div id="topbar">
@@ -439,7 +545,8 @@
                 <button id="bgTImg">Imagen</button>
               </div>
 
-              <div id="bgColorWrap"><input type="color" class="col" id="bgC1"></div>
+              <div id="bgColorWrap"><input type="color" class="col" id="bgC1"
+                     aria-label="Color de fondo del lienzo"></div>
 
               <div id="bgGradWrap" style="display:none">
                 <div class="row" style="margin-top:8px">
@@ -505,7 +612,8 @@
       <h3>Tiempos</h3>
       
               <div class="row">
-                <input type="number" id="newPreset" placeholder="minutos" style="flex:1">
+                <input type="number" id="newPreset" placeholder="minutos" style="flex:1"
+                       aria-label="Minutos del tiempo nuevo">
                 <button class="tbtn" id="addPreset">Agregar</button>
               </div>
     </section>
@@ -513,7 +621,8 @@
     <section class="grupo">
       <h3>Alarma</h3>
       <span class="hint" style="margin:0">Suena solo en este equipo.</span>
-              <input type="file" accept="audio/*" id="fAlarm" style="font-size:var(--t2)">
+              <input type="file" accept="audio/*" id="fAlarm" style="font-size:var(--t2)"
+                     aria-label="Archivo de sonido para la alarma">
               <div class="row" style="margin-top:6px;align-items:center">
                 <span class="hint" id="alarmName" style="flex:1;margin:0"></span>
                 <button class="tbtn" id="testSound">Probar</button>
@@ -551,7 +660,7 @@
       <div id="palMapa" hidden></div>
 
       <label class="lab">Pegar una paleta de afuera
-        <textarea id="palPegar" rows="2" placeholder="#2A242F #F9D746, o rgb(42,36,47), o hsl(48,94%,70%)"></textarea>
+        <textarea id="palPegar" rows="2" placeholder="#0B7F6C #F45B45, o rgb(11,127,108), o hsl(7,89%,61%)"></textarea>
       </label>
       <div class="row">
         <button class="tbtn" id="palUsarPegado">Usar lo pegado</button>
@@ -776,30 +885,97 @@
 </div>
 </div>
 
+<!-- ============================================================
+     TIENDA: su perfil público y quiénes la organizan
+     ============================================================ -->
+<div class="panel hide" id="panelO">
+  <div class="card">
+    <div class="row"><h2 class="h2p" style="margin:0">Perfil público</h2><span style="flex:1"></span>
+      <a id="verPerfil" target="_blank" rel="noopener">Ver el perfil de la tienda</a></div>
+    <div id="verifTxt" class="muted" style="margin-top:6px"></div>
+    <div class="grid2">
+      <label>Nombre<input id="pfNombre" maxlength="60"></label>
+      <label>Comuna<input id="pfComuna" maxlength="60"></label>
+      <label>Dirección del local<input id="pfDireccion" maxlength="120"></label>
+      <label>Horario de torneos<input id="pfHorario" maxlength="120" placeholder="Liga los sábados, 15:00"></label>
+      <label>Instagram<input id="pfInstagram" maxlength="40" placeholder="sin la @"></label>
+      <label>Color de la tienda<input id="pfColor" type="color"></label>
+    </div>
+    <div class="row" style="margin-top:12px" id="pfAcciones"><button id="pfGuardar">Guardar perfil</button>
+      <span id="pfMsg" class="muted"></span></div>
+    <div id="pfSoloDueno" class="muted" style="margin-top:10px" hidden>El perfil lo edita el dueño de la tienda.</div>
+  </div>
+  <div class="card">
+    <h2 class="h2p">Organizadores</h2>
+    <div id="miembrosLista"></div>
+    <div id="invitarCaja" hidden>
+      <div class="muted" style="margin-top:12px">Para sumar a alguien, crea un enlace y mándaselo. Entra con su propia
+        cuenta de Mis Torneos: si se va, lo quitas y nadie tiene que cambiar una clave. Cada enlace sirve una sola vez.</div>
+      <div class="row" style="margin-top:8px"><button id="invitarBtn" class="sec">Crear enlace de invitación</button></div>
+      <div id="invPend"></div>
+    </div>
+    <div class="row" style="margin-top:12px" id="salirCaja" hidden><button id="salirTienda" class="sec">Dejar de organizar esta tienda</button></div>
+    <div id="orgMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+  <div class="card" id="insCard">
+    <h2 class="h2p">Insignias de la tienda</h2>
+    <div class="muted">Se ganan jugando acá y llevan el color y la sigla de la tienda. Las permanentes —Beta tester,
+      Veterano, Campeón…— son de la cuenta de cada jugador y las define Mis Torneos.</div>
+    <div id="insAuto" style="margin-top:10px"></div>
+    <h3 class="h3ins">Insignias de evento</h3>
+    <div class="muted">Para un torneo especial: se entregan solas cuando archivas el torneo de esa fecha.</div>
+    <div id="insEventos" style="margin-top:6px"></div>
+    <div id="insCrear" hidden>
+      <div class="insForm">
+        <div>
+          <label class="campoIns">Nombre<input id="ieNombre" maxlength="40" placeholder="Aniversario 2026"></label>
+          <div class="lbl">Ícono</div>
+          <div class="icos" id="ieIconos" role="group" aria-label="Ícono de la insignia"></div>
+          <label class="campoIns">Fecha del torneo<input id="ieFecha" type="date"></label>
+          <div class="lbl">Se entrega a</div>
+          <label class="opIns"><input type="radio" name="ieModo" value="todos" checked> Todos los que jueguen ese torneo</label>
+          <label class="opIns"><input type="radio" name="ieModo" value="top"> Los primeros
+            <input id="ieTop" type="number" min="1" max="64" value="8" aria-label="Cuántos"></label>
+          <label class="opIns"><input type="radio" name="ieModo" value="elegidos" id="ieModoElegidos"> Jugadores que elijo</label>
+          <div id="ieElegidos" class="muted"></div>
+        </div>
+        <div class="prevIns" id="iePrev"></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button id="ieCrear">Crear insignia</button><span id="ieMsg" class="muted"></span></div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ QR (común a todas las pestañas) ============ -->
 <div class="card center">
   <div style="font-size:var(--t3);margin-bottom:8px">QR para los jugadores — timer, emparejamientos y sorteo en una sola página</div>
   <img id="qr" alt="QR">
   <div class="row" style="margin-top:8px;width:100%;max-width:460px">
-    <input id="shareUrl" readonly style="flex:1">
+    <input id="shareUrl" readonly style="flex:1"
+           aria-label="Direccion publica de esta sala">
     <button id="copyBtn" class="small sec">Copiar</button>
   </div>
 </div>
 </div>
 
+</main>
+
 <div id="menu"></div>
 <input type="file" accept="image/*" id="fBox" style="display:none">
 
-<script src="config.js"></script>
+<script src="config.js?v=7"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, connectDatabaseEmulator, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
-         MES_LARGO, DOWS, isoDe, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=3";
+         MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=4";
+import { slug, SALA, BASE, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=2";
+import { vigilar } from "./mantenimiento.js?v=1";
+import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila } from "./insignias.js?v=1";
 import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_SETS,
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
-         revisar, esOriginal, aplicar as palAplicarEn } from "./paleta.js?v=1";
+         revisar, esOriginal, aplicar as palAplicarEn, alDia } from "./paleta.js?v=4";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -808,15 +984,20 @@ const app  = initializeApp(FIREBASE_CONFIG);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 
+/* Si el interruptor de config.js esta encendido, todo apunta al emulador en vez
+   de a la base real. Tiene que ir ANTES de cualquier lectura o escritura: una
+   vez que el SDK hablo con el servidor, connect*Emulator ya no puede cambiarlo. */
+if (typeof EMULADOR !== "undefined" && EMULADOR){
+  connectAuthEmulator(auth, "http://" + EMULADOR.host + ":" + EMULADOR.auth, { disableWarnings: true });
+  connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
+}
+vigilar(db, auth);   // la pantalla de mantenimiento
+
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
   ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 /* Cada organizador tiene su propio espacio de datos */
-const slug = v => (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-                   .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,24);
-const SALA = slug(new URLSearchParams(location.search).get("sala")) || "principal";
-const BASE = "salas/" + SALA;
 const T  = ref(db, BASE + "/timer");
 const LS = k => "tt-" + SALA + "-" + k;
 
@@ -847,51 +1028,267 @@ $("loginBtn").onclick = async () => {
   try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
   catch(e){ $("loginMsg").innerHTML = '<span class="err">Error: '+ e.code +'</span>'; }
 };
-$("logoutBtn").onclick = () => signOut(auth);
-$("salaGo").onclick = () => {
-  const v = slug($("salaInput").value);
-  if (!v) return;
-  location.search = "?sala=" + v;
+$("logoutBtn").onclick = $("logoutBtn2").onclick = () => signOut(auth);
+/* A la cuenta con el ?emu=1, o en una prueba local abriría la base real. */
+const aCuenta = h => "cuenta.html" + (typeof EMULADOR !== "undefined" && EMULADOR ? "?emu=1" : "") + "#" + h;
+$("aOlvide").href = aCuenta("olvide");
+$("aCrearCuenta").href = aCuenta("crear");
+$("cambiarTienda").onclick = () => irA(null, "elegir");
+
+/* ------------------------------------------------------------
+   Tiendas. Desde el 25-09-2026 una sala es una tienda (tiendas/<id>, mismo
+   id) con dueño y organizadores. Ya no queda de dueño el primero que abre una
+   sala: las tiendas se crean desde el selector, y a organizar se entra con
+   una invitación. Las reglas de Firebase son las que de verdad lo aseguran.
+   ------------------------------------------------------------ */
+const Q = new URLSearchParams(location.search);
+const PEDIDA = Q.get("sala") ? SALA : null;
+const UNIRSE = Q.get("unirse");
+const ELEGIR = Q.has("elegir");
+/* Sale en el perfil PÚBLICO de la tienda: sin nombre en la cuenta queda
+   «Organizador», no la parte del correo antes de la arroba. */
+const miNombre = u => (u.displayName || "Organizador").slice(0, 80);
+/* Quien administra el sistema: admins/<uid> = true, puesto a mano en la consola.
+   Cuenta como dueño de todas las tiendas sin quedar de miembro de ninguna. */
+const ADMIN = {};
+const soyAdmin = u => ADMIN[u.uid] ??= get(ref(db, "admins/" + u.uid)).then(s => s.val() === true, () => false);
+function irA(sala, modo){
+  const p = new URLSearchParams();
+  if (typeof EMULADOR !== "undefined" && EMULADOR) p.set("emu", "1");
+  if (sala) p.set("sala", sala);
+  if (modo === "elegir") p.set("elegir", "1");
+  location.href = "admin.html" + (String(p) ? "?" + p : "");
+}
+const carpeta = () => location.origin + location.pathname.replace(/admin(\.html)?\/?$/, "").replace(/[^/]*$/, "");
+const conEmu = () => (typeof EMULADOR !== "undefined" && EMULADOR) ? "&emu=1" : "";
+
+/* El rol que tengo en una tienda. Una sala de antes tiene dueño (owner) pero
+   no tienda: su dueño pasa a ser el dueño de la tienda, una vez. */
+async function rolEn(sala, u){
+  let own = null, mem = null;
+  try {
+    [own, mem] = await Promise.all([get(ref(db, "salas/" + sala + "/owner")),
+                                    get(ref(db, "tiendas/" + sala + "/miembros/" + u.uid))]);
+  } catch(e){ return null; }
+  if (mem.exists()) return mem.val().rol;
+  if (own.val() !== u.uid) return own.exists() && await soyAdmin(u) ? "admin" : null;
+  const rutas = { ["tiendas/" + sala + "/miembros/" + u.uid]: { rol: "dueno", nombre: miNombre(u), desde: Date.now() },
+                  ["organiza/" + u.uid + "/" + sala]: "dueno" };
+  try {
+    if (!(await get(ref(db, "tiendas/" + sala + "/perfil"))).exists())
+      rutas["tiendas/" + sala + "/perfil"] = { nombre: nombreTienda(null, sala), creada: Date.now() };
+    await update(ref(db), rutas);
+  } catch(e){}
+  return "dueno";
+}
+
+const logoT = (perfil, id, px) => '<span class="logoT" style="--c:' + esc((perfil && perfil.color) || "var(--franja)") +
+  ";width:" + px + "px;height:" + px + "px;font-size:" + Math.round(px * .36) + 'px" aria-hidden="true">' +
+  esc(iniciales(nombreTienda(perfil, id))) + "</span>";
+
+async function mostrarSelector(u, aviso){
+  $("elegirCard").style.display = "block";
+  $("elegirAviso").hidden = !aviso;
+  $("elegirAviso").textContent = aviso || "";
+  $("elegirLista").innerHTML = '<div class="muted" style="margin-top:10px">Buscando tus tiendas…</div>';
+  let mias = {};
+  try { mias = (await get(ref(db, "organiza/" + u.uid))).val() || {}; } catch(e){}
+  /* La sala principal es la de siempre: si era tuya, entra sin invitación. */
+  if (!mias.principal && await rolEn("principal", u) === "dueno") mias.principal = "dueno";
+  const filas = (await Promise.all(Object.keys(mias).map(async id => {
+    let t = null;
+    try { t = (await get(ref(db, "tiendas/" + id))).val(); } catch(e){}
+    const m = t && t.miembros && t.miembros[u.uid];
+    /* El espejo puede quedar viejo si el dueño te sacó: se limpia solo. */
+    if (!m){ update(ref(db), { ["organiza/" + u.uid + "/" + id]: null }).catch(() => {}); return null; }
+    return { id, t, rol: m.rol };
+  }))).filter(Boolean).sort((a, b) => nombreTienda(a.t.perfil, a.id).localeCompare(nombreTienda(b.t.perfil, b.id)));
+
+  /* Con tiendas por revisar, quien administra se queda acá para verlas. */
+  const porRevisar = await soyAdmin(u) ? await pintarAdmin() : 0;
+  if (filas.length === 1 && !ELEGIR && !aviso && !porRevisar) return irA(filas[0].id);
+  $("elegirLista").innerHTML = filas.length ? filas.map(f =>
+    '<button class="tfila" data-id="' + esc(f.id) + '">' + logoT(f.t.perfil, f.id, 44) +
+    '<span class="txt"><b>' + esc(nombreTienda(f.t.perfil, f.id)) + "</b><small>" +
+    (f.rol === "dueno" ? "Dueño" : "Organizador") + " · " +
+    (f.t.verificada ? "verificada" : f.t.verificada === false ? "no verificada" : "pendiente de verificación") +
+    "</small></span></button>").join("")
+    : '<div class="muted" style="margin-top:10px">Todavía no organizas ninguna tienda. Crea la tuya abajo, o abre el enlace de invitación que te mandó el dueño de una.</div>';
+  $("elegirLista").querySelectorAll(".tfila").forEach(b => b.onclick = () => irA(b.dataset.id));
+
+  $("nuevaBtn").onclick = async () => {
+    const nombre = $("nuevaNombre").value.trim().replace(/\s+/g, " ");
+    const id = slug(nombre);
+    const msg = t => $("nuevaMsg").textContent = t;
+    if (nombre.length < 2 || !id) return msg("Escribe el nombre de la tienda.");
+    try {
+      const [own, t] = await Promise.all([get(ref(db, "salas/" + id + "/owner")), get(ref(db, "tiendas/" + id))]);
+      if (own.exists() || t.exists())
+        return msg("Ya hay una tienda con ese nombre. Prueba agregándole la comuna: «" + nombre + " Temuco».");
+      await update(ref(db), {
+        ["salas/" + id + "/owner"]: u.uid,
+        ["tiendas/" + id + "/perfil"]: { nombre, creada: Date.now() },
+        ["tiendas/" + id + "/miembros/" + u.uid]: { rol: "dueno", nombre: miNombre(u), desde: Date.now() },
+        ["organiza/" + u.uid + "/" + id]: "dueno" });
+      irA(id);
+    } catch(e){ msg("No se pudo crear. Revisa la conexión y vuelve a intentar."); }
+  };
+}
+
+/* El interruptor de mantenimiento. Lo que cierra de verdad son las reglas: con
+   el sitio cerrado, nadie que no administre lee ni escribe nada. */
+let MANT = {};
+onValue(ref(db, "sistema/mantenimiento"), s => {
+  MANT = s.val() || {};
+  const cerrado = MANT.activo === true;
+  document.querySelector(".mantPanel").classList.toggle("cerrado", cerrado);
+  $("mantEstado").textContent = cerrado ? "Cerrado por mantenimiento" : "Sitio abierto";
+  $("mantDesc").textContent = cerrado ? "Solo los administradores lo ven. Los demás ven la pantalla de mantenimiento."
+                                      : "Todos pueden entrar.";
+  if (document.activeElement !== $("mantMensaje")) $("mantMensaje").value = MANT.mensaje || "";
+  $("mantBtn").textContent = cerrado ? "Abrir el sitio" : "Cerrar por mantenimiento";
+  $("mantBtn").className = cerrado ? "" : "sec";
+  $("mantBtn").disabled = false;
+}, () => {});
+$("mantBtn").onclick = async () => {
+  const cerrar = MANT.activo !== true;
+  if (cerrar && !confirm("¿Cerrar el sitio por mantenimiento? Nadie más va a poder entrar ni ver el timer hasta que lo abras.")) return;
+  const v = { activo: cerrar, desde: Date.now() }, msg = $("mantMensaje").value.trim();
+  if (msg) v.mensaje = msg.slice(0, 200);
+  $("mantBtn").disabled = true;
+  try { await set(ref(db, "sistema/mantenimiento"), v); }
+  catch(e){ $("mantBtn").disabled = false; $("mantDesc").textContent = "No se pudo cambiar. Revisa la conexión."; }
 };
 
-let soyDueno = false;
+/* Todas las tiendas, las que nadie ha revisado primero. verificada: true sale
+   en el directorio; false, revisada y no; sin el campo, por revisar. */
+const ESTADO = t => t.verificada === true ? 1 : t.verificada === false ? 2 : 0;
+async function pintarAdmin(){
+  let todas = {};
+  try { todas = (await get(ref(db, "tiendas"))).val() || {}; } catch(e){}
+  const filas = Object.entries(todas).map(([id, t]) => ({ id, t, p: t.perfil || {} }))
+    .sort((a, b) => ESTADO(a.t) - ESTADO(b.t) || nombreTienda(a.p, a.id).localeCompare(nombreTienda(b.p, b.id)));
+  const porRevisar = filas.filter(f => !ESTADO(f.t)).length;
+  $("adminCard").style.display = "block";
+  $("adminResumen").textContent = filas.length + (filas.length === 1 ? " tienda" : " tiendas") +
+    (porRevisar ? " · " + porRevisar + " por revisar" : " · todas revisadas");
+  $("adminLista").innerHTML = filas.map(({ id, t, p }) => {
+    const mm = Object.values(t.miembros || {}), dueno = mm.find(m => m.rol === "dueno"), e = ESTADO(t);
+    const orgs = mm.length - (dueno ? 1 : 0);
+    const datos = [p.comuna, p.direccion, dueno && "dueño: " + dueno.nombre,
+      orgs && orgs + (orgs === 1 ? " organizador" : " organizadores"),
+      p.creada && "creada el " + new Date(p.creada).toLocaleDateString("es-CL")].filter(Boolean).join(" · ");
+    return '<div class="miembro adm">' + logoT(p, id, 38) + '<div class="txt"><b>' + esc(nombreTienda(p, id)) + "</b>" +
+      "<small>" + esc(datos) + "</small><small>" +
+      (p.instagram ? '<a href="https://instagram.com/' + esc(p.instagram) + '" target="_blank" rel="noopener">@' + esc(p.instagram) + "</a> · " : "") +
+      '<a href="tienda.html?sala=' + esc(id) + conEmu() + '" target="_blank">Ver el perfil</a></small></div>' +
+      '<span class="estado e' + e + '">' + ["Por revisar", "Verificada", "No verificada"][e] + '</span><span class="acc">' +
+      (e !== 1 ? '<button class="small" data-verif="' + esc(id) + '" data-v="1">Verificar</button>' : "") +
+      (e !== 2 ? '<button class="small sec" data-verif="' + esc(id) + '" data-v="0">' + (e ? "Quitar verificación" : "No verificar") + "</button>" : "") +
+      '<button class="small sec" data-entrar="' + esc(id) + '">Entrar</button></span></div>';
+  }).join("") || '<div class="muted">Todavía no hay tiendas.</div>';
+  $("adminLista").querySelectorAll("[data-verif]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await set(ref(db, "tiendas/" + b.dataset.verif + "/verificada"), b.dataset.v === "1"); pintarAdmin(); }
+    catch(e){ b.disabled = false; $("adminResumen").textContent = "No se pudo guardar. Revisa la conexión."; }
+  });
+  $("adminLista").querySelectorAll("[data-entrar]").forEach(b => b.onclick = () => irA(b.dataset.entrar));
+  return porRevisar;
+}
+
+async function mostrarInvitacion(u){
+  $("unirseCard").style.display = "block";
+  $("unirseNo").onclick = () => irA(null, "elegir");
+  let inv = null, perfil = null, ya = false;
+  try {
+    const [a, b, c] = await Promise.all([get(ref(db, "invitaciones/" + PEDIDA + "/" + UNIRSE)),
+      get(ref(db, "tiendas/" + PEDIDA + "/perfil")), get(ref(db, "tiendas/" + PEDIDA + "/miembros/" + u.uid))]);
+    inv = a.val(); perfil = b.val(); ya = c.exists();
+  } catch(e){}
+  const nombre = nombreTienda(perfil, PEDIDA);
+  if (ya) return irA(PEDIDA);
+  if (!inv){
+    $("unirseTxt").innerHTML = "Este enlace de invitación ya se usó o fue anulado. Pídele otro al dueño de <b>" + esc(nombre) + "</b>.";
+    $("unirseSi").hidden = true;
+    return;
+  }
+  $("unirseTxt").innerHTML = '<h2 class="h2p">Te invitaron a organizar en ' + esc(nombre) + "</h2>" +
+    '<div class="muted">Vas a poder usar el timer, publicar emparejamientos y archivar resultados de esa tienda, ' +
+    "con su diseño y sus puntos. Entras con esta cuenta" + (u.email ? " (" + esc(u.email) + ")" : "") + ".</div>";
+  $("unirseSi").onclick = async () => {
+    try {
+      await update(ref(db), {
+        ["tiendas/" + PEDIDA + "/miembros/" + u.uid]: { rol: "organizador", nombre: miNombre(u), codigo: UNIRSE, desde: Date.now() },
+        ["invitaciones/" + PEDIDA + "/" + UNIRSE]: null,
+        ["organiza/" + u.uid + "/" + PEDIDA]: "organizador" });
+      irA(PEDIDA);
+    } catch(e){ $("unirseMsg").textContent = "No se pudo aceptar. Puede que el enlace ya se haya usado."; }
+  };
+}
+
+let soyDueno = false;          // puede organizar ESTA tienda (el nombre es de cuando había un solo dueño)
+let miRol = null;              // "dueno" | "organizador"
 onAuthStateChanged(auth, async u => {
   $("loginCard").style.display = u ? "none" : "block";
-  $("all").style.display = u ? "block" : "none";
+  ["all", "elegirCard", "adminCard", "unirseCard"].forEach(id => $(id).style.display = "none");
   if (!u) return;
+
+  if (UNIRSE && PEDIDA) return mostrarInvitacion(u);
+  if (!PEDIDA || ELEGIR) return mostrarSelector(u);
+  miRol = await rolEn(PEDIDA, u);
+  if (!miRol){
+    let existe = false;
+    try { existe = (await get(ref(db, "salas/" + PEDIDA + "/owner"))).exists(); } catch(e){}
+    return mostrarSelector(u, existe
+      ? "No organizas «" + PEDIDA + "». Para entrar, pídele al dueño un enlace de invitación."
+      : "La tienda «" + PEDIDA + "» no existe. Puedes crearla abajo.");
+  }
+  $("all").style.display = "block";
 
   // Oculto pestañas y timer hasta confirmar que eres el dueño de la sala,
   // para no mostrar por un instante controles que después se esconden.
   $("tabs").style.display = "none";
   $("panelT").style.display = "none";
   $("salaName").textContent = SALA;
-  $("salaInput").value = SALA;
 
-  // Quien publica primero en una sala vacía queda como su dueño
-  const ownerRef = ref(db, BASE + "/owner");
-  let owner = null;
-  try { owner = (await get(ownerRef)).val(); } catch(e){}
-  const salaNueva = !owner;
-  if (!owner){
-    try { await set(ownerRef, u.uid); owner = u.uid; } catch(e){}
-  }
-  soyDueno = owner === u.uid;
+  /* Lo publicado de la tienda: estado, diseño e imágenes. Si no hay nada, es
+     una tienda recién creada y la primera vez se publica todo. */
+  let publicado = null, salaNueva = false;
+  try { publicado = (await get(T)).val(); salaNueva = !publicado; } catch(e){}
+  soyDueno = true;
+  escucharTienda(u);
 
   if (soyDueno){
-    $("salaMsg").innerHTML = '<span class="ok">Eres el organizador de esta sala</span>';
+    $("salaMsg").innerHTML = "";
     $("tabs").style.display = ""; $("panelT").style.display = "";
-    renderAll();
-    // Solo la primera vez que se reclama la sala se publica todo (estado +
-    // diseño + medios). En recargas normales alcanza con el estado: el diseño
-    // y las imágenes ya están en Firebase de la sesión anterior, y publicarlos
-    // de nuevo forzaría a cada celular a re-descargarlos.
-    if (salaNueva) cleanAndPublish(); else publishState();
+    escucharEnlaces();
     /* Si la huella guardada no coincide con lo que hay ahora, esta sesion se
        abrio sobre un borrador que nunca se confirmo: hay que avisarlo en vez
        de dejar al organizador creyendo que los jugadores ya lo ven. */
     let previa = null;
     try { previa = localStorage.getItem(LS("apariencia")); } catch(e){}
-    if (previa && previa !== huellaApariencia()){
+    let borrador = !!previa && previa !== huellaApariencia();
+    /* Sin borrador propio, el diseño sale de lo publicado y no de este equipo:
+       otro organizador pudo cambiarlo, o es la primera vez que se abre la
+       tienda acá y lo único que hay es el de fábrica. Antes se partía de lo
+       local, y el primer Iniciar de un organizador nuevo les cambiaba a los
+       jugadores el color y el tamaño del reloj por los de fábrica. */
+    if (publicado && !borrador){ adoptarApariencia(publicado); borrador = alDiaColores(); }
+    renderAll();
+    // Solo la primera vez que se reclama la sala se publica todo (estado +
+    // diseño + medios). En recargas normales no se publica nada al entrar:
+    // con varios organizadores, el segundo que abría el panel le pisaba la
+    // ronda al primero. Se adopta el reloj publicado.
+    if (salaNueva) cleanAndPublish();
+    else if (publicado && publicado.state) adoptar(publicado.state);
+    else publishState();
+    onValue(R_STATE, s => {
+      const r = s.val();
+      /* Por igualdad y no por «más nuevo»: los relojes de dos computadores no
+         coinciden, y comparar horas de máquinas distintas ignoraba al otro. */
+      if (r && r.updatedAt !== ultimaMia) adoptar(r);
+    });
+    if (borrador){
       /* El borrador local no coincide con lo ultimo que se publico desde este
          equipo. La version publicada no esta aca, asi que descartar no puede
          prometer volver a ella: se deja sin copia y el boton lo dice en vez de
@@ -903,16 +1300,200 @@ onAuthStateChanged(auth, async u => {
       guardarHuella();
     }
     pintarPendiente();
-  } else {
-    $("salaMsg").innerHTML = '<span class="err">Esta sala ya tiene organizador. Elige otro nombre de sala abajo.</span>';
-    $("tabs").style.display = "none";
-    document.querySelectorAll(".panel").forEach(e => e.style.display = "none");
   }
 });
 
+/* ------------------------------------------------------------
+   Pestaña Tienda: el perfil público y los organizadores
+   ------------------------------------------------------------ */
+function escucharTienda(u){
+  const esDueno = miRol === "dueno" || miRol === "admin";
+  $("verPerfil").href = "tienda.html?sala=" + SALA + conEmu();
+  ["pfNombre", "pfComuna", "pfDireccion", "pfHorario", "pfInstagram", "pfColor"].forEach(id => $(id).disabled = !esDueno);
+  $("pfAcciones").hidden = !esDueno;
+  $("pfSoloDueno").hidden = esDueno;
+  $("invitarCaja").hidden = !esDueno;
+  $("salirCaja").hidden = esDueno;
+
+  let editando = false;
+  ["pfNombre", "pfComuna", "pfDireccion", "pfHorario", "pfInstagram", "pfColor"].forEach(id =>
+    $(id).addEventListener("input", () => editando = true));
+
+  onValue(ref(db, "tiendas/" + SALA), s => {
+    const t = s.val() || {}, p = t.perfil || {}, mm = t.miembros || {};
+    TIENDA_P = t; pintarInsPanel();
+    $("salaName").textContent = nombreTienda(p, SALA);
+    $("salaLogo").innerHTML = logoT(p, SALA, 30);
+    $("salaRol").textContent = { dueno: "· dueño", organizador: "· organizador", admin: "· administrador" }[miRol];
+    document.title = nombreTienda(p, SALA) + " — Panel";
+    /* Lo que el dueño está escribiendo no se pisa con lo que llega. */
+    if (!editando){
+      $("pfNombre").value = p.nombre || nombreTienda(null, SALA);
+      $("pfComuna").value = p.comuna || "";
+      $("pfDireccion").value = p.direccion || "";
+      $("pfHorario").value = p.horario || "";
+      $("pfInstagram").value = p.instagram || "";
+      $("pfColor").value = p.color || "#0B7F6C";
+    }
+    $("verifTxt").innerHTML = t.verificada
+      ? '<span class="ok">Tienda verificada</span>: sale en el directorio de tiendas.'
+      : t.verificada === false
+      ? "No verificada: el timer y todo lo demás funciona igual, pero la tienda no sale en el directorio."
+      : "Pendiente de verificación: el timer y todo lo demás funciona igual, pero la tienda todavía no sale en el directorio.";
+    $("miembrosLista").innerHTML = Object.entries(mm)
+      .sort(([, a], [, b]) => (a.rol === "dueno" ? -1 : 1) - (b.rol === "dueno" ? -1 : 1))
+      .map(([uid, m]) => '<div class="miembro"><span class="logoT" style="--c:var(--sup-alta);color:var(--texto);width:34px;height:34px;font-size:var(--t2)">' +
+        esc(iniciales(m.nombre)) + '</span><div class="txt"><b>' + esc(m.nombre) + (uid === u.uid ? " (tú)" : "") +
+        "</b><small>" + (m.rol === "dueno" ? "Dueño" : "Organizador") + "</small></div>" +
+        (esDueno && m.rol !== "dueno" ? '<button class="small sec" data-quitar="' + esc(uid) + '">Quitar</button>' : "") + "</div>").join("");
+    $("miembrosLista").querySelectorAll("[data-quitar]").forEach(b => b.onclick = async () => {
+      if (!confirm("¿Quitar a esta persona? Deja de poder organizar en esta tienda.")) return;
+      try { await remove(ref(db, "tiendas/" + SALA + "/miembros/" + b.dataset.quitar)); }
+      catch(e){ $("orgMsg").textContent = "No se pudo quitar. Revisa la conexión."; }
+    });
+  });
+
+  $("pfGuardar").onclick = async () => {
+    const insta = $("pfInstagram").value.trim().replace(/^@/, "");
+    const nombre = $("pfNombre").value.trim().replace(/\s+/g, " ");
+    if (nombre.length < 2) return $("pfMsg").textContent = "El nombre es obligatorio.";
+    if (!/^[A-Za-z0-9._]*$/.test(insta)) return $("pfMsg").textContent = "El Instagram solo lleva letras, números, punto y guion bajo.";
+    try {
+      await update(ref(db, "tiendas/" + SALA + "/perfil"), { nombre, comuna: $("pfComuna").value.trim(),
+        direccion: $("pfDireccion").value.trim(), horario: $("pfHorario").value.trim(),
+        instagram: insta, color: $("pfColor").value.toUpperCase() });
+      editando = false;
+      $("pfMsg").innerHTML = '<span class="ok">Guardado.</span>';
+    } catch(e){ $("pfMsg").textContent = "No se pudo guardar. Revisa la conexión."; }
+  };
+
+  if (esDueno){
+    const enlace = cod => carpeta() + "admin.html?sala=" + SALA + "&unirse=" + cod + conEmu();
+    onValue(ref(db, "invitaciones/" + SALA), s => {
+      const inv = Object.entries(s.val() || {}).sort(([, a], [, b]) => b.creado - a.creado);
+      $("invPend").innerHTML = inv.length ? '<div class="muted" style="margin-top:12px">Enlaces sin usar:</div>' + inv.map(([cod]) =>
+        '<div class="invLink"><input readonly value="' + esc(enlace(cod)) + '" aria-label="Enlace de invitación">' +
+        '<button class="small sec" data-copiar="' + esc(cod) + '">Copiar</button>' +
+        '<button class="small sec" data-anular="' + esc(cod) + '">Anular</button></div>').join("") : "";
+      $("invPend").querySelectorAll("[data-copiar]").forEach(b => b.onclick = () => {
+        navigator.clipboard?.writeText(enlace(b.dataset.copiar)); b.textContent = "Copiado"; });
+      $("invPend").querySelectorAll("[data-anular]").forEach(b => b.onclick = () =>
+        remove(ref(db, "invitaciones/" + SALA + "/" + b.dataset.anular)).catch(() => {}));
+    });
+    /* 12 letras de un alfabeto de 32 son 60 bits: no se adivina. Sin 0/o ni 1/l. */
+    $("invitarBtn").onclick = async () => {
+      const ABC = "abcdefghijkmnpqrstuvwxyz23456789";
+      const cod = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => ABC[b % 32]).join("");
+      try { await set(ref(db, "invitaciones/" + SALA + "/" + cod), { rol: "organizador", creado: Date.now(), por: miNombre(u) }); }
+      catch(e){ $("orgMsg").textContent = "No se pudo crear la invitación. Revisa la conexión."; }
+    };
+  } else {
+    $("salirTienda").onclick = async () => {
+      if (!confirm("¿Dejar de organizar esta tienda? Para volver vas a necesitar otra invitación.")) return;
+      try {
+        await update(ref(db), { ["tiendas/" + SALA + "/miembros/" + u.uid]: null, ["organiza/" + u.uid + "/" + SALA]: null });
+        irA(null, "elegir");
+      } catch(e){ $("orgMsg").textContent = "No se pudo. Revisa la conexión."; }
+    };
+  }
+}
+
+/* ------------------------------------------------------------
+   Pestaña Tienda: las insignias de la tienda
+   ------------------------------------------------------------
+   Las automáticas se prenden o apagan (tiendas/<id>/insignias/auto). Las de
+   evento se crean para la fecha de un torneo y se entregan solas: el muro de
+   cada jugador las calcula con el historial, así que no hay nada que repartir
+   a mano. Solo el dueño las toca; las reglas lo aseguran.
+   ------------------------------------------------------------ */
+let TIENDA_P = null, HIST_P = {}, IE_ICONO = "estrella";
+const puedeIns = () => miRol === "dueno" || miRol === "admin";
+const estiloIns = () => {
+  const p = (TIENDA_P && TIENDA_P.perfil) || {};
+  return { color: p.color || COLOR_TIENDA, sigla: iniciales(nombreTienda(p, SALA)), nombre: nombreTienda(p, SALA) };
+};
+function pintarInsPanel(){
+  if (!TIENDA_P) return;
+  const { color, sigla } = estiloIns(), ins = TIENDA_P.insignias || {}, auto = ins.auto || {};
+  $("insAuto").innerHTML = AUTO.map(d => '<label class="insFila">' + parche(d.ico, color, sigla, { s: 40 }) +
+    '<span class="txt"><b>' + esc(d.nombre) + "</b><small>" + esc(d.niveles.length > 1
+      ? "Bronce " + d.niveles[0] + " fechas · plata " + d.niveles[1] + " · oro " + d.niveles[2] : d.como) + "</small></span>" +
+    '<input type="checkbox" role="switch" class="sw" data-auto="' + d.id + '" aria-label="' + esc(d.nombre) + '"' +
+    (auto[d.id] !== false ? " checked" : "") + (puedeIns() ? "" : " disabled") + "></label>").join("");
+  $("insAuto").querySelectorAll("[data-auto]").forEach(c => c.onchange = async () => {
+    try { await set(ref(db, "tiendas/" + SALA + "/insignias/auto/" + c.dataset.auto), c.checked); }
+    catch(e){ c.checked = !c.checked; $("ieMsg").textContent = "No se pudo guardar. Revisa la conexión."; }
+  });
+  const evs = Object.entries(ins.eventos || {}).sort((a, b) => (b[1].fecha || "").localeCompare(a[1].fecha || ""));
+  $("insEventos").innerHTML = evs.length ? evs.map(([id, e]) => {
+    const r = repartoEvento(e, HIST_P);
+    const estado = r.estado === "entregada" ? "Entregada a " + r.ganadores.length : r.estado === "programada" ? "Programada" : "Sin torneo ese día";
+    const quien = e.modo === "top" ? "Top " + e.top : e.modo === "elegidos" ? Object.values(e.elegidos || {}).length + " elegidos"
+                : "Todos los que jueguen";
+    return '<div class="insFila">' + parche(e.icono, color, sigla, { s: 40, evento: true }) + '<span class="txt"><b>' +
+      esc(e.nombre) + "</b><small>" + esc(fechaLarga(e.fecha) + " · " + quien) + '</small></span><span class="chipIns">' +
+      esc(estado) + "</span>" + (puedeIns() ? '<button class="small sec" data-borrar-ev="' + esc(id) + '">Borrar</button>' : "") + "</div>";
+  }).join("") : '<div class="muted" style="margin-top:8px">Todavía no creas ninguna.</div>';
+  $("insEventos").querySelectorAll("[data-borrar-ev]").forEach(b => b.onclick = async () => {
+    if (!confirm("¿Borrar esta insignia? Si ya se entregó, los jugadores la pierden.")) return;
+    try { await remove(ref(db, "tiendas/" + SALA + "/insignias/eventos/" + b.dataset.borrarEv)); }
+    catch(e){ $("ieMsg").textContent = "No se pudo borrar. Revisa la conexión."; }
+  });
+  $("insCrear").hidden = !puedeIns();
+  pintarIconosIns(); pintarPreviaIns(); pintarElegidos();
+}
+function pintarIconosIns(){
+  $("ieIconos").innerHTML = ICONOS_EVENTO.map(k => '<button type="button" class="ico' + (k === IE_ICONO ? " on" : "") +
+    '" data-ico="' + k + '" aria-pressed="' + (k === IE_ICONO) + '" aria-label="' + k + '">' + ICONOS[k] + "</button>").join("");
+  $("ieIconos").querySelectorAll("[data-ico]").forEach(b => b.onclick = () => { IE_ICONO = b.dataset.ico; pintarIconosIns(); pintarPreviaIns(); });
+}
+function pintarPreviaIns(){
+  const { color, sigla, nombre } = estiloIns();
+  $("iePrev").innerHTML = parche(IE_ICONO, color, sigla, { s: 96, evento: true }) +
+    "<b>" + esc($("ieNombre").value.trim() || "Nombre de la insignia") + "</b><small>" + esc(nombre) + " · evento</small>" +
+    "<small>Así la verán los jugadores</small>";
+}
+/* Elegir jugadores solo se puede con el torneo ya archivado: antes no hay lista. */
+function pintarElegidos(){
+  const f = $("ieFecha").value, torneos = Object.values(HIST_P).filter(t => t.fecha === f);
+  const radio = $("ieModoElegidos");
+  radio.disabled = !torneos.length;
+  if (!torneos.length && radio.checked) document.querySelector('input[name="ieModo"][value="todos"]').checked = true;
+  if (!radio.checked){
+    $("ieElegidos").className = "muted";
+    $("ieElegidos").textContent = f && !torneos.length ? "Para elegir jugadores, primero archiva el torneo de esa fecha." : "";
+    return;
+  }
+  $("ieElegidos").className = "elegidos";
+  $("ieElegidos").innerHTML = torneos.map(t => Object.values(t.standings || {}).map(s =>
+    '<label><input type="checkbox" value="' + esc(claveFila(s)) + '"> ' + s.place + "º " + esc(s.name) + "</label>").join("")).join("");
+}
+$("ieNombre").oninput = pintarPreviaIns;
+$("ieFecha").onchange = pintarElegidos;
+document.querySelectorAll('input[name="ieModo"]').forEach(r => r.onchange = pintarElegidos);
+$("ieCrear").onclick = async () => {
+  const msg = t => $("ieMsg").textContent = t;
+  const nombre = $("ieNombre").value.trim().replace(/\s+/g, " "), fecha = $("ieFecha").value;
+  const modo = document.querySelector('input[name="ieModo"]:checked').value;
+  if (nombre.length < 2) return msg("Ponle nombre a la insignia.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return msg("Elige la fecha del torneo.");
+  const ev = { nombre, icono: IE_ICONO, fecha, modo, creada: Date.now() };
+  if (modo === "top"){
+    const n = parseInt($("ieTop").value, 10);
+    if (!(n >= 1 && n <= 64)) return msg("El top va de 1 a 64.");
+    ev.top = n;
+  }
+  if (modo === "elegidos"){
+    ev.elegidos = [...$("ieElegidos").querySelectorAll("input:checked")].map(c => c.value);
+    if (!ev.elegidos.length) return msg("Marca al menos un jugador.");
+  }
+  try { await push(ref(db, "tiendas/" + SALA + "/insignias/eventos"), ev); $("ieNombre").value = ""; pintarPreviaIns(); msg("Creada ✓"); }
+  catch(e){ msg("No se pudo crear. Revisa la conexión."); }
+};
+
 /* Una entrada por pestaña: agregar una más es agregar una línea acá y el
    botón en el HTML, no seis toggles repartidos. */
-const PESTANAS = { t:"panelT", p:"panelP", s:"panelS", c:"panelC" };
+const PESTANAS = { t:"panelT", p:"panelP", s:"panelS", c:"panelC", o:"panelO" };
 function switchTab(t){
   for (const [k, panel] of Object.entries(PESTANAS)){
     $(panel).classList.toggle("hide", k !== t);
@@ -930,13 +1511,13 @@ const PX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTA
 const SIZES = { desktop:{w:1180,h:660}, mobile:{w:620,h:1100} };
 
 function nuevaVista(){
-  return { bgType:"color", bgColor1:"#362F3C", bgColor2:"#2A242F", bgDir:"to right",
+  return { bgType:"color", bgColor1:"#0F2E2A", bgColor2:"#0A221F", bgDir:"to right",
            bgImage:"", bgBrightness:100, bgOpacity:100, boxes:[], nextId:1 };
 }
 
 let st = {
   presetMin:32, customPresets:[], resetSec:32*60, remaining:32*60, paused:true, endTime:null,
-  view:"desktop", logo:"", timerColor:"#F4F0F5", negativeColor:"#D97F7D", timerSize:150,
+  view:"desktop", logo:"", timerColor:"#F3FFFB", negativeColor:"#FF7A6B", timerSize:150,
   alarmData:"", alarmName:"",
   /* Va en el estado y no en una clave aparte: asi viaja sola dentro de theme,
      que ya se publica y ya se suscribe. Es por sala, o sea por juez. */
@@ -950,6 +1531,9 @@ try {
   Object.assign(st, g);
   st.desktop  = Object.assign(nuevaVista(), g.desktop || {});
   st.mobile   = Object.assign(nuevaVista(), g.mobile  || {});
+  /* Los colores del lienzo que eran los de fábrica hasta el 25-09 pasan a los
+     nuevos. Queda como cambio sin publicar, y al publicar llega a la sala. */
+  alDiaColores();
   st.resetSec = g.resetSec || (st.presetMin*60);
 
   /* Aquí estaba el bug del timer paralizado: al recargar el panel se forzaba
@@ -970,6 +1554,37 @@ try {
 } catch(e){}
 
 const V = () => st[st.view];
+
+/* Pasa los colores de fábrica viejos a los nuevos. Dice si cambió algo. */
+function alDiaColores(){
+  let cambio = false;
+  const f = (o, k) => { const n = alDia(o[k]); if (n !== o[k]){ o[k] = n; cambio = true; } };
+  ["timerColor", "negativeColor"].forEach(k => f(st, k));
+  [st.desktop, st.mobile].forEach(v => { f(v, "bgColor1"); f(v, "bgColor2"); });
+  return cambio;
+}
+
+/* El diseño tal como lo ven los jugadores: el nodo timer publicado (estado,
+   theme y media) de vuelta al formato del panel. Lo que falta queda como está. */
+function adoptarApariencia(t){
+  const s = t.state || {}, th = t.theme || {}, md = t.media || {};
+  const def = (o, k, v) => { if (v !== undefined && v !== null) o[k] = v; };
+  ["timerColor", "negativeColor", "timerSize"].forEach(k => def(st, k, s[k]));
+  if (th.paleta) st.paleta = Object.assign({ manual: {} }, th.paleta);
+  def(st, "logo", md.logo);
+  ["desktop", "mobile"].forEach(k => {
+    const v = th[k], m = md[k] || {};
+    if (!v) return;
+    ["bgType", "bgColor1", "bgColor2", "bgDir", "bgBrightness", "bgOpacity"].forEach(c => def(st[k], c, v[c]));
+    st[k].bgImage = m.bgImage || "";
+    const src = Object.fromEntries((m.boxes || []).map(b => [b.id, b.src]));
+    st[k].boxes = (v.boxes || []).map(b => ({ ...b, flip: !!b.flip, src: src[b.id] || "" }));
+    st[k].nextId = Math.max(0, ...st[k].boxes.map(b => b.id)) + 1;
+  });
+  apPub = { timerColor: st.timerColor, negativeColor: st.negativeColor, timerSize: st.timerSize };
+  saveLocal();
+  palPintarControles(); palAplicar(false);
+}
 
 /* =========================================================
    4. Publicación a Firebase
@@ -999,11 +1614,29 @@ let apPub = { timerColor: st.timerColor, negativeColor: st.negativeColor,
 let aparienciaSucia = false;
 let mediaSucia = false;
 
+/* La hora de la última escritura de ESTE panel: así reconoce sus propias
+   publicaciones cuando vuelven desde Firebase y no las aplica dos veces. */
+let ultimaMia = 0;
 function snapState(){
+  ultimaMia = Date.now();
   return { endTime: st.paused ? null : st.endTime, paused: st.paused,
            remaining: st.remaining, timerColor: apPub.timerColor,
            negativeColor: apPub.negativeColor, timerSize: apPub.timerSize,
-           updatedAt: Date.now() };
+           updatedAt: ultimaMia };
+}
+
+/* Con varios organizadores, lo publicado manda: otro puede tener la ronda
+   corriendo desde su computador. Este panel adopta ese reloj en vez de
+   publicar el suyo encima. */
+function adoptar(r){
+  /* Lo que viaja con el reloj es la apariencia publicada: si otro la cambió,
+     el próximo Iniciar de este panel no la devuelve atrás. */
+  if (r.timerColor) apPub = { timerColor: r.timerColor, negativeColor: r.negativeColor, timerSize: r.timerSize };
+  st.paused    = !!r.paused || !r.endTime;
+  st.endTime   = st.paused ? null : r.endTime;
+  st.remaining = st.paused ? (r.remaining ?? st.resetSec) : Math.round((r.endTime - now()) / 1000);
+  alarmFired   = !st.paused && st.remaining <= 0;
+  saveLocal(); renderClock();
 }
 
 /* Huella de lo publicado, para saber al recargar si quedaron cambios sin
@@ -1491,7 +2124,7 @@ function refrescarAjustes(){
    No toca el TIPO de fondo a propósito: si la tienda puso una imagen, cambiarlo
    a color le escondería su imagen de golpe. Se dejan los colores listos y se
    avisa qué pasó. */
-const PALETA = { fondo1:"#362F3C", fondo2:"#2A242F", timer:"#F4F0F5", negativo:"#D97F7D" };
+const PALETA = { fondo1:"#0F2E2A", fondo2:"#0A221F", timer:"#F3FFFB", negativo:"#FF7A6B" };
 $("btnPaleta").onclick = () => {
   if (!confirm("Se reemplazan los colores actuales del fondo, del timer y del tiempo negativo, en las dos vistas.\n\n¿Aplicar la paleta del rediseño?")) return;
   ["desktop","mobile"].forEach(k => {
@@ -1610,6 +2243,16 @@ function renderAll(){
    11. Lectura del .tdf de TOM
    ========================================================= */
 let parsed = null;
+/* El ID de jugador de cada puesto de la tabla, por indice. Vive FUERA de
+   `parsed` a proposito: `parsed` se publica entero en el nodo pairings, que es
+   de lectura publica, y esto son los ID de jugador de toda la sala. Lo unico
+   que sale de aca es el uid —opaco— de quien pidio que saliera. */
+let ID_POR_PUESTO = [];
+/* Las partidas del torneo, para las rachas del perfil: [ronda, a, b, g], con a
+   y b el índice del jugador en la tabla final —así heredan el «Jugador
+   reservado» y el ID no viaja— y g: 1 ganó a, 2 ganó b, 0 empate, 3 doble
+   derrota. Vive fuera de `parsed` por lo mismo que ID_POR_PUESTO. */
+let DUELOS = [];
 const P1WIN = [1,8], P2WIN = [2,10], TIE = [3], DBLLOSS = [4], BYE = [5];
 
 /* TOM escribe la fecha al estilo de EE.UU. (mes/día/año). Devuelve aaaa-mm-dd
@@ -1649,7 +2292,7 @@ function parseTdf(xmlText){
   // en un pod aparte), se usa solo el último: es la fase vigente del torneo.
   const pods = [...doc.querySelectorAll("pods > pod")];
   const podActivo = pods[pods.length-1] || null;
-  const rounds = [];
+  const rounds = [], crudos = [];
   (podActivo ? podActivo.querySelectorAll("rounds > round") : []).forEach(r => {
     const raw = [];
     r.querySelectorAll("matches > match").forEach(m => raw.push({
@@ -1672,6 +2315,7 @@ function parseTdf(xmlText){
       else if (TIE.includes(m.out) && A && B){ A.t++; B.t++; }
       else if (DBLLOSS.includes(m.out) && A && B){ A.l++; B.l++; }
     });
+    raw.forEach(m => { if (m.p1 && m.p2) crudos.push([parseInt(r.getAttribute("number"), 10), m.p1, m.p2, m.out]); });
 
     const matches = raw.map(m => {
       const n1 = names[m.p1 || m.solo] || "?";
@@ -1699,12 +2343,21 @@ function parseTdf(xmlText){
   let standings;
   if (oficial.length){
     standings = oficial.map(p => ({ place: parseInt(p.getAttribute("place"), 10),
-      name: names[p.getAttribute("id")] || "?", ...snapRec(p.getAttribute("id")) }))
+      name: names[p.getAttribute("id")] || "?", __id: p.getAttribute("id"),
+      ...snapRec(p.getAttribute("id")) }))
       .sort((a,b) => a.place - b.place);
   } else {
-    standings = Object.keys(names).map(id => ({ name: names[id], ...snapRec(id) }))
+    standings = Object.keys(names).map(id => ({ name: names[id], __id: id, ...snapRec(id) }))
       .sort((a,b) => b.pts - a.pts || b.w - a.w).map((s,i) => ({ place:i+1, ...s }));
   }
+  // El ID se saca de la tabla y se guarda al lado, indexado por puesto.
+  ID_POR_PUESTO = standings.map(p => p.__id);
+  const puesto = Object.fromEntries(ID_POR_PUESTO.map((id, i) => [id, i]));
+  const G = o => P1WIN.includes(o) ? 1 : P2WIN.includes(o) ? 2 : TIE.includes(o) ? 0 : DBLLOSS.includes(o) ? 3 : null;
+  /* Las mesas sin resultado (y los bye) no son partidas: quedan fuera. */
+  DUELOS = crudos.map(([r, a, b, o]) => [r, puesto[a], puesto[b], G(o)])
+    .filter(d => d[1] != null && d[2] != null && d[3] != null);
+  standings = standings.map(({ __id, ...fila }) => fila);
   return { name, roundtime, startdate, fecha: fechaISO(startdate),
            rounds, standings, phase, lastRound: lastR.number,
            pendientes, updatedAt: Date.now() };
@@ -2048,6 +2701,26 @@ onValue(ref(db, BASE + "/pairings"), snap => {
    13. Historial y puntos por puesto
    ========================================================= */
 const R_HIST = ref(db, BASE + "/historial");
+
+/* Quien compartio su ID de jugador con esta sala: ID del .tdf -> uid de la
+   cuenta. El nodo enlaces/<sala> solo lo lee el dueño de la sala, asi que esto
+   se engancha recien cuando se confirma que lo eres.
+
+   Si las reglas todavia no estan publicadas en la consola, la lectura falla,
+   el mapa queda vacio y se archiva igual: sin marcar las filas, que es
+   exactamente como funcionaba antes. */
+let ENLACES = {};
+function escucharEnlaces(){
+  onValue(ref(db, "enlaces/" + SALA), s => {
+    const v = s.val() || {};
+    ENLACES = {};
+    Object.entries(v).forEach(([uid, e]) => {
+      /* publico ausente = sí sale: es como funcionaba todo antes de que
+         existiera la opción, y un enlace sin el dato no pidió reservarse. */
+      if (e && e.playerId) ENLACES[String(e.playerId)] = { uid, publico: e.publico !== false };
+    });
+  }, () => { ENLACES = {}; });
+}
 const R_CFG  = ref(db, BASE + "/config");
 const PTS_DEF = [12,10,8,7,6,5,4,3], PTS_REST_DEF = 1;
 let CFG = { puntos: PTS_DEF, resto: PTS_REST_DEF };
@@ -2093,19 +2766,42 @@ async function archivarTorneo(){
     mes: f.slice(0,7),
     rondas: parsed.lastRound,
     jugadores: parsed.standings.length,
-    standings: parsed.standings.map(p => ({ place:p.place, name:p.name, w:p.w, l:p.l, t:p.t, pts:p.pts })),
+    /* La fila lleva el uid solo si ese jugador compartio su ID con la sala.
+       Es lo que despues deja que su perfil reconozca el torneo sin depender de
+       que el nombre este escrito igual que en el .tdf. El ID no viaja: el uid
+       no le dice nada a nadie que no sea su dueño. */
+    /* Quien apagó «salir con mi nombre» queda como «Jugador reservado» en lo
+       que se publica. El puesto, el récord y el uid se quedan: su perfil lo
+       sigue encontrando y la tabla sigue cuadrando, pero nadie más lee el
+       nombre. Solo alcanza a quien compartió su ID con esta sala: sin eso,
+       la tienda no tiene cómo saber cuál fila es la suya. */
+    standings: parsed.standings.map((p, i) => {
+      const e = ENLACES[String(ID_POR_PUESTO[i] || "")];
+      const fila = { place:p.place, name:p.name, w:p.w, l:p.l, t:p.t, pts:p.pts };
+      if (e){
+        fila.uid = e.uid;
+        if (!e.publico){ fila.name = "Jugador reservado"; fila.reservado = true; }
+      }
+      return fila;
+    }),
+    partidas: DUELOS,
     creado: Date.now()
   };
+  const enlazadas = registro.standings.filter(f => f.uid).length;
   try {
     await conTimeout(push(R_HIST, registro), 15000);
     $("archMsg").innerHTML = '<span class="ok">Archivado ✓ ' + esc(parsed.name) +
-                             ' &middot; ' + fechaLarga(f) + '</span>';
+                             ' &middot; ' + fechaLarga(f) +
+                             (enlazadas ? ' &middot; ' + enlazadas +
+                               (enlazadas === 1 ? ' jugador enlazado' : ' jugadores enlazados')
+                              : '') + '</span>';
   } catch(e){ $("archMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
 }
 $("archiveBtn").onclick = archivarTorneo;
 
 onValue(R_HIST, snap => {
   const v = snap.val() || {};
+  HIST_P = v; pintarInsPanel();
   const items = Object.entries(v).sort((a,b) => (b[1].creado||0) - (a[1].creado||0));
   if (!items.length){ $("histList").textContent = "Aún no hay torneos archivados."; return; }
   $("histList").innerHTML = "";
@@ -2143,6 +2839,12 @@ const COLORES_RULETA = ["#DDCC88","#DDA288","#DD88DD","#AB88DD",
 const norm = a => ((a % TAU) + TAU) % TAU;
 const easeOut = t => 1 - Math.pow(1 - t, 4);
 
+/* Quien pidio menos movimiento en su sistema operativo lo pidio para todo, no
+   solo para el CSS. La ruleta gira con requestAnimationFrame, que ninguna regla
+   de hoja de estilo alcanza: hay que preguntarlo a mano. */
+const menosMovimiento = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+
 /* Sorteo de verdad: el azar del navegador con rechazo de los valores que
    caerían fuera del múltiplo exacto, para que ningún nombre pese más. */
 function azar(n){
@@ -2177,7 +2879,7 @@ function dibujarRueda(cv, items, rotacion){
     ctx.translate(cx, cy);
     ctx.rotate(a0 + seg/2);
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#241F29";
+    ctx.fillStyle = "#10231E";
     ctx.font = "600 " + fuente + "px Inter, system-ui, sans-serif";
     const txt = items[i].length > 22 ? items[i].slice(0,21) + "…" : items[i];
     ctx.fillText(txt, R - 16, 0);
@@ -2185,7 +2887,7 @@ function dibujarRueda(cv, items, rotacion){
   }
 
   ctx.beginPath(); ctx.arc(cx, cy, R*0.13, 0, TAU);
-  ctx.fillStyle = "#2A242F"; ctx.fill();
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--pagina").trim(); ctx.fill();
   ctx.strokeStyle = "rgba(233,233,237,.28)"; ctx.lineWidth = 2; ctx.stroke();
 }
 
@@ -2299,6 +3001,11 @@ function girar(){
     publicarSorteo();
     pintarRuleta();
   };
+  /* Sin giro: la rueda aparece ya frenada en el ganador. El resultado es el
+     mismo y el sorteo sigue siendo sincronizado; lo unico que se pierde son
+     los cuatro segundos de rotacion, que es exactamente lo que se pidio. */
+  if (menosMovimiento()){ rot = to; pintarRuleta(); fin(); return; }
+
   const paso = () => {
     if (!girando) return;
     const t = Math.min(1, Math.max(0, (now() - startAt) / dur));

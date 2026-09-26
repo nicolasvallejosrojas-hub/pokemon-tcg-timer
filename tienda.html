@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<title>Tiendas — Mis Torneos</title>
+<link rel="stylesheet" href="estilo.css?v=10">
+<style>
+  /* El perfil público de una tienda, y sin ?sala= el directorio de tiendas.
+     Estructura «Página», la que eligió el usuario: portada del color de la
+     tienda, el logo encima, Seguir y Favorita, y pestañas. En escritorio, la
+     columna de la izquierda es la información fija de la tienda. */
+  body{min-height:100vh;}
+  .oculto{display:none !important;}
+  .ancho{width:100%;max-width:1120px;margin:0 auto;padding:0 var(--e4);box-sizing:border-box;}
+  h1,h2,h3{margin:0;}
+  a{color:var(--accion-texto);}
+  /* Los botones que son enlaces: sin subrayado y centrados, con piso de 44 px. */
+  .btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+
+  .sup{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:var(--e2);
+    min-height:56px;padding:0 max(var(--e4), env(safe-area-inset-right)) 0 max(var(--e4), env(safe-area-inset-left));}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);margin-right:auto;
+    color:var(--texto);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;}
+  .sup .btn{min-height:36px;padding:0 14px;font-size:var(--t2);background:transparent;}
+
+  .grande{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;}
+  .gtit{font-size:var(--t2);text-transform:uppercase;letter-spacing:.02em;color:var(--apagado);
+    margin:var(--e4) var(--e3) 7px;font-weight:400;display:flex;justify-content:space-between;gap:var(--e2);}
+  .gtit a,.gtit button{color:var(--accion-texto);text-transform:none;letter-spacing:0;text-decoration:none;
+    background:none;border:none;font:inherit;cursor:pointer;padding:0;}
+  .grupo{background:var(--sup);border-radius:var(--radio);overflow:hidden;}
+  .fila{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 14px;position:relative;
+    box-sizing:border-box;color:var(--texto);text-decoration:none;}
+  .fila + .fila::before{content:"";position:absolute;top:0;right:0;left:14px;height:1px;background:var(--divider);}
+  a.fila:hover{background:var(--sup-alta);}
+  .fila .txt{flex:1;min-width:0;}
+  .fila b{display:block;font-weight:500;overflow-wrap:anywhere;}
+  .fila small{display:block;font-size:var(--t2);color:var(--apagado);margin-top:1px;}
+  .fila .der{color:var(--apagado);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .fila > svg{flex:none;color:var(--rotulo);}
+  .vacio{padding:var(--e5) var(--e3);text-align:center;color:var(--apagado);font-size:var(--t3);line-height:1.6;}
+  .pos{width:24px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--rotulo);}
+  .pos.p1{color:var(--podio1-texto);} .pos.p2{color:var(--podio2-texto);} .pos.p3{color:var(--podio3-texto);}
+  .reservado b{font-style:italic;color:var(--apagado);}
+  /* La fila propia, igual que en el muro: fondo un escalón arriba y el anillo. */
+  .fila.yo{background:var(--sup-alta);box-shadow:inset 0 0 0 2px var(--accion);border-radius:var(--radio);}
+  .fecha{flex:none;width:46px;text-align:center;}
+  .fecha b{font-size:var(--t5);font-weight:700;line-height:1;}
+  .fecha small{font-size:var(--t1);letter-spacing:.08em;text-transform:uppercase;color:var(--accion-texto);
+    font-weight:600;margin-top:2px;}
+
+  .logoT{flex:none;display:grid;place-items:center;border-radius:50%;background:var(--c, var(--franja));
+    color:#fff;font-weight:700;letter-spacing:-.02em;}
+  .verif{display:inline-flex;align-items:center;gap:4px;color:var(--franja);font-size:var(--t2);font-weight:600;
+    vertical-align:middle;}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;flex:none;}
+  .fav svg{color:var(--podio1);}
+  .logoT.org{width:34px;height:34px;font-size:var(--t2);background:var(--sup-alta);color:var(--texto);}
+
+  /* ---------------------------------------------------------- perfil */
+  .portada{height:112px;background:var(--c, var(--franja));
+    background-image:radial-gradient(rgba(255,255,255,.14) 1.5px, transparent 1.6px);background-size:18px 18px;}
+  .ident{display:flex;flex-direction:column;gap:var(--e1);margin-top:-44px;}
+  .ident .logoT{width:88px;height:88px;font-size:var(--d3);box-shadow:0 0 0 4px var(--pagina);margin-bottom:6px;}
+  .meta{font-size:var(--t2);color:var(--apagado);}
+  .acciones{display:grid;grid-template-columns:1fr 1fr;gap:var(--e2);margin-top:var(--e3);}
+  .acciones .btn{min-height:44px;padding:0 18px;}
+  .nota{font-size:var(--t2);color:var(--apagado);line-height:1.5;margin:var(--e2) 0 0;}
+
+  .tabs{display:flex;gap:var(--e4);margin-top:var(--e4);border-bottom:1px solid var(--divider);overflow-x:auto;
+    scrollbar-width:none;}
+  .tabs button{background:none;border:none;font:inherit;font-size:var(--t3);color:var(--apagado);
+    padding:12px 0;border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;min-height:44px;}
+  .tabs button[aria-selected="true"]{color:var(--accion-texto);border-color:var(--accion);font-weight:600;}
+
+  .cols{display:grid;gap:var(--e4);padding-bottom:var(--e6);}
+  .cols > aside{display:none;}
+
+  .envivo{background:var(--lienzo);border-radius:var(--radio);padding:var(--e4);margin-top:var(--e4);}
+  .envivo .vivo{display:inline-flex;align-items:center;gap:6px;font-size:var(--t2);font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;}
+  .envivo .reloj{font-size:calc(var(--d2) * 1.6);line-height:1;margin:var(--e2) 0 var(--e1);text-align:left;
+    text-shadow:none;}
+  .envivo .reloj.texto{font-size:calc(var(--d2) * 1.2);}
+  .envivo .nom{font-size:var(--t3);color:var(--apagado);}
+  .envivo .acc{display:grid;grid-template-columns:1fr 1fr;gap:var(--e2);margin-top:var(--e4);}
+  .envivo .btn{min-height:44px;padding:0 16px;}
+  .envivo .btn:not(.primario){background:rgba(255,255,255,.12);color:var(--sobre-lienzo);}
+  .mesasV{display:none;}
+  .mesaM{background:rgba(255,255,255,.07);border-radius:10px;padding:9px 11px;font-size:var(--t2);}
+  .mesaM.mia{outline:2px solid var(--accion);outline-offset:-2px;}
+  .mesaM .rot{display:block;font-size:var(--t1);letter-spacing:.1em;color:var(--apagado);margin-bottom:4px;}
+  .mesaM b{display:block;font-weight:600;overflow-wrap:anywhere;}
+  .mesaM small{display:block;color:var(--apagado);margin-bottom:3px;font-variant-numeric:tabular-nums;}
+  .dos{display:grid;gap:0 var(--e4);}
+  #mesSel{margin:var(--e3) 0 0;font-size:var(--t3);}
+
+  /* ---------------------------------------------------------- directorio */
+  #vDir{padding-top:var(--e4);padding-bottom:var(--e6);max-width:720px;}
+  #buscar{width:100%;margin-top:var(--e3);font-size:var(--t4);padding:11px 14px;}
+
+  @media (min-width:900px){
+    .portada{height:168px;}
+    .ident{flex-direction:row;align-items:flex-end;gap:var(--e4);margin-top:-60px;}
+    .ident .logoT{width:132px;height:132px;font-size:var(--d2);box-shadow:0 0 0 5px var(--pagina);margin:0;}
+    .ident .quien{flex:1;padding-bottom:6px;}
+    .ident .grande{font-size:calc(var(--d3) * 1.25);}
+    .meta{font-size:var(--t3);}
+    .acciones{display:flex;align-items:center;margin:0 0 8px;}
+    .cols{grid-template-columns:300px minmax(0,1fr);gap:28px;}
+    .cols > aside{display:block;}
+    .tabs .soloMovil{display:none;}
+    .envivo{display:grid;grid-template-columns:1fr 1.25fr;gap:var(--e5);align-items:center;padding:var(--e5);}
+    .envivo .reloj{font-size:calc(var(--d2) * 2.2);}
+    .envivo .acc{max-width:320px;}
+    .mesasV{display:grid;grid-template-columns:1fr 1fr;gap:var(--e2);}
+    .dos{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+  <header class="sup vidrio">
+    <a class="marca" href="index.html" data-link="inicio">Mis Torneos</a>
+    <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
+    <a class="btn" href="cuenta.html" id="aCuenta">Entrar</a>
+  </header>
+
+  <!-- ================================================= DIRECTORIO -->
+  <main class="ancho oculto" id="vDir">
+    <h1 class="grande">Tiendas</h1>
+    <input type="search" id="buscar" placeholder="Busca por nombre o comuna" aria-label="Buscar tiendas">
+    <div id="dirFav"></div>
+    <h2 class="gtit">Tiendas verificadas</h2>
+    <div class="grupo" id="dirLista"><div class="vacio">Cargando…</div></div>
+    <p class="nota" style="margin:var(--e4) var(--e1) 0">¿Organizas torneos en una tienda?
+      <a href="admin.html" data-link="panel">Crea su cuenta desde el panel</a>. Aparece acá cuando la verifiquemos.</p>
+  </main>
+
+  <!-- ================================================= PERFIL -->
+  <div class="oculto" id="vPerfil">
+    <div class="portada" id="portada"></div>
+    <div class="ancho">
+      <div class="ident">
+        <div class="logoT" id="logo" aria-hidden="true"></div>
+        <div class="quien">
+          <h1 class="grande" id="nombre">…</h1>
+          <div class="meta" id="meta1"></div>
+          <div class="meta" id="meta2"></div>
+        </div>
+        <div class="acciones" id="acciones"></div>
+      </div>
+      <div class="aviso mal oculto" id="errAccion" role="alert" style="margin-top:var(--e3)"></div>
+      <p class="nota oculto" id="notaId"></p>
+
+      <nav class="tabs" role="tablist" aria-label="Secciones de la tienda">
+        <button role="tab" data-tab="vivo" aria-selected="true">En vivo</button>
+        <button role="tab" data-tab="clas" aria-selected="false">Clasificación</button>
+        <button role="tab" data-tab="torneos" aria-selected="false">Torneos</button>
+        <button role="tab" data-tab="agenda" aria-selected="false">Agenda</button>
+        <button role="tab" data-tab="info" aria-selected="false" class="soloMovil">Información</button>
+      </nav>
+    </div>
+
+    <div class="ancho cols">
+      <aside id="infoLado"></aside>
+      <main>
+        <section data-sec="vivo">
+          <div id="vivo"></div>
+          <div class="dos">
+            <div><h2 class="gtit"><span id="hClasCorta">Clasificación</span> <button data-ir="clas">Ver todo</button></h2>
+              <div class="grupo" id="clasCorta"></div></div>
+            <div><h2 class="gtit">Últimos torneos <button data-ir="torneos">Ver todos</button></h2>
+              <div class="grupo" id="torneosCorta"></div></div>
+          </div>
+        </section>
+        <section data-sec="clas" class="oculto">
+          <select id="mesSel" aria-label="Mes de la clasificación"></select>
+          <h2 class="gtit" id="hClas">Clasificación</h2>
+          <div class="grupo" id="clasTodo"></div>
+          <p class="nota" style="margin:var(--e2) var(--e3) 0" id="clasNota"></p>
+        </section>
+        <section data-sec="torneos" class="oculto">
+          <h2 class="gtit">Torneos jugados</h2>
+          <div class="grupo" id="torneosTodo"></div>
+        </section>
+        <section data-sec="agenda" class="oculto">
+          <h2 class="gtit">Próximas fechas</h2>
+          <div class="grupo" id="agendaTodo"></div>
+        </section>
+        <section data-sec="info" class="oculto" id="infoTab"></section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================================================= NO EXISTE -->
+  <main class="ancho oculto" id="vNada">
+    <div class="vacio" style="padding-top:var(--e6)"><b style="display:block;font-size:var(--t5);color:var(--texto)">Esa tienda no existe</b>
+      Puede que el enlace esté mal escrito. <a href="tienda.html" data-link="tiendas">Ver todas las tiendas</a>.</div>
+  </main>
+
+<script src="config.js?v=7"></script>
+<script type="module">
+import { ref, onValue, get, set, update, query, orderByChild, equalTo }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { db, auth, enEmulador, urlCuenta, urlMuro, urlPanel } from "./sesion.js?v=3";
+import { slug, nombreTienda, iniciales } from "./sala.js?v=2";
+import { ordenar, estaVigente, fechaLegible, cuantoFalta, urlGoogle, MES_LARGO } from "./agenda.js?v=4";
+import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF } from "./clasificacion.js?v=1";
+
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const ID = slug(new URLSearchParams(location.search).get("sala"));   // sin sala: el directorio
+
+/* Los enlaces llevan el ?emu=1: sin eso, en una prueba local se abriría la
+   base real. */
+const EMU = enEmulador() ? "emu=1&" : "";
+const aTienda = id => "tienda.html?" + EMU + "sala=" + encodeURIComponent(id);
+const aTimer  = (id, h) => "timer-view.html?" + EMU + "sala=" + encodeURIComponent(id) + (h ? "#" + h : "");
+const DEST = { inicio: "index.html" + (EMU ? "?" + EMU.slice(0, -1) : ""), tiendas: "tienda.html" + (EMU ? "?" + EMU.slice(0, -1) : ""),
+               panel: urlPanel() };
+document.querySelectorAll("[data-link]").forEach(a => a.href = DEST[a.dataset.link]);
+
+const ICO = {
+  estrella: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z"/></svg>',
+  estrellaLlena: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z"/></svg>',
+  verif: '<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8l2.3 1.7 2.9-.2.9 2.7 2.3 1.8-.9 2.7.9 2.7-2.3 1.8-.9 2.7-2.9-.2L12 21.2l-2.3-1.7-2.9.2-.9-2.7-2.3-1.8.9-2.7-.9-2.7 2.3-1.8.9-2.7 2.9.2z"/><path d="M8.5 12.2l2.3 2.3 4.7-4.8" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chev: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  lugar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0113 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+  cal: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  enlace: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg>',
+  mesas: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+  pantalla: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+};
+const logo = (perfil, id, px) => '<span class="logoT" style="--c:' + esc((perfil && perfil.color) || "var(--franja)") +
+  ';width:' + px + 'px;height:' + px + 'px;font-size:' + Math.round(px * .34) + 'px" aria-hidden="true">' +
+  esc(iniciales(nombreTienda(perfil, id))) + "</span>";
+function fechaBadge(f){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(f || "");
+  return m ? '<div class="fecha"><b>' + +m[3] + "</b><small>" + MES_LARGO[+m[2] - 1].slice(0, 3) + "</small></div>"
+           : '<div class="fecha"></div>';
+}
+
+let usuario = null, PERFIL, MIAS = null;
+onAuthStateChanged(auth, u => {
+  usuario = u;
+  $("aCuenta").textContent = u ? "Mi muro" : "Entrar";
+  $("aCuenta").href = u ? urlMuro() : urlCuenta("ingresar");
+  PERFIL = undefined; MIAS = null;
+  if (!u){ pintarAcciones(); pintarDir(); return; }
+  /* El perfil del jugador: para marcar su mesa y para saber si puede seguir
+     (una cuenta de organizador sin perfil de jugador no tiene dónde guardarlo). */
+  onValue(ref(db, "usuarios/" + u.uid), s => { PERFIL = s.val(); MIAS = (PERFIL && PERFIL.tiendas) || {};
+    pintarAcciones(); pintarVivo(); pintarClas(); pintarDir(); }, () => { PERFIL = null; pintarAcciones(); });
+});
+
+/* ============================================================ DIRECTORIO */
+let VERIF = null, EXTRA = {};
+function directorio(){
+  $("vDir").classList.remove("oculto");
+  document.title = "Tiendas — Mis Torneos";
+  onValue(query(ref(db, "tiendas"), orderByChild("verificada"), equalTo(true)),
+          s => { VERIF = s.val() || {}; pintarDir(); },
+          () => { $("dirLista").innerHTML = '<div class="vacio">No se pudo cargar la lista.</div>'; });
+  $("buscar").oninput = pintarDir;
+}
+function filaTienda(id, t){
+  const p = t && t.perfil, mia = (MIAS || {})[id];
+  const der = mia && mia.favorita ? '<span class="fav" title="Favorita">' + ICO.estrellaLlena + "</span>"
+            : mia ? '<span class="der">Siguiendo</span>' : ICO.chev;
+  return '<a class="fila" href="' + aTienda(id) + '">' + logo(p, id, 44) +
+    '<div class="txt"><b>' + esc(nombreTienda(p, id)) + (t && t.verificada ? ' <span class="verif">' + ICO.verif + "</span>" : "") +
+    "</b><small>" + esc((p && p.comuna) || "Sin comuna") + "</small></div>" + der + "</a>";
+}
+function pintarDir(){
+  if (ID) return;
+  const q = $("buscar").value.trim().toLowerCase();
+  const pasa = (id, t) => !q || (nombreTienda(t && t.perfil, id) + " " + ((t && t.perfil && t.perfil.comuna) || ""))
+                                  .toLowerCase().includes(q);
+  /* Las favoritas van arriba aunque no estén verificadas: el jugador ya las eligió. */
+  const favs = Object.keys(MIAS || {}).filter(id => MIAS[id] && MIAS[id].favorita);
+  favs.filter(id => !(VERIF || {})[id] && !(id in EXTRA)).forEach(id => {
+    EXTRA[id] = null;
+    get(ref(db, "tiendas/" + id)).then(s => { EXTRA[id] = s.val() || {}; pintarDir(); }).catch(() => {});
+  });
+  const tiendaDe = id => (VERIF || {})[id] || EXTRA[id];
+  const f = favs.filter(id => pasa(id, tiendaDe(id)));
+  $("dirFav").innerHTML = f.length ? '<h2 class="gtit">Tus favoritas</h2><div class="grupo">' +
+    f.map(id => filaTienda(id, tiendaDe(id))).join("") + "</div>" : "";
+  if (VERIF === null) return;
+  const ids = Object.keys(VERIF).filter(id => !favs.includes(id) && pasa(id, VERIF[id]))
+    .sort((a, b) => nombreTienda(VERIF[a].perfil, a).localeCompare(nombreTienda(VERIF[b].perfil, b)));
+  $("dirLista").innerHTML = ids.length ? ids.map(id => filaTienda(id, VERIF[id])).join("")
+    : '<div class="vacio">' + (q ? "Ninguna tienda calza con «" + esc(q) + "»." : "Todavía no hay tiendas verificadas.") + "</div>";
+}
+
+/* ============================================================ PERFIL */
+let TIENDA, OWNER, ESTADO = null, PAIR = null, HIST = null, CFG = PUNTOS_DEF, AG = [], offset = 0, mesSel = null;
+const ahora = () => Date.now() + offset;
+
+function perfil(){
+  $("vPerfil").classList.remove("oculto");
+  onValue(ref(db, ".info/serverTimeOffset"), s => offset = s.val() || 0);
+  onValue(ref(db, "tiendas/" + ID), s => { TIENDA = s.val(); existe(); pintarCabecera(); pintarInfo(); });
+  onValue(ref(db, "salas/" + ID + "/owner"), s => { OWNER = s.val(); existe(); });
+  onValue(ref(db, "salas/" + ID + "/timer/state"), s => { ESTADO = s.val(); pintarVivo(); });
+  onValue(ref(db, "salas/" + ID + "/pairings"), s => { PAIR = s.val(); pintarVivo(); });
+  onValue(ref(db, "salas/" + ID + "/config"), s => {
+    const v = s.val(); if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? 1 };
+    pintarClas(); });
+  onValue(ref(db, "salas/" + ID + "/historial"), s => { HIST = Object.values(s.val() || {});
+    pintarCabecera(); pintarClas(); pintarTorneos(); });
+  onValue(ref(db, "salas/" + ID + "/agenda"), s => {
+    AG = ordenar(Object.entries(s.val() || {}).map(([id, e]) => ({ id, ...e }))); pintarVivo(); pintarAgenda(); });
+  setInterval(pintarReloj, 1000);
+}
+/* Una sala sin tienda es una sala de antes del 25-09: se muestra igual, con
+   el nombre sacado del id. Sin sala ni tienda, el enlace está mal. */
+function existe(){
+  if (TIENDA === undefined || OWNER === undefined) return;
+  const nada = !TIENDA && !OWNER;
+  $("vPerfil").classList.toggle("oculto", nada);
+  $("vNada").classList.toggle("oculto", !nada);
+}
+
+function pintarCabecera(){
+  const p = TIENDA && TIENDA.perfil, nom = nombreTienda(p, ID);
+  document.title = nom + " — Mis Torneos";
+  const color = (p && p.color) || "";
+  $("portada").style.setProperty("--c", color || "var(--franja)");
+  $("logo").style.setProperty("--c", color || "var(--franja)");
+  $("logo").textContent = iniciales(nom);
+  $("nombre").textContent = nom;
+  $("meta1").innerHTML = (TIENDA && TIENDA.verificada ? '<span class="verif">' + ICO.verif + " Tienda verificada</span>" : "") +
+    (TIENDA && TIENDA.verificada && p && p.comuna ? " · " : "") + esc((p && p.comuna) || "");
+  const n = (HIST || []).length, c = p && p.creada ? new Date(p.creada) : null;
+  $("meta2").textContent = [n ? n + (n === 1 ? " torneo" : " torneos") : "",
+    c ? "desde " + MES_LARGO[c.getMonth()] + " de " + c.getFullYear() : ""].filter(Boolean).join(" · ");
+}
+
+function pintarAcciones(){
+  if (!ID) return;
+  const mia = (MIAS || {})[ID];
+  let h;
+  if (!usuario){
+    h = '<a class="btn primario" href="' + urlCuenta("ingresar") + '">Seguir</a>' +
+        '<a class="btn" href="' + urlCuenta("ingresar") + '">' + ICO.estrella + " Favorita</a>";
+  } else if (PERFIL === undefined){
+    h = "";
+  } else if (PERFIL === null){
+    h = '<a class="btn primario" href="' + urlCuenta("ajustes") + '">Completa tu cuenta para seguirla</a>';
+  } else {
+    h = (mia ? '<button class="btn" id="bSeguir">' + ICO.check + " Siguiendo</button>"
+             : '<button class="btn primario" id="bSeguir">Seguir</button>') +
+        '<button class="btn" id="bFav" aria-pressed="' + !!(mia && mia.favorita) + '">' +
+        (mia && mia.favorita ? '<span class="fav">' + ICO.estrellaLlena + "</span> Favorita" : ICO.estrella + " Favorita") + "</button>";
+  }
+  $("acciones").innerHTML = h;
+  if ($("bSeguir")) $("bSeguir").onclick = () => accion(mia ? dejar : seguir);
+  if ($("bFav")) $("bFav").onclick = () => accion(() => favorita(!(mia && mia.favorita)));
+  /* Seguir es el momento de compartir el ID: eso vive en el muro de la tienda. */
+  const nota = mia && PERFIL && PERFIL.playerId && !mia.compartirId;
+  $("notaId").classList.toggle("oculto", !nota);
+  if (nota) $("notaId").innerHTML = 'Para que tus resultados lleguen solos a tu perfil, <a href="' + urlMuro() +
+    '">comparte tu ID con la tienda desde tu muro</a>.';
+}
+const miRef = () => "usuarios/" + usuario.uid + "/tiendas/" + ID;
+const seguir = () => set(ref(db, miRef()), { desde: Date.now(), compartirId: false });
+/* Dejar de seguir se lleva el ID compartido, igual que en el muro. */
+const dejar = () => update(ref(db), { [miRef()]: null, ["enlaces/" + ID + "/" + usuario.uid]: null });
+const favorita = v => (MIAS || {})[ID] ? update(ref(db, miRef()), { favorita: v })
+                                       : set(ref(db, miRef()), { desde: Date.now(), compartirId: false, favorita: v });
+async function accion(f){
+  $("errAccion").classList.add("oculto");
+  try { await f(); }
+  catch(e){ $("errAccion").textContent = "No se pudo guardar. Revisa la conexión."; $("errAccion").classList.remove("oculto"); }
+}
+
+/* ------------------------------------------------------------ en vivo */
+const rondaActual = () => PAIR && PAIR.rounds && PAIR.rounds.length ? PAIR.rounds[PAIR.rounds.length - 1] : null;
+function hayTorneo(){
+  const corriendo = !!(ESTADO && !ESTADO.paused && ESTADO.endTime);
+  /* Emparejamientos de hace más de 12 horas son de un torneo que ya pasó. */
+  const reciente = !!(rondaActual() && Date.now() - (PAIR.updatedAt || 0) < 12 * 3600e3);
+  return corriendo || reciente;
+}
+const segundos = () => !ESTADO ? null : (ESTADO.paused || !ESTADO.endTime)
+  ? Math.round(ESTADO.remaining ?? 0) : Math.round((ESTADO.endTime - ahora()) / 1000);
+const fmt = s => (s < 0 ? "-" : "") + String(Math.floor(Math.abs(s) / 60)).padStart(2, "0") + ":" +
+                 String(Math.abs(s) % 60).padStart(2, "0");
+function pintarReloj(){
+  const r = $("vtReloj"), s = segundos();
+  if (!r || s === null) return;
+  r.textContent = fmt(s);
+  r.style.opacity = ESTADO && ESTADO.paused ? ".5" : "1";
+}
+const norm = t => String(t || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+function pintarVivo(){
+  if (!ID) return;
+  const r = rondaActual();
+  if (hayTorneo()){
+    const yo = PERFIL ? norm(PERFIL.nombre) : "";
+    const ms = (r && r.matches) || [];
+    const mia = m => !!yo && (norm(m.p1) === yo || (!!m.p2 && norm(m.p2) === yo));
+    /* Mi mesa primero, después las demás por número y el bye al final: son
+       cuatro, no la ronda entera. */
+    const orden = [...ms].sort((a, b) => (mia(b) - mia(a)) || (!a.p2 - !b.p2) || ((+a.table || 0) - (+b.table || 0)));
+    const rec = x => x ? x.w + "-" + x.l + "-" + x.t : "";
+    $("vivo").innerHTML = '<div class="envivo isla"><div>' +
+      '<div class="vivo"><span class="punto"></span>En vivo' + (r ? " · Ronda " + r.number : "") + "</div>" +
+      '<div class="reloj num" id="vtReloj">--:--</div>' +
+      '<div class="nom">' + esc((PAIR && PAIR.name) || "Torneo en curso") + "</div>" +
+      '<div class="acc"><a class="btn primario" href="' + aTimer(ID, "mesas") + '">' + ICO.mesas + " Mesas</a>" +
+      '<a class="btn" href="' + aTimer(ID) + '">' + ICO.pantalla + " Timer</a></div></div>" +
+      '<div class="mesasV" aria-hidden="true">' + orden.slice(0, 4).map(m =>
+        '<div class="mesaM' + (mia(m) ? " mia" : "") + '">' +
+        '<span class="rot">MESA ' + esc(m.p2 ? m.table : "—") + "</span><b>" + esc(m.p1) + "</b><small>" + rec(m.p1rec) + "</small>" +
+        (m.p2 ? "<b>" + esc(m.p2) + "</b><small>" + rec(m.p2rec) + "</small>" : "<small>Bye</small>") + "</div>").join("") +
+      "</div></div>";
+    pintarReloj();
+  } else {
+    const prox = AG.find(e => estaVigente(e, ahora()));
+    $("vivo").innerHTML = '<div class="envivo isla"><div>' +
+      '<div class="vivo" style="color:var(--apagado)">' + (prox ? "Próxima fecha" : "Sin torneo en curso") + "</div>" +
+      '<div class="reloj texto">' + esc(prox ? cuantoFalta(prox, ahora()) : "Pronto") + "</div>" +
+      '<div class="nom">' + (prox ? esc(prox.titulo) + " · " + esc(fechaLegible(prox.fecha)) + (prox.hora ? ", " + esc(prox.hora) : "")
+                                 : "Cuando la tienda anuncie su próxima fecha, aparece acá.") + "</div>" +
+      (prox ? '<div class="acc"><a class="btn primario" href="' + urlGoogle(prox) + '" target="_blank" rel="noopener">' + ICO.cal + " Agendar</a>" +
+              '<button class="btn" data-ir="agenda">Ver agenda</button></div>' : "") + "</div></div>";
+  }
+}
+
+/* ------------------------------------------------------------ clasificación */
+function filasClas(filas, n){
+  const yo = PERFIL ? norm(PERFIL.nombre) : "";
+  return filas.slice(0, n).map((r, i) => {
+    const pos = i + 1, medalla = pos <= 3 ? " p" + pos : "";
+    const mia = (yo && norm(r.name) === yo) || (usuario && r.uid && r.uid === usuario.uid);
+    return '<div class="fila' + (r.reservado ? " reservado" : "") + (mia ? " yo" : "") + '"' +
+      '><span class="pos' + medalla + '">' + pos + '</span><div class="txt"><b>' + esc(mia && r.reservado ? "Tú · reservado" : r.name) +
+      "</b><small>" + r.torneos + (r.torneos === 1 ? " torneo" : " torneos") +
+      (r.wr === null ? "" : " · " + r.wr.toFixed(0) + "% vict.") + '</small></div><span class="der">' + r.pts + " pts</span></div>";
+  }).join("");
+}
+function pintarClas(){
+  if (!HIST) return;
+  const meses = mesesDe(HIST);
+  if (!meses.length){
+    const v = '<div class="vacio">Todavía no hay torneos archivados.</div>';
+    $("clasCorta").innerHTML = v; $("clasTodo").innerHTML = v; $("mesSel").classList.add("oculto"); return;
+  }
+  if (!mesSel || !meses.includes(mesSel)) mesSel = meses[0];
+  $("mesSel").classList.remove("oculto");
+  $("mesSel").innerHTML = meses.map(m => '<option value="' + m + '"' + (m === mesSel ? " selected" : "") + ">" + nombreMes(m) + "</option>").join("");
+  const actual = clasificar(HIST, meses[0], CFG);
+  $("hClasCorta").textContent = "Clasificación de " + nombreMes(meses[0]).split(" ")[0];
+  $("clasCorta").innerHTML = filasClas(actual, 5);
+  const filas = clasificar(HIST, mesSel, CFG), n = HIST.filter(t => mesDe(t) === mesSel).length;
+  $("hClas").textContent = "Clasificación de " + nombreMes(mesSel);
+  $("clasTodo").innerHTML = filasClas(filas, filas.length);
+  $("clasNota").textContent = n + (n === 1 ? " torneo" : " torneos") + " en " + nombreMes(mesSel) + ".";
+}
+$("mesSel").onchange = e => { mesSel = e.target.value; pintarClas(); };
+
+/* ------------------------------------------------------------ torneos y agenda */
+function pintarTorneos(){
+  const ts = [...(HIST || [])].sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
+  const fila = t => {
+    const g = (t.standings || [])[0];
+    return '<div class="fila">' + fechaBadge(t.fecha) + '<div class="txt"><b>' + esc(t.nombre || "Torneo") + "</b><small>" +
+      [t.jugadores ? t.jugadores + " jugadores" : "", g ? "ganó " + (g.reservado ? "Jugador reservado" : g.name) : ""]
+        .filter(Boolean).map(esc).join(" · ") + "</small></div></div>";
+  };
+  const v = '<div class="vacio">Todavía no hay torneos archivados.</div>';
+  $("torneosCorta").innerHTML = ts.length ? ts.slice(0, 3).map(fila).join("") : v;
+  $("torneosTodo").innerHTML = ts.length ? ts.map(fila).join("") : v;
+}
+function pintarAgenda(){
+  const prox = AG.filter(e => estaVigente(e, ahora()));
+  $("agendaTodo").innerHTML = prox.length ? prox.map(e =>
+    '<a class="fila" href="' + urlGoogle(e) + '" target="_blank" rel="noopener">' + fechaBadge(e.fecha) + '<div class="txt"><b>' + esc(e.titulo) +
+    "</b><small>" + esc([fechaLegible(e.fecha) + (e.hora ? ", " + e.hora : ""), e.lugar || ""].filter(Boolean).join(" · ")) +
+    '</small></div><span class="der">' + esc(cuantoFalta(e, ahora())) + "</span></a>").join("")
+    : '<div class="vacio">No hay fechas anunciadas.</div>';
+}
+
+/* ------------------------------------------------------------ información */
+function pintarInfo(){
+  const p = (TIENDA && TIENDA.perfil) || {}, mm = (TIENDA && TIENDA.miembros) || {};
+  const datos = [
+    p.direccion ? '<div class="fila">' + ICO.lugar + '<div class="txt"><b>' + esc(p.direccion) + "</b><small>" + esc(p.comuna || "") + "</small></div></div>" : "",
+    p.horario ? '<div class="fila">' + ICO.cal + '<div class="txt"><b>' + esc(p.horario) + "</b><small>Torneos</small></div></div>" : "",
+    p.instagram ? '<a class="fila" href="https://instagram.com/' + encodeURIComponent(p.instagram) + '" target="_blank" rel="noopener">' + ICO.enlace +
+      '<div class="txt"><b>@' + esc(p.instagram) + "</b><small>Instagram</small></div></a>" : "",
+  ].join("");
+  const orgs = Object.values(mm).sort((a, b) => (a.rol === "dueno" ? -1 : 0) - (b.rol === "dueno" ? -1 : 0));
+  const h = '<h2 class="gtit">Sobre la tienda</h2><div class="grupo">' +
+      (datos || '<div class="vacio" style="padding:var(--e4)">La tienda todavía no completa su información.</div>') + "</div>" +
+    (orgs.length ? '<h2 class="gtit">Organizadores</h2><div class="grupo">' + orgs.map(o =>
+      '<div class="fila"><span class="logoT org" aria-hidden="true">' + esc(iniciales(o.nombre)) + "</span>" +
+      '<div class="txt"><b>' + esc(o.nombre) + "</b><small>" + (o.rol === "dueno" ? "Dueño" : "Organizador") + "</small></div></div>").join("") + "</div>" : "");
+  $("infoLado").innerHTML = h;
+  $("infoTab").innerHTML = h;
+}
+
+/* ------------------------------------------------------------ pestañas */
+function irA(t){
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  document.querySelectorAll("[data-sec]").forEach(s => s.classList.toggle("oculto", s.dataset.sec !== t));
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => irA(b.dataset.tab));
+document.addEventListener("click", e => { const b = e.target.closest("[data-ir]"); if (b) irA(b.dataset.ir); });
+
+if (ID) perfil(); else directorio();
+</script>
+</body>
+</html>

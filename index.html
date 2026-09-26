@@ -2,49 +2,498 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Torneo — Inicio</title>
-<!-- Carga el sistema como las otras dos páginas. Antes tenía su propio <style>
-     con la paleta anterior completa, así que la primera pantalla del sitio era
-     la única que se veía del producto viejo. -->
-<link rel="stylesheet" href="estilo.css?v=5">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="description" content="Tu tienda, tus torneos y la gente que juega contigo. Crea tu cuenta gratis: cada torneo que juegues queda en tu muro.">
+<title>Mis Torneos</title>
+<link rel="stylesheet" href="estilo.css?v=10">
 <style>
-  body{min-height:100vh;box-sizing:border-box;padding:var(--e6) var(--e4);
-       display:flex;flex-direction:column;align-items:center;}
-  h1{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d3);margin:0 0 var(--e1);}
-  .sub{font-size:var(--t2);color:var(--apagado);margin-bottom:var(--e5);text-align:center;}
-  .grid{display:grid;gap:var(--e2);width:100%;max-width:420px;}
+  /* La portada es la puerta del registro, como la de Facebook en 2009: la
+     franja de marca con el ingreso a la derecha, y abajo la frase, el dibujo
+     y el formulario completo a la vista. Nadie tiene que hacer un clic para
+     ver lo que le piden: es lo que hacía que registrarse pareciera fácil.
+     Debajo, cómo funciona. El panel del organizador queda en el pie. */
 
-  /* Enlace-tarjeta: hereda la superficie del sistema y marca el hover subiendo
-     un nivel de fondo, como todo lo demás, en vez de encender un borde. */
-  a.tarjeta{display:block;text-decoration:none;color:var(--texto);
-    background:var(--sup);border-radius:var(--radio);padding:var(--e3) var(--e4);
-    transition:background .15s;}
-  a.tarjeta:hover{background:var(--sup-alta);}
-  a.tarjeta:focus-visible{outline:2px solid var(--accion);outline-offset:2px;}
-  .t{font-size:var(--t4);font-weight:600;margin-bottom:3px;}
-  .d{font-size:var(--t2);color:var(--apagado);line-height:1.5;}
-  .tag{display:inline-block;font-size:var(--t1);letter-spacing:.1em;text-transform:uppercase;
-    font-weight:600;color:var(--rotulo);margin-bottom:var(--e2);}
-  .tag.pub{color:var(--campo);background:var(--accion);border-radius:var(--radio-marca);
-    padding:2px 7px;}
+  body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;}
+  .ancho{width:100%;max-width:1040px;margin:0 auto;padding:0 var(--e4);box-sizing:border-box;}
+  main{flex:1;}
+  h1,h2{font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.025em;}
+  h2{font-size:var(--d3);line-height:1.15;}
+  .oculto{display:none !important;}
+
+  /* ---------------------------------------------------------- la franja */
+  .franja{background:var(--franja);color:var(--sobre-franja);
+    padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+  .franja .ancho{display:flex;align-items:center;justify-content:space-between;gap:var(--e4);
+    min-height:64px;padding-top:var(--e2);padding-bottom:var(--e2);}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d3);letter-spacing:-.01em;
+    color:inherit;text-decoration:none;display:inline-flex;align-items:center;min-height:44px;}
+  /* Sobre la franja todo va invertido —fondo del color del texto y al revés—,
+     así funciona con cualquier franja: clara con letra oscura o al revés. */
+  .franja .btn{background:var(--sobre-franja);color:var(--franja);font-weight:600;}
+  @media (hover:hover){ .franja .btn:hover{background:var(--sobre-franja);filter:brightness(.9);} }
+  .entrar{display:none;}
+  .entrarMovil{min-height:40px;display:inline-flex;align-items:center;text-decoration:none;
+    padding:0 var(--e4);}
+  @media (min-width:900px){
+    .entrarMovil{display:none;}
+    .entrar{display:grid;grid-template-columns:200px 200px auto;column-gap:var(--e2);row-gap:3px;
+      align-items:end;}
+    .entrar label{font-size:var(--t2);opacity:.85;}
+    .entrar input{width:100%;padding:8px 10px;font-size:var(--t3);color:var(--sobre-franja);
+      background:rgba(255,255,255,.16);}
+    .entrar input::placeholder{color:var(--sobre-franja);opacity:.55;}
+    .entrar .btn{padding:8px 16px;min-height:38px;}
+    .entrar .olvide{grid-column:2;font-size:var(--t2);color:inherit;opacity:.85;}
+  }
+  .errEntrar{margin-top:var(--e3);}
+
+  /* ---------------------------------------------------------- el registro */
+  .hero{display:grid;gap:var(--e5);padding-top:var(--e5);padding-bottom:var(--e6);
+    grid-template-areas:"frase" "registro" "mapa";}
+  .hero h1{grid-area:frase;font-size:var(--d3);line-height:1.2;max-width:22ch;}
+  .mapa{grid-area:mapa;min-width:0;}
+  .registro{grid-area:registro;min-width:0;}
+  @media (min-width:900px){
+    .hero{grid-template-columns:1.1fr 1fr;grid-template-areas:"frase registro" "mapa registro";
+      column-gap:var(--e6);row-gap:var(--e4);padding-top:var(--e6);align-items:start;}
+  }
+
+  .registro .gratis{font-size:var(--t5);color:var(--apagado);margin:var(--e1) 0 var(--e4);}
+  /* El incentivo de la beta: la misma medalla que se gana en el perfil. */
+  .betaAviso{display:flex;align-items:center;gap:12px;margin:calc(-1 * var(--e2)) 0 var(--e4);
+    font-size:var(--t3);color:var(--apagado);line-height:1.4;}
+  .betaAviso .med{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(145deg,#FF8A3D,#D93A2B);font-family:var(--fuente-reloj);font-size:21px;line-height:1;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.32);}
+  .betaAviso b{color:var(--texto);}
+  /* Etiqueta a la izquierda y campo a la derecha, como en el formulario de
+     2009: se lee de un vistazo que son cuatro cosas y nada más. En el teléfono,
+     la etiqueta arriba. */
+  .fila{display:grid;gap:6px;margin-bottom:var(--e3);}
+  .fila > label,.fila > .lbl{font-size:var(--t2);color:var(--apagado);}
+  .fila input,.fila select{width:100%;font-size:var(--t4);padding:11px 12px;}
+  @media (min-width:600px){
+    .fila{grid-template-columns:128px minmax(0,1fr);column-gap:var(--e3);align-items:start;}
+    .fila > label,.fila > .lbl{text-align:right;padding-top:12px;}
+  }
+  .fecha{display:grid;grid-template-columns:.8fr 1.3fr 1fr;gap:var(--e2);}
+  .medidor{margin-top:var(--e2);}
+  .falta{display:block;font-size:var(--t2);color:var(--apagado);margin-top:6px;line-height:1.45;}
+  .porque{font-size:var(--t2);color:var(--apagado);margin-top:6px;}
+  .porque summary{cursor:pointer;color:var(--accion-texto);width:fit-content;}
+  .porque p{margin:4px 0 0;line-height:1.5;}
+  @media (min-width:600px){ .enviar{margin-left:calc(128px + var(--e3));} }
+  .enviar .btn{min-height:48px;padding:0 var(--e5);font-size:var(--t4);}
+  .enviar .despues{font-size:var(--t2);color:var(--apagado);margin:var(--e2) 0 0;line-height:1.5;}
+  #errRegistro{margin-bottom:var(--e3);}
+  .org{font-size:var(--t2);color:var(--apagado);margin-top:var(--e5);padding-top:var(--e3);
+    border-top:1px solid var(--divider);text-align:center;}
+  .org a{color:var(--accion-texto);font-weight:600;}
+  @media (max-width:599px){ .enviar .btn{width:100%;} }
+
+  /* ---------------------------------------------------------- el dibujo
+     El mapa de Facebook eran personas unidas por líneas punteadas sobre el
+     mundo. Acá son jugadores alrededor del reloj de la ronda, sobre mesas: es
+     lo que distingue a esto de un cronómetro, que todos miran la misma hora. */
+  .mapa svg{width:100%;height:auto;display:block;overflow:visible;}
+  .mapa .mesa{fill:var(--sup);}
+  .mapa .arco{fill:none;stroke:var(--apagado);stroke-width:1.5;stroke-dasharray:2 6;
+    stroke-linecap:round;opacity:.55;}
+  .mapa .lienzo{fill:var(--lienzo);}
+  .mapa .rot{fill:var(--sobre-lienzo);opacity:.7;font:600 11px var(--fuente);letter-spacing:.08em;
+    text-anchor:middle;}
+  .mapa .num{fill:var(--sobre-lienzo);font-family:var(--fuente-reloj);font-weight:300;font-size:calc(var(--d2) * 1.3);
+    text-anchor:middle;font-variant-numeric:tabular-nums;}
+  .mapa .cara{fill:var(--sobre-podio);}
+  .mapa .aro{fill:none;stroke:var(--pagina);stroke-width:4;}
+  /* Un solo momento de movimiento en toda la página: los jugadores aparecen de
+     a uno, una vez, y las líneas después. Con movimiento reducido, estilo.css
+     lo deja en su estado final. */
+  .pin{transform-box:fill-box;transform-origin:center;
+    animation:aparece 460ms cubic-bezier(.23,1,.32,1) both;animation-delay:calc(var(--i) * 60ms + 120ms);}
+  .arcos{animation:asoma 700ms ease-out 700ms both;}
+  @keyframes aparece{from{opacity:0;transform:scale(.8);}}
+  @keyframes asoma{from{opacity:0;}}
+
+  /* ---------------------------------------------------------- así funciona */
+  .separa-sec{border-top:1px solid var(--divider);}
+  .paso{display:grid;gap:var(--e4);padding:var(--e5) 0;align-items:center;}
+  .paso p{font-size:var(--t4);line-height:1.6;color:var(--apagado);margin:var(--e3) 0 0;
+    max-width:44ch;text-wrap:pretty;}
+  @media (min-width:900px){
+    .paso{grid-template-columns:1fr 1fr;gap:var(--e6);padding:var(--e6) 0;}
+    .paso:nth-of-type(even) .escena{order:-1;}
+    .escena{padding:var(--e5);}
+  }
+  /* La escena es un hueco (--campo), no una tarjeta: se lee como «esto es lo
+     que vas a ver en la pantalla», con las piezas reales del sistema adentro. */
+  .escena{background:var(--campo);border-radius:var(--radio);padding:var(--e4);
+    box-sizing:border-box;min-width:0;}
+  .buscar{background:var(--relleno);border-radius:var(--radio-chico);padding:14px 16px;
+    font-size:var(--t4);box-shadow:inset 0 0 0 2px var(--accion);margin-bottom:var(--e3);}
+  .buscar::after{content:"";display:inline-block;width:2px;height:1.1em;margin-left:1px;
+    vertical-align:-.15em;background:var(--accion);}
+  /* outline y no box-shadow inset: la sombra interior queda debajo de la
+     cabecera MESA y el anillo se cortaba arriba. */
+  .match{background:var(--sup);border-radius:var(--radio);overflow:hidden;
+    outline:2px solid var(--accion);outline-offset:-2px;max-width:280px;}
+  .mnum{display:flex;align-items:baseline;justify-content:center;gap:6px;
+    padding:5px 8px;background:var(--pagina);}
+  .mlbl{font-size:var(--t1);letter-spacing:.14em;color:var(--rotulo);font-weight:600;}
+  .mval{font-size:var(--t4);font-weight:700;color:var(--accion-texto);font-variant-numeric:tabular-nums;}
+  .mbody{display:flex;flex-direction:column;gap:7px;padding:11px 12px;}
+  .pname{font-size:var(--t3);font-weight:600;line-height:1.3;}
+  .pmeta{font-size:var(--t2);color:var(--apagado);font-variant-numeric:tabular-nums;}
+  .cab{display:flex;align-items:center;gap:var(--e3);margin-bottom:var(--e3);}
+  .avatar{width:48px;height:48px;flex:none;border-radius:50%;background:var(--sup-alta);
+    display:grid;place-items:center;font-weight:600;font-size:var(--t5);}
+  .cab b{font-size:var(--t4);font-weight:600;}
+  .ficha{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:var(--e1);}
+  .ficha div{background:var(--sup);border-radius:var(--radio);padding:var(--e3);}
+  .ficha dt{font-size:var(--t2);color:var(--apagado);}
+  .ficha dd{margin:2px 0 0;font-size:var(--t4);font-weight:600;font-variant-numeric:tabular-nums;}
+  .tabla{width:100%;border-collapse:collapse;background:var(--sup);border-radius:var(--radio);
+    overflow:hidden;font-size:var(--t3);}
+  .tabla td{padding:9px var(--e3);border-top:1px solid var(--divider);vertical-align:top;}
+  .tabla tr:first-child td{border-top:none;}
+  .tabla .der{text-align:right;white-space:nowrap;color:var(--apagado);font-size:var(--t2);
+    font-variant-numeric:tabular-nums;}
+  .tabla .pos{width:28px;font-weight:700;color:var(--rotulo);font-variant-numeric:tabular-nums;}
+  .tabla .pos.p1{color:var(--podio1-texto);} .tabla .pos.p2{color:var(--podio2-texto);}
+  .tabla .pos.p3{color:var(--podio3-texto);}
+  .tabla tr.yo{background:var(--sup-alta);box-shadow:inset 0 0 0 2px var(--accion);}
+  .rec{font-size:var(--t2);color:var(--apagado);font-variant-numeric:tabular-nums;}
+  .reservado{color:var(--apagado);font-style:italic;}
+  .separa{margin-top:var(--e3);}
+  .vivo{display:flex;align-items:center;gap:6px;font-size:var(--t2);color:var(--apagado);
+    margin-bottom:var(--e2);}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;}
+  .miMesa{padding:var(--e3);background:var(--sup-alta);border-radius:var(--radio);
+    box-shadow:inset 0 0 0 2px var(--accion);}
+  .miMesa .mesa{font-weight:700;font-size:var(--d3);line-height:1.1;font-variant-numeric:tabular-nums;}
+  .miMesa .rival{font-size:var(--t2);color:var(--apagado);margin-top:2px;line-height:1.35;}
+
+  /* ---------------------------------------------------------- pie, como el de 2009 */
+  .pie{border-top:1px solid var(--divider);font-size:var(--t2);color:var(--rotulo);
+    padding-bottom:env(safe-area-inset-bottom);}
+  .pie .ancho{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--e2) var(--e4);
+    padding-top:var(--e4);padding-bottom:var(--e4);}
+  .pie nav{display:flex;flex-wrap:wrap;gap:var(--e1) var(--e4);}
+  .pie a{color:var(--apagado);text-decoration:none;}
+  .pie a:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
-  <h1>Torneo</h1>
-  <div class="sub">Timer y emparejamientos</div>
-  <main class="grid">
-    <a class="tarjeta" href="admin.html">
-      <span class="tag">Solo organizador</span>
-      <div class="t">Panel de control</div>
-      <div class="d">Timer, emparejamientos, sorteo y calendario en un solo lugar.
-        Requiere iniciar sesión.</div>
-    </a>
-    <a class="tarjeta" href="timer-view.html">
-      <span class="tag pub">Jugadores · QR</span>
-      <div class="t">Vista de los jugadores</div>
-      <div class="d">Cuenta regresiva, mesas, ranking, sorteo y agenda. Sin controles.</div>
-    </a>
+  <header class="franja">
+    <div class="ancho">
+      <a class="marca" href="index.html">Mis Torneos</a>
+      <form class="entrar" id="formEntrar" novalidate>
+        <label for="enCorreo">Correo</label>
+        <label for="enClave">Contraseña</label>
+        <span></span>
+        <input type="email" id="enCorreo" autocomplete="username" inputmode="email">
+        <input type="password" id="enClave" autocomplete="current-password">
+        <button class="btn" type="submit" id="btnEntrar">Entrar</button>
+        <a class="olvide" href="cuenta.html#olvide" data-link="olvide">¿Olvidaste tu contraseña?</a>
+      </form>
+      <a class="btn entrarMovil" href="cuenta.html#ingresar" data-link="ingresar">Entrar</a>
+    </div>
+  </header>
+  <div class="ancho"><div class="aviso mal oculto errEntrar" id="errEntrar" role="alert"></div></div>
+
+  <main>
+    <section class="hero ancho">
+      <h1>Mis Torneos te conecta con tu tienda y con la gente que juega contigo.</h1>
+
+      <div class="mapa" aria-hidden="true">
+        <svg viewBox="0 0 560 330" id="mapa">
+          <defs>
+            <pattern id="mesas" width="46" height="34" patternUnits="userSpaceOnUse">
+              <rect x="5" y="7" width="32" height="18" rx="5" class="mesa"/>
+            </pattern>
+            <radialGradient id="desvanece">
+              <stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </radialGradient>
+            <mask id="mascara"><rect width="560" height="330" fill="url(#desvanece)"/></mask>
+          </defs>
+          <rect width="560" height="330" fill="url(#mesas)" mask="url(#mascara)"/>
+          <g class="arcos" id="arcos"></g>
+          <rect x="190" y="112" width="180" height="106" rx="16" class="lienzo"/>
+          <text x="280" y="144" class="rot">RONDA 3</text>
+          <text x="280" y="198" class="num" id="relojMapa">23:41</text>
+          <g id="pines"></g>
+        </svg>
+      </div>
+
+      <div class="registro" id="registro">
+        <h2>Crea tu cuenta</h2>
+        <p class="gratis">Es gratis, y la hace cualquiera que juegue.</p>
+        <p class="betaAviso oculto" id="betaAviso"><span class="med" aria-hidden="true">β</span>
+          <span>Los primeros 50 en registrarse se llevan la insignia <b>Beta tester</b>.</span></p>
+        <form id="formRegistro" novalidate>
+          <div class="fila"><label for="rgNombre">Nombre y apellido</label>
+            <input type="text" id="rgNombre" autocomplete="name" maxlength="80"></div>
+          <div class="fila"><label for="rgCorreo">Correo</label>
+            <input type="email" id="rgCorreo" autocomplete="email" inputmode="email"></div>
+          <div class="fila"><label for="rgClave">Contraseña</label>
+            <div>
+              <input type="password" id="rgClave" autocomplete="new-password">
+              <div class="medidor" id="rgMedidor" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <span class="falta" id="rgFalta" aria-live="polite">Mínimo 10 caracteres, con minúscula, mayúscula, número y símbolo.</span>
+            </div></div>
+          <div class="fila" role="group" aria-labelledby="lblNac"><span class="lbl" id="lblNac">Nacimiento</span>
+            <div>
+              <div class="fecha">
+                <select id="rgDia" aria-label="Día"><option value="">Día</option></select>
+                <select id="rgMes" aria-label="Mes"><option value="">Mes</option></select>
+                <select id="rgAnio" aria-label="Año"><option value="">Año</option></select>
+              </div>
+              <details class="porque"><summary>¿Por qué te pido esto?</summary>
+                <p>Para saber en qué categoría de edad juegas. No sale en ninguna parte pública
+                  y lo puedes corregir en tus ajustes.</p></details>
+            </div></div>
+          <div class="enviar">
+            <div class="aviso mal oculto" id="errRegistro" role="alert"></div>
+            <button class="btn primario" type="submit" id="btnRegistro">Crear mi cuenta</button>
+            <p class="despues">Tu ID de jugador lo agregas después, en tus ajustes.</p>
+          </div>
+        </form>
+        <p class="org">¿Organizas torneos en tu tienda? <a href="admin.html" data-link="panel">Entra al panel</a>.</p>
+      </div>
+    </section>
+
+    <!-- Las escenas son ilustración: todo lo que muestran ya está dicho en el
+         texto de al lado, así que el lector de pantalla se las salta. -->
+    <div class="ancho separa-sec">
+      <section class="paso">
+        <div>
+          <h2>Escanea y busca tu nombre</h2>
+          <p>En la tienda hay un código QR. Lo escaneas y tienes el reloj de la ronda, tu mesa
+            y tu rival, sin crear cuenta ni descargar nada. El reloj sigue bien aunque se caiga
+            el wifi.</p>
+        </div>
+        <div class="escena" aria-hidden="true">
+          <div class="buscar">nicol</div>
+          <div class="match">
+            <div class="mnum"><span class="mlbl">MESA</span><span class="mval">2</span></div>
+            <div class="mbody">
+              <div><div class="pname">Nicolás Vallejos</div><div class="pmeta">2-0-0 · 6 pts</div></div>
+              <div><div class="pname">Iván Soto</div><div class="pmeta">1-1-1 · 4 pts</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="paso">
+        <div>
+          <h2>Tu muro guarda cada torneo</h2>
+          <p>Los torneos que juegas se juntan en tu perfil: en qué puesto quedaste, tu récord y
+            tus victorias. Ya no tienes que acordarte de cómo te fue en la fecha 3.</p>
+        </div>
+        <div class="escena" aria-hidden="true">
+          <div class="cab"><div class="avatar">N</div><b>Nicolás Vallejos</b></div>
+          <dl class="ficha">
+            <div><dt>Torneos</dt><dd>12</dd></div>
+            <div><dt>Récord</dt><dd>31-10-4</dd></div>
+            <div><dt>Mejor puesto</dt><dd>1.º</dd></div>
+            <div><dt>Victorias</dt><dd>31</dd></div>
+          </dl>
+          <table class="tabla separa"><tbody>
+            <tr><td class="pos p2">2.º</td><td>Liga de tienda — fecha 3<div class="rec">14 sep · 3-1-0</div></td></tr>
+            <tr><td class="pos">6.º</td><td>Torneo de apertura<div class="rec">30 ago · 2-2-0</div></td></tr>
+          </tbody></table>
+        </div>
+      </section>
+
+      <section class="paso">
+        <div>
+          <h2>La ronda en vivo, desde donde estés</h2>
+          <p>Mientras se juega, tu muro muestra tu mesa, cómo vas y cómo le está yendo al resto.
+            Sirve entre partida y partida, y también para seguir el torneo desde la casa.</p>
+        </div>
+        <div class="escena" aria-hidden="true">
+          <div class="vivo"><span class="punto"></span>Ronda 3 · en curso</div>
+          <div class="miMesa">
+            <div class="mesa">Mesa 2</div>
+            <div class="rival">contra <b>Iván Soto</b> · 1-1-1 · 4 pts</div>
+            <div class="rival">Vas 2-0-0 · 6 pts</div>
+          </div>
+          <table class="tabla separa"><tbody>
+            <tr><td class="pos">1</td><td>Camila Ríos<div class="rec">Sofía Pérez</div></td><td class="der">en juego</td></tr>
+            <tr><td class="pos">3</td><td>Matías Cerda<div class="rec">Valentina Lagos</div></td><td class="der">Gana Matías</td></tr>
+          </tbody></table>
+        </div>
+      </section>
+
+      <section class="paso">
+        <div>
+          <h2>Sigue a tu tienda, a tu manera</h2>
+          <p>Ten a mano su clasificación del mes y la próxima fecha. Si le compartes tu ID de
+            jugador, tus resultados llegan solos a tu perfil. Y si prefieres que tu nombre no salga
+            en las tablas públicas, apareces como «Jugador reservado».</p>
+        </div>
+        <div class="escena" aria-hidden="true">
+          <table class="tabla"><tbody>
+            <tr><td class="pos p1">1</td><td>Camila Ríos</td><td class="der">34 pts</td></tr>
+            <tr class="yo"><td class="pos p2">2</td><td>Tú</td><td class="der">30 pts</td></tr>
+            <tr><td class="pos p3">3</td><td class="reservado">Jugador reservado</td><td class="der">27 pts</td></tr>
+            <tr><td class="pos">4</td><td>Iván Soto</td><td class="der">22 pts</td></tr>
+          </tbody></table>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <footer class="pie">
+    <div class="ancho">
+      <span>Mis Torneos © 2026 · Español (Chile)</span>
+      <nav aria-label="Pie">
+        <a href="cuenta.html#ingresar" data-link="ingresar">Entrar</a>
+        <a href="#registro">Crear cuenta</a>
+        <a href="tienda.html" data-link="tiendas">Tiendas</a>
+        <a href="timer-view.html" data-link="torneo">Ver el torneo</a>
+        <a href="admin.html" data-link="panel">Organizadores</a>
+      </nav>
+    </div>
+  </footer>
+
+<script src="config.js?v=7"></script>
+<script type="module">
+import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { signInWithEmailAndPassword, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { MES_LARGO } from "./agenda.js?v=4";
+import { db, auth, params, enEmulador, urlMuro, urlCuenta, urlPanel, decir, CORREO_OK, revisarClave, claveOk,
+         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=3";
+
+const $ = id => document.getElementById(id);
+function aviso(id, msg){ $(id).textContent = msg; $(id).classList.toggle("oculto", !msg); }
+
+/* Los enlaces llevan la sala y el ?emu=1 con que llegaste: sin eso, en una
+   prueba local la cuenta abriría la base real en vez del emulador. */
+/* El aviso de la beta se ve solo mientras queden cupos: si la cuenta falla,
+   no se muestra (mejor callar que prometer una insignia que ya no queda). */
+get(ref(db, "altas")).then(s => {
+  if (Object.keys(s.val() || {}).length < 50) $("betaAviso").classList.remove("oculto");
+}, () => {});
+
+const DESTINO = { ingresar: urlCuenta("ingresar"), olvide: urlCuenta("olvide"), panel: urlPanel(),
+                  torneo: "timer-view.html" + params(), tiendas: "tienda.html" + (enEmulador() ? "?emu=1" : "") };
+document.querySelectorAll("[data-link]").forEach(a => a.href = DESTINO[a.dataset.link]);
+
+/* Con la sesión abierta, esta página no tiene nada que ofrecer: al muro, como
+   hacía Facebook. Mientras se registra no, o la cuenta quedaría a medias. */
+let registrando = false;
+onAuthStateChanged(auth, u => { if (u && !registrando) location.replace(urlMuro()); });
+
+/* ------------------------------------------------------------ entrar */
+$("formEntrar").onsubmit = async e => {
+  e.preventDefault();
+  aviso("errEntrar", "");
+  const correo = $("enCorreo").value.trim(), clave = $("enClave").value;
+  if (!correo || !clave) return aviso("errEntrar", "Escribe tu correo y tu contraseña.");
+  const b = $("btnEntrar");
+  b.disabled = true;
+  try {
+    await signInWithEmailAndPassword(auth, correo, clave);   // onAuthStateChanged lleva al muro
+  } catch(err){
+    aviso("errEntrar", decir(err));
+    b.disabled = false;
+  }
+};
+
+/* ------------------------------------------------------------ fecha
+   Día, mes y año por separado, como en 2009. Un calendario nativo abre en el
+   mes de hoy, y para llegar a 2011 hay que retroceder quince años a toques. */
+const anioHoy = new Date().getFullYear();
+const opciones = (sel, pares) => pares.forEach(([v, t]) => sel.add(new Option(t, v)));
+opciones($("rgDia"),  Array.from({ length: 31 }, (_, i) => [String(i + 1).padStart(2, "0"), i + 1]));
+opciones($("rgMes"),  MES_LARGO.map((m, i) => [String(i + 1).padStart(2, "0"), m]));
+opciones($("rgAnio"), Array.from({ length: 101 }, (_, i) => [anioHoy - i, anioHoy - i]));
+const fecha = () => [$("rgAnio").value, $("rgMes").value, $("rgDia").value].every(Boolean)
+  ? $("rgAnio").value + "-" + $("rgMes").value + "-" + $("rgDia").value : "";
+
+/* ------------------------------------------------------------ contraseña */
+function medir(){
+  const clave = $("rgClave").value;
+  const r = revisarClave(clave, $("rgNombre").value, $("rgCorreo").value);
+  const n = Object.values(r).filter(Boolean).length;
+  $("rgMedidor").classList.toggle("lista", claveOk(r));
+  [...$("rgMedidor").children].forEach((i, k) => i.classList.toggle("si", k < n));
+  $("rgFalta").classList.toggle("ok", claveOk(r));
+  $("rgFalta").innerHTML = textoFalta(clave, r);
+  return r;
+}
+["rgClave", "rgNombre", "rgCorreo"].forEach(id => $(id).addEventListener("input", medir));
+
+/* ------------------------------------------------------------ crear cuenta */
+function error(){
+  const nombre = $("rgNombre").value.trim();
+  if (nombre.length < 3) return ["rgNombre", "Escribe tu nombre y apellido."];
+  if (!CORREO_OK($("rgCorreo").value.trim())) return ["rgCorreo", "Revisa el correo."];
+  if (!claveOk(medir())) return ["rgClave", "A la contraseña todavía le falta algo: está escrito debajo."];
+  const f = fecha();
+  if (!f) return ["rgDia", "Elige el día, el mes y el año en que naciste."];
+  /* 31 de febrero: el select lo deja elegir, y una fecha así no existe. */
+  const d = new Date(f + "T12:00:00");
+  if (d.getMonth() + 1 !== +$("rgMes").value) return ["rgDia", "Esa fecha no existe: revisa el día."];
+  const mal = errorNacimiento(f);
+  return mal ? ["rgDia", mal] : null;
+}
+
+$("formRegistro").onsubmit = async e => {
+  e.preventDefault();
+  aviso("errRegistro", "");
+  const falla = error();
+  if (falla){ aviso("errRegistro", falla[1]); $(falla[0]).focus(); return; }
+  const b = $("btnRegistro");
+  b.disabled = true; b.textContent = "Creando…";
+  registrando = true;
+  try {
+    await registrar({ nombre: $("rgNombre").value.trim().replace(/\s+/g, " "),
+                      correo: $("rgCorreo").value.trim(), clave: $("rgClave").value,
+                      nacimiento: fecha() });
+    location.replace(urlMuro("perfil"));
+  } catch(err){
+    registrando = false;
+    /* Si falló el guardado y no la creación, la sesión ya está abierta: los
+       ajustes muestran el aviso de cuenta incompleta. */
+    if (auth.currentUser) return location.replace(urlCuenta("ajustes"));
+    aviso("errRegistro", decir(err));
+    b.disabled = false; b.textContent = "Crear mi cuenta";
+  }
+};
+
+/* ------------------------------------------------------------ el dibujo */
+const PINES = [[62,92],[140,40],[262,34],[392,44],[492,86],[512,196],[440,286],[306,304],[168,292],[52,226]];
+const COLORES = ["--accion", "--acento2", "--ok", "--podio1", "--podio3"];
+const NS = "http://www.w3.org/2000/svg";
+const nodo = (tag, at) => { const n = document.createElementNS(NS, tag);
+  Object.entries(at).forEach(([k, v]) => n.setAttribute(k, v)); return n; };
+PINES.forEach(([x, y], i) => {
+  /* Cada línea es una curva suave hacia el reloj, alternando el lado. */
+  const cx = 280, cy = 165, mx = (x + cx) / 2, my = (y + cy) / 2;
+  const k = (i % 2 ? 1 : -1) * .22;
+  $("arcos").appendChild(nodo("path", { class: "arco",
+    d: `M${x} ${y} Q${mx - (cy - y) * k} ${my + (cx - x) * k} ${cx} ${cy}` }));
+  const g = nodo("g", { transform: `translate(${x} ${y})` });
+  const p = nodo("g", { class: "pin", style: "--i:" + i });
+  p.append(nodo("circle", { r: 19, class: "aro" }),
+           nodo("circle", { r: 17, style: `fill:var(${COLORES[i % COLORES.length]})` }),
+           nodo("circle", { cy: -4, r: 5, class: "cara" }),
+           nodo("path",   { d: "M-8.5 10a8.5 7.5 0 0 1 17 0z", class: "cara" }));
+  g.appendChild(p);
+  $("pines").appendChild(g);
+});
+
+/* El reloj del dibujo corre de verdad. */
+let seg = 23 * 60 + 41;
+setInterval(() => {
+  seg = seg > 0 ? seg - 1 : 50 * 60;
+  $("relojMapa").textContent = String(Math.floor(seg / 60)).padStart(2, "0") + ":" +
+                               String(seg % 60).padStart(2, "0");
+}, 1000);
+</script>
 </body>
 </html>

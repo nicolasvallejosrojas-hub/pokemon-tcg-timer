@@ -4,17 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Torneo — Timer y emparejamientos</title>
-<link rel="stylesheet" href="estilo.css?v=5">
+<link rel="stylesheet" href="estilo.css?v=10">
 <style>
   /* Lo compartido vive en estilo.css. Acá queda solo el acomodo de esta
      página: el reloj a pantalla completa, la rejilla de mesas y las tarjetas.
      Las medidas de los componentes comunes se ajustan con variables. */
   :root{--text:var(--texto);--accent:var(--accion);
-        --divider:rgba(244,240,245,.10);--surface:var(--sup);
+        --surface:var(--sup);
         --cal-alto:46px;--rueda:min(86vw,420px);}
 
   html,body{height:100%;}
-  body{overflow:hidden;position:relative;}
+  html{background:var(--lienzo);}
+  /* Detrás del reloj va el lienzo, oscuro, hasta que llega el diseño de la
+     tienda. Con la página clara de fondo, una sala sin diseño guardado dejaba
+     el reloj blanco sobre menta. Las demás pestañas traen su propio fondo. */
+  body{overflow:hidden;position:relative;background:var(--lienzo);}
   #bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
       display:none;transition:opacity .2s;}
   .page{position:fixed;inset:0;box-sizing:border-box;z-index:1;}
@@ -27,8 +31,9 @@
      con el pulgar, que es como el jugador sostiene el teléfono mientras
      tiene el mazo en la otra mano.
      ========================================================= */
+  /* Translúcida como la de iOS (.vidrio de estilo.css), con la línea arriba. */
   #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;
-    background:rgba(42,36,47,.94);backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 var(--divider);
     padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));}
   #tabbar button{flex:1;border:none;background:transparent;color:var(--rotulo);
     font-family:inherit;cursor:pointer;padding:6px 2px 4px;display:flex;
@@ -37,7 +42,7 @@
   #tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;
     stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
   #tabbar button span{font-size:var(--t1);font-weight:500;letter-spacing:.01em;}
-  #tabbar button.on{color:var(--accion);}
+  #tabbar button.on{color:var(--accion-texto);}
   #dot{position:absolute;top:4px;right:calc(50% - 17px);width:7px;height:7px;
     border-radius:50%;background:var(--accion);visibility:hidden;}
 
@@ -83,12 +88,12 @@
      ========================================================= */
   #pPair{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
          background:var(--pagina);}
-  #tname{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--d3);margin:0 0 2px;}
+  #tname{font-weight:700;font-size:var(--d3);margin:0 0 2px;}
   #tsub{font-size:var(--t2);color:var(--rotulo);margin-bottom:14px;}
   /* Superficie teñida en vez de borde lateral de color, igual que .aviso: el
      borde grueso de un solo lado es el recurso más reconocible de interfaz
      hecha a destajo, y el fondo comunica lo mismo mejor. */
-  .banner{background:#6D5F4C;border-radius:var(--radio);padding:11px 14px;
+  .banner{background:var(--aviso-accion);border-radius:var(--radio);padding:11px 14px;
     font-size:var(--t2);margin-bottom:14px;line-height:1.5;}
 
   /* El buscador es lo primero que toca el jugador, por eso va grande */
@@ -98,18 +103,20 @@
   #rounds button{border:none;background:var(--sup);color:var(--apagado);
     border-radius:var(--radio);padding:8px 15px;font-size:var(--t3);
     font-family:inherit;cursor:pointer;}
-  #rounds button.on{background:var(--accion);color:var(--campo);font-weight:600;}
+  #rounds button.on{background:var(--accion);color:var(--sobre-accion);font-weight:600;}
 
   /* Las mesas van de a dos: el jugador escanea, no lee */
   #list.mesas{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-items:start;}
   @media (min-width:1100px){ #list.mesas{grid-template-columns:1fr 1fr 1fr;} }
   .match{background:var(--sup);border-radius:var(--radio);overflow:hidden;
     display:flex;flex-direction:column;}
-  .match.hl{box-shadow:inset 0 0 0 2px var(--accion);}
+  /* outline y no box-shadow inset: la sombra interior se pinta debajo del
+     fondo de la cabecera MESA y el anillo quedaba cortado arriba. */
+  .match.hl{outline:2px solid var(--accion);outline-offset:-2px;}
   .mnum{display:flex;align-items:baseline;justify-content:center;gap:6px;
     padding:5px 8px;background:var(--campo);}
   .mlbl{font-size:var(--t1);letter-spacing:.14em;color:var(--rotulo);font-weight:600;}
-  .mval{font-size:var(--t4);font-weight:700;color:var(--accion);
+  .mval{font-size:var(--t4);font-weight:700;color:var(--accion-texto);
         font-variant-numeric:tabular-nums;}
   .mbody{flex:1;display:flex;flex-direction:column;gap:7px;padding:11px 12px;}
   /* Si el récord y la marca de resultado no caben juntos, la marca baja a su
@@ -134,10 +141,10 @@
          font-variant-numeric:tabular-nums;line-height:1.35;}
   .mbody{padding:10px;}
   .win,.tie{font-size:var(--t1);padding:3px 6px;}
-  .prow.won .pname{color:var(--accion);}
+  .prow.won .pname{color:var(--accion-texto);}
   .win,.tie{font-size:var(--t1);letter-spacing:.1em;font-weight:700;padding:3px 7px;
     border-radius:var(--radio-marca);white-space:nowrap;}
-  .win{background:var(--accion);color:var(--campo);}
+  .win{background:var(--accion);color:var(--sobre-accion);}
   .tie{background:var(--sup-alta);color:var(--apagado);}
   .byetag{font-size:var(--t2);color:var(--apagado);}
   .byetag b{color:var(--texto);}
@@ -154,9 +161,12 @@
      ========================================================= */
   #pClas{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 76px;
          background:var(--pagina);}
-  #pClas h1,#rTitle,#aTitle{font-family:var(--fuente-reloj);font-weight:300;
+  #pClas h1,#rTitle,#aTitle{font-weight:700;
     font-size:var(--d3);margin:0 0 12px;}
   #mes{min-width:190px;font-size:var(--t3);}
+  .aCuenta{text-align:center;font-size:var(--t2);color:var(--apagado);margin:var(--e5) 0 var(--e3);}
+  .aCuenta a{color:var(--accion-texto);}
+  .aPerfil{display:inline-block;font-size:var(--t2);color:var(--accion-texto);margin:-6px 0 14px;}
   #cstatus,#sstatus,#astatus,#pstatus{text-align:center;color:var(--apagado);
     font-size:var(--t2);margin-top:16px;}
   .crow{cursor:pointer;}
@@ -167,7 +177,7 @@
   .cdet span{display:block;font-size:var(--t1);letter-spacing:.1em;color:var(--rotulo);
     font-weight:600;}
   .cdet b{font-size:var(--t4);font-weight:600;}
-  .cdet b.ac{color:var(--accion);}
+  .cdet b.ac{color:var(--accion-texto);}
   .chint{font-size:var(--t2);color:var(--rotulo);padding:14px 4px 0;text-align:center;}
 
   /* Podio del top 3. El primero va al centro y más alto, como en un podio de
@@ -187,7 +197,7 @@
     font-variant-numeric:tabular-nums;white-space:nowrap;}
   .podCaja{width:100%;border-radius:var(--radio) var(--radio) 0 0;display:flex;
     align-items:center;justify-content:center;font-family:var(--fuente-reloj);
-    font-weight:300;color:var(--campo);line-height:1;}
+    font-weight:300;color:var(--sobre-podio);line-height:1;}
   .p1 .podCaja{height:104px;background:var(--podio1);font-size:var(--d2);}
   .p2 .podCaja{height:76px; background:var(--podio2);font-size:var(--d3);}
   .p3 .podCaja{height:58px; background:var(--podio3);font-size:var(--d3);}
@@ -219,7 +229,7 @@
   .evTit{font-size:var(--t4);font-weight:600;line-height:1.3;}
   .evCuando{font-size:var(--t2);color:var(--apagado);margin-top:4px;line-height:1.5;}
   .evFalta{display:inline-block;font-size:var(--t1);letter-spacing:.08em;font-weight:700;
-    color:var(--campo);background:var(--accion);border-radius:var(--radio-marca);padding:3px 8px;
+    color:var(--sobre-accion);background:var(--accion);border-radius:var(--radio-marca);padding:3px 8px;
     margin-top:8px;text-transform:uppercase;}
   .evDet{font-size:var(--t2);color:var(--apagado);margin-top:8px;line-height:1.5;
          white-space:pre-wrap;}
@@ -228,7 +238,7 @@
   .evBtns a,.evBtns button{border:none;background:var(--sup-alta);color:var(--texto);
     border-radius:var(--radio);padding:9px 14px;font-size:var(--t2);font-family:inherit;
     cursor:pointer;text-decoration:none;white-space:nowrap;}
-  .evBtns a.gcal{background:var(--accion);color:var(--campo);font-weight:600;}
+  .evBtns a.gcal{background:var(--accion);color:var(--sobre-accion);font-weight:600;}
   #calCaja{margin-bottom:20px;}
   /* 44 px de lado en TODO lo que se toca. Es una regla de dedo, así que aplica
      a esta superficie y no al panel, que se usa con mouse a 30 cm. Pesa más
@@ -236,6 +246,13 @@
   #calNav button,#rounds button,#mes{min-height:44px;}
   #calNav button{min-width:44px;display:inline-flex;align-items:center;justify-content:center;}
   .evBtns a,.evBtns button{min-height:44px;display:inline-flex;align-items:center;}
+
+  /* La pantalla no muestra titulos —el reloj es el titulo— pero un lector de
+     pantalla necesita saber en que pestana esta parado. Estos existen solo
+     para el: fuera del flujo, sin display:none, que los borraria tambien del
+     arbol de accesibilidad. */
+  .solo-lector{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
 </style>
 </head>
 <body>
@@ -245,7 +262,7 @@
 
 <!-- Barra abajo: cinco pestañas con texto no caben a 375 px, y abajo se
      llega con el pulgar mientras la otra mano sostiene el mazo. -->
-<nav id="tabbar" aria-label="Secciones">
+<nav id="tabbar" class="vidrio" aria-label="Secciones">
   <button id="tabT" class="on" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><span>Timer</span></button>
   <button id="tabP"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7"/><rect x="13.5" y="4" width="7.5" height="7"/><rect x="3" y="13" width="7.5" height="7"/><rect x="13.5" y="13" width="7.5" height="7"/></svg><span>Mesas</span><i id="dot"></i></button>
   <button id="tabC"><svg viewBox="0 0 24 24"><path d="M9 20V10M15 20V4M3 20h18M21 20v-6"/></svg><span>Ranking</span></button>
@@ -255,7 +272,8 @@
 
 <main>
 <!-- ============ Timer ============ -->
-<div class="page" id="pTimer">
+<div class="page isla" id="pTimer" aria-labelledby="h-pTimer">
+  <h1 class="solo-lector" id="h-pTimer">Tiempo de la ronda</h1>
   <!-- Misma cabecera que la pantalla de la tienda, sin los botones de control
        ni el rótulo de "solo organizador", que ahí no significan nada. -->
   <div id="cabecera">
@@ -279,19 +297,23 @@
 </div>
 
 <!-- ============ Emparejamientos ============ -->
-<div class="page hide" id="pPair">
+<div class="page hide" id="pPair" aria-labelledby="tname">
   <h1 id="tname">Emparejamientos</h1>
   <div id="tsub"></div>
+  <a class="aPerfil" id="aPerfil" href="tienda.html">Ver el perfil de la tienda</a>
   <div id="banner" class="banner" role="status" aria-live="polite" style="display:none"></div>
   <input id="q" placeholder="Escribe tu nombre">
   <div id="rounds"></div>
   <div id="list" aria-live="polite" aria-relevant="additions text"></div>
   <div id="pstatus">Conectando…</div>
+  <!-- La puerta a la cuenta desde el torneo. Va acá, donde el jugador acaba de
+       buscar su nombre, y no en el reloj, que tiene un solo trabajo. -->
+  <p class="aCuenta">Con tu cuenta guardas tus resultados y ganas insignias. <a id="aCuentaTorneo" href="cuenta.html">Crea tu cuenta o entra</a></p>
 </div>
 
 <!-- ============ Clasificación mensual ============ -->
-<div class="page hide" id="pClas">
-  <h1>Ranking</h1>
+<div class="page hide" id="pClas" aria-labelledby="hClas">
+  <h1 id="hClas">Ranking</h1>
   <div class="row" style="justify-content:center;margin:6px 0 10px">
     <label for="mes" class="solo-lectores">Mes de la clasificación</label>
     <select id="mes"></select>
@@ -302,7 +324,7 @@
 </div>
 
 <!-- ============ Sorteo ============ -->
-<div class="page hide" id="pSort">
+<div class="page hide" id="pSort" aria-labelledby="rTitle">
   <h1 id="rTitle">Sorteo</h1>
   <div id="rVacio" class="vacio" style="display:none">
     <b>Todav&iacute;a no hay sorteo</b>
@@ -318,7 +340,7 @@
 </div>
 
 <!-- ============ Agenda de torneos ============ -->
-<div class="page hide" id="pAgenda">
+<div class="page hide" id="pAgenda" aria-labelledby="aTitle">
   <h1 id="aTitle">Pr&oacute;ximos torneos</h1>
 
   <div id="calCaja" style="display:none;margin-bottom:20px">
@@ -342,29 +364,56 @@
 
 </main>
 
-<script src="config.js"></script>
+<script src="config.js?v=7"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { vigilar } from "./mantenimiento.js?v=1";
+import { getDatabase, connectDatabaseEmulator, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
-         MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=3";
-import { resolver as palResolver, esOriginal as palEsOriginal, aplicar as palAplicarEn } from "./paleta.js?v=1";
+         MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
+import { SALA, BASE } from "./sala.js?v=2";
+
+/* El enlace a la cuenta lleva ?desde=torneo: con eso, la entrada muestra la
+   ronda en vivo arriba del formulario en vez de la pantalla de siempre. La
+   sala y el emulador viajan con él, o la cuenta abriría otra tienda o la base
+   real. */
+{
+  const p = new URLSearchParams({ desde: "torneo" });
+  if (SALA !== "principal") p.set("sala", SALA);
+  if (typeof EMULADOR !== "undefined" && EMULADOR) p.set("emu", "1");
+  document.getElementById("aCuentaTorneo").href = "cuenta.html?" + p + "#crear";
+  /* El perfil de la tienda: su clasificación, sus torneos y a quién seguir. */
+  const q = new URLSearchParams({ sala: SALA });
+  if (typeof EMULADOR !== "undefined" && EMULADOR) q.set("emu", "1");
+  document.getElementById("aPerfil").href = "tienda.html?" + q;
+}
+import { resolver as palResolver, esOriginal as palEsOriginal, aplicar as palAplicarEn,
+         alDia } from "./paleta.js?v=4";
+import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF } from "./clasificacion.js?v=1";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
    ========================================================= */
 const app = initializeApp(FIREBASE_CONFIG);
 const db  = getDatabase(app);
+
+/* Esta pantalla solo lee. Auth está solo para la pantalla de mantenimiento:
+   saber si quien mira administra el sitio. Igual tiene que apuntar al emulador
+   o estaría mostrando los datos reales mientras el panel escribe en los falsos. */
+const auth = getAuth(app);
+if (typeof EMULADOR !== "undefined" && EMULADOR){
+  connectAuthEmulator(auth, "http://" + EMULADOR.host + ":" + EMULADOR.auth, { disableWarnings: true });
+  connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
+}
+vigilar(db, auth);   // la pantalla de mantenimiento
+
 const $ = id => document.getElementById(id);
 
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
   ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
-const slug = v => (v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-                   .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,24);
 
-const SALA = slug(new URLSearchParams(location.search).get("sala")) || "principal";
-const BASE = "salas/" + SALA;
 
 /* El empate vale media victoria, igual que en el sistema oficial */
 const pctTxt = r => {
@@ -476,7 +525,7 @@ function dibujarReloj(){
                                        : Math.round((S.endTime - ahora())/1000);
   const c = $("clock");
   c.textContent = fmt(sec);
-  c.style.color = sec < 0 ? (S.negativeColor||"#D97F7D") : (S.timerColor||"#F4F0F5");
+  c.style.color = sec < 0 ? (alDia(S.negativeColor)||"#FF7A6B") : (alDia(S.timerColor)||"#F3FFFB");
   const porVencer = !S.paused && sec <= 10 && sec >= 0;
   c.classList.toggle("porvencer", porVencer);
   c.classList.toggle("pulsing", porVencer);
@@ -573,12 +622,12 @@ function applyTheme(){
   if (V.bgType === "image" && bgSrc){
     $("bg").src = bgSrc; $("bg").style.display = "block";
     $("bg").style.filter = `opacity(${V.bgOpacity??100}%) brightness(${V.bgBrightness??100}%)`;
-    document.body.style.background = "var(--pagina)";
+    document.body.style.background = "var(--lienzo)";
   } else {
     $("bg").style.display = "none";
     document.body.style.background = V.bgType === "gradient"
-      ? `linear-gradient(${V.bgDir||"to right"}, ${V.bgColor1||"#362F3C"}, ${V.bgColor2||"#2A242F"})`
-      : (V.bgColor1 || "#362F3C");
+      ? `linear-gradient(${V.bgDir||"to right"}, ${alDia(V.bgColor1)||"#0F2E2A"}, ${alDia(V.bgColor2)||"#0A221F"})`
+      : (alDia(V.bgColor1) || "#0F2E2A");
   }
 
   if (logoSrc){ $("logo").src = logoSrc; $("logo").style.display = "block"; }
@@ -762,14 +811,8 @@ function renderPair(){
    El historial puede crecer bastante, así que se descarga recién cuando
    alguien abre la pestaña, no al entrar a la página.
    ========================================================= */
-const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio",
-               "agosto","septiembre","octubre","noviembre","diciembre"];
-function nombreMes(m){
-  const [a,mm] = m.split("-");
-  return MESES[parseInt(mm,10)-1] + " " + a;
-}
-
-let HIST = null, CFG = { puntos:[12,10,8,7,6,5,4,3], resto:1 }, mesSel = null, histOn = false;
+/* La cuenta vive en clasificacion.js, que también usa el perfil de la tienda. */
+let HIST = null, CFG = PUNTOS_DEF, mesSel = null, histOn = false;
 
 function suscribirHistorial(){
   if (histOn) return;
@@ -781,11 +824,6 @@ function suscribirHistorial(){
   });
   onValue(ref(db, BASE + "/historial"), snap => { HIST = snap.val() || {}; renderClas(); },
           () => { $("cstatus").textContent = "No se pudo cargar la clasificación."; });
-}
-
-function puntosPorPuesto(place){
-  const p = CFG.puntos;
-  return (place >= 1 && place <= p.length) ? p[place-1] : (CFG.resto || 0);
 }
 
 $("mes").onchange = e => { mesSel = e.target.value; renderClas(true); };
@@ -819,36 +857,15 @@ function renderClas(soloTabla){
   }
   $("mes").style.display = "";
 
-  const meses = [...new Set(torneos.map(t => t.mes))].sort().reverse();
+  const meses = mesesDe(torneos);
   if (!mesSel || !meses.includes(mesSel)) mesSel = meses[0];
   if (!soloTabla){
     $("mes").innerHTML = meses.map(m =>
       '<option value="'+m+'"'+(m===mesSel?' selected':'')+'>'+nombreMes(m)+'</option>').join("");
   }
 
-  const delMes = torneos.filter(t => t.mes === mesSel);
-  const tabla = {};
-  delMes.forEach(t => (t.standings||[]).forEach(p => {
-    const k = p.name;
-    if (!tabla[k]) tabla[k] = { name:p.name, pts:0, torneos:0, mejor:99, w:0, l:0, e:0 };
-    const r = tabla[k];
-    r.pts += puntosPorPuesto(p.place);
-    r.torneos++;
-    r.mejor = Math.min(r.mejor, p.place);
-    r.w += p.w||0; r.l += p.l||0; r.e += p.t||0;
-  }));
-
-  const filas = Object.values(tabla)
-    .sort((a,b) => b.pts - a.pts || a.mejor - b.mejor || b.w - a.w || a.name.localeCompare(b.name));
-
-  /* Porcentaje de victorias del mes: se suman TODAS las partidas de todos los
-     torneos y se divide una sola vez. Así un torneo de 7 rondas pesa más que
-     uno de 3, que es lo justo. El empate vale media victoria. */
-  filas.forEach(r => {
-    const jugadas = r.w + r.l + r.e;
-    r.jugadas = jugadas;
-    r.wr = jugadas ? ((r.w + r.e/2) / jugadas * 100) : null;
-  });
+  const delMes = torneos.filter(t => mesDe(t) === mesSel);
+  const filas = clasificar(torneos, mesSel, CFG);
 
   pintarPodio(filas);
 
@@ -903,6 +920,12 @@ const COLORES_RULETA = ["#DDCC88","#DDA288","#DD88DD","#AB88DD",
 const norm = a => ((a % TAU) + TAU) % TAU;
 const easeOut = t => 1 - Math.pow(1 - t, 4);
 
+/* Quien pidio menos movimiento en su sistema operativo lo pidio para todo, no
+   solo para el CSS. La ruleta gira con requestAnimationFrame, que ninguna regla
+   de hoja de estilo alcanza: hay que preguntarlo a mano. */
+const menosMovimiento = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+
 function dibujarRueda(cv, items, rot){
   const ctx = cv.getContext("2d");
   const R = cv.width/2, cx = R, cy = R, N = items.length;
@@ -925,7 +948,7 @@ function dibujarRueda(cv, items, rot){
     ctx.translate(cx, cy);
     ctx.rotate(a0 + seg/2);
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#241F29";
+    ctx.fillStyle = "#10231E";
     ctx.font = "600 " + fuente + "px Inter, system-ui, sans-serif";
     const txt = items[i].length > 22 ? items[i].slice(0,21) + "…" : items[i];
     ctx.fillText(txt, R - 16, 0);
@@ -933,7 +956,7 @@ function dibujarRueda(cv, items, rot){
   }
 
   ctx.beginPath(); ctx.arc(cx, cy, R*0.13, 0, TAU);
-  ctx.fillStyle = "#2A242F"; ctx.fill();
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--pagina").trim(); ctx.fill();
   ctx.strokeStyle = "rgba(233,233,237,.28)"; ctx.lineWidth = 2; ctx.stroke();
 }
 
@@ -956,6 +979,10 @@ function arrancarGiro(){
 
   animando = true;
   const fin = () => { animando = false; rotActual = g.to; pintarRuleta(); };
+
+  /* Sin giro: la rueda aparece ya frenada en el ganador, igual que para quien
+     abre la pagina despues de que termino. */
+  if (menosMovimiento()){ fin(); return; }
   const paso = () => {
     if (!animando) return;
     const t = Math.min(1, Math.max(0, (ahora() - g.startAt) / g.dur));
@@ -1146,6 +1173,11 @@ function renderAgenda(){
 /* "en 3 días" envejece solo: si alguien deja la página abierta toda la noche,
    al otro día tiene que decir "mañana" y no seguir diciendo "en 2 días". */
 setInterval(() => { if (tab === "agenda" && AG) renderAgenda(); }, 60000);
+
+/* El perfil de la tienda enlaza directo a una pestaña: #mesas, #ranking,
+   #sorteo o #agenda. Sin hash, el reloj de siempre. */
+const POR_HASH = { mesas: "pair", ranking: "clas", sorteo: "sorteo", agenda: "agenda" };
+if (POR_HASH[location.hash.slice(1)]) show(POR_HASH[location.hash.slice(1)]);
 </script>
 </body>
 </html>

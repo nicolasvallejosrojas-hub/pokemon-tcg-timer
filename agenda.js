@@ -26,7 +26,7 @@
    páginas usen, hay que SUBIR EL NÚMERO en las dos, o el navegador de un
    jugador que ya visitó el sitio va a mezclar el HTML nuevo con este archivo
    viejo y la página se cae entera con "does not provide an export named X".
-   Versión actual: v=3
+   Versión actual: v=4
    ========================================================= */
 
 /* Epoch del instante, calculado en la zona horaria de quien lo escribe */
@@ -38,7 +38,7 @@ export function aEpoch(fecha, hora){
   return new Date(a, m-1, d, hh||0, mm||0, 0, 0).getTime();
 }
 
-export const finEpoch = ev =>
+const finEpoch = ev =>
   (ev.inicioMs ?? aEpoch(ev.fecha, ev.hora)) + (ev.duracion || 120)*60000;
 
 /* Un evento sigue "vigente" hasta que termina, no hasta que empieza: si el
@@ -86,9 +86,8 @@ export function urlGoogle(ev){
         documentación de Google la muestra literal. Codificarla como %2F es
         equivalente para un parser que decodifica bien, pero de nuevo: no hay
         que confiar en que el de la app lo haga. */
-  const crudo = { dates:1 };
   return "https://calendar.google.com/calendar/render?" +
-    campos.map(([k, v]) => k + "=" + (crudo[k] ? v : encodeURIComponent(v))).join("&");
+    campos.map(([k, v]) => k + "=" + (k === "dates" ? v : encodeURIComponent(v))).join("&");
 }
 
 /* ---------- Archivo .ics ----------
@@ -114,7 +113,7 @@ function plegar(linea){
   return out[0] + "\r\n" + out.slice(1).map(x => " " + x).join("\r\n");
 }
 
-export function textoIcs(eventos, nombreCalendario = "Torneos"){
+function textoIcs(eventos, nombreCalendario = "Torneos"){
   const sello = utcCompacto(Date.now());
   const lineas = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
@@ -157,11 +156,11 @@ export const MES_LARGO = ["enero","febrero","marzo","abril","mayo","junio","juli
                           "agosto","septiembre","octubre","noviembre","diciembre"];
 const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
-export function fechaLegible(fecha, conDia = true){
+export function fechaLegible(fecha){
   if (!fecha) return "";
   const [a,m,d] = fecha.split("-").map(Number);
   const dt = new Date(a, m-1, d);
-  return (conDia ? DIAS[dt.getDay()] + " " : "") + d + " de " + MES_LARGO[m-1] +
+  return DIAS[dt.getDay()] + " " + d + " de " + MES_LARGO[m-1] +
          (a !== new Date().getFullYear() ? " de " + a : "");
 }
 
@@ -191,7 +190,7 @@ export function cuantoFalta(ev, ahora = Date.now()){
 export const DOWS = ["LUN","MAR","MIÉ","JUE","VIE","SÁB","DOM"];
 const lunes0 = d => (d.getDay() + 6) % 7;
 
-export const isoDe = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
+const isoDe = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
                           "-" + String(d.getDate()).padStart(2,"0");
 
 /* Suma o resta meses sin desbordar: new Date normaliza diciembre→enero sola */
