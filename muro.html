@@ -778,7 +778,7 @@ const misSalas = () => [SALA, ...Object.keys(TIENDAS || {}).filter(x => x !== SA
 let pintura = 0;
 function repintarInsignias(){
   cancelAnimationFrame(pintura);
-  pintura = requestAnimationFrame(() => { pintarInsigniasPropias(); pintarJugador(); });
+  pintura = requestAnimationFrame(() => { pintarInsigniasPropias(); pintarJugador(); pintarTienda(); });
 }
 
 /* Todas las de un jugador en las tiendas dadas. El uid da la Beta tester y
@@ -1225,8 +1225,15 @@ function pintarTienda(){
                     'line-height:1.5;margin:var(--e2) 0">' + t + "</div>";
   let h = "";
 
+  /* Quien organiza esta tienda no la sigue: es suya. En vez de «Seguir», el
+     camino al panel. */
+  const org = usuario && TD[SALA] && TD[SALA].tienda && (TD[SALA].tienda.miembros || {})[usuario.uid];
   if (TIENDAS === null){
     h = nota("Cargando…");
+  } else if (org){
+    h = '<div class="vivo"><span class="punto si"></span>' + (org.rol === "dueno" ? "Eres el dueño de esta tienda" : "Organizas esta tienda") + "</div>" +
+        nota("Tus jugadores la siguen desde acá para tenerla a mano y compartir su ID.") +
+        '<a class="btn primario ancho" href="' + conSala("admin.html" + qs) + '">Abrir el panel</a>';
   } else if (!mia){
     h = nota("Síguela para tenerla a mano y para que tus resultados lleguen a tu perfil.") +
         '<button class="btn primario ancho" id="bSeguir">Seguir esta tienda</button>';

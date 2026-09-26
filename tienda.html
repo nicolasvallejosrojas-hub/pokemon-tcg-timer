@@ -305,7 +305,7 @@ const ahora = () => Date.now() + offset;
 function perfil(){
   $("vPerfil").classList.remove("oculto");
   onValue(ref(db, ".info/serverTimeOffset"), s => offset = s.val() || 0);
-  onValue(ref(db, "tiendas/" + ID), s => { TIENDA = s.val(); existe(); pintarCabecera(); pintarInfo(); });
+  onValue(ref(db, "tiendas/" + ID), s => { TIENDA = s.val(); existe(); pintarCabecera(); pintarInfo(); pintarAcciones(); });
   onValue(ref(db, "salas/" + ID + "/owner"), s => { OWNER = s.val(); existe(); });
   onValue(ref(db, "salas/" + ID + "/timer/state"), s => { ESTADO = s.val(); pintarVivo(); });
   onValue(ref(db, "salas/" + ID + "/pairings"), s => { PAIR = s.val(); pintarVivo(); });
@@ -349,6 +349,10 @@ function pintarAcciones(){
   if (!usuario){
     h = '<a class="btn primario" href="' + urlCuenta("ingresar") + '">Seguir</a>' +
         '<a class="btn" href="' + urlCuenta("ingresar") + '">' + ICO.estrella + " Favorita</a>";
+  } else if (TIENDA && ((TIENDA.miembros || {})[usuario.uid] || OWNER === usuario.uid)){
+    /* Quien la organiza no se sigue a sí mismo: el camino es el panel. */
+    h = '<a class="btn primario" href="' + urlPanel() + '">Abrir el panel</a>' +
+        '<span class="btn" aria-disabled="true">' + ICO.check + " Organizas esta tienda</span>";
   } else if (PERFIL === undefined){
     h = "";
   } else if (PERFIL === null){
