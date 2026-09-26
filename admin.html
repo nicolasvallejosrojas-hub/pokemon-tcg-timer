@@ -411,7 +411,7 @@
 <!-- ============ Todas las tiendas ============
      Solo para quien administra el sistema (admins/<uid> = true en la consola). -->
 <div class="card" id="adminCard" style="display:none">
-  <h2 class="h2p">Mantenimiento del sitio</h2>
+  <h2 class="h2p">Mantenimiento de todo el sitio</h2>
   <div class="mantPanel">
     <div class="txt"><b id="mantEstado">…</b><small id="mantDesc"></small></div>
     <input id="mantMensaje" maxlength="200" placeholder="Mensaje para los jugadores (opcional)" aria-label="Mensaje de mantenimiento">
@@ -971,7 +971,7 @@ import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, signOut, onAu
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=4";
 import { slug, SALA, BASE, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=2";
-import { vigilar } from "./mantenimiento.js?v=1";
+import { vigilar } from "./mantenimiento.js?v=2";
 import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila } from "./insignias.js?v=1";
 import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_SETS,
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
@@ -1143,8 +1143,8 @@ onValue(ref(db, "sistema/mantenimiento"), s => {
   const cerrado = MANT.activo === true;
   document.querySelector(".mantPanel").classList.toggle("cerrado", cerrado);
   $("mantEstado").textContent = cerrado ? "Cerrado por mantenimiento" : "Sitio abierto";
-  $("mantDesc").textContent = cerrado ? "Solo los administradores lo ven. Los demás ven la pantalla de mantenimiento."
-                                      : "Todos pueden entrar.";
+  $("mantDesc").textContent = cerrado ? "Todas las páginas y todas las tiendas muestran la pantalla de mantenimiento. Solo los administradores ven el sitio."
+                                      : "Cierra todas las páginas de todas las tiendas: portada, cuentas, perfiles, paneles y timers.";
   if (document.activeElement !== $("mantMensaje")) $("mantMensaje").value = MANT.mensaje || "";
   $("mantBtn").textContent = cerrado ? "Abrir el sitio" : "Cerrar por mantenimiento";
   $("mantBtn").className = cerrado ? "" : "sec";
@@ -1152,7 +1152,7 @@ onValue(ref(db, "sistema/mantenimiento"), s => {
 }, () => {});
 $("mantBtn").onclick = async () => {
   const cerrar = MANT.activo !== true;
-  if (cerrar && !confirm("¿Cerrar el sitio por mantenimiento? Nadie más va a poder entrar ni ver el timer hasta que lo abras.")) return;
+  if (cerrar && !confirm("¿Cerrar TODO el sitio por mantenimiento? Nadie que no administre va a poder entrar a ninguna página ni a ninguna tienda hasta que lo abras.")) return;
   const v = { activo: cerrar, desde: Date.now() }, msg = $("mantMensaje").value.trim();
   if (msg) v.mensaje = msg.slice(0, 200);
   $("mantBtn").disabled = true;

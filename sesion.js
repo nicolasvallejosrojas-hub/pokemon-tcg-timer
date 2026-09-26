@@ -1,7 +1,7 @@
 /* ============================================================
    sesion.js — entrar y crear cuenta
    ------------------------------------------------------------
-   Versión actual: v=3   (subir el ?v= al tocar este archivo)
+   Versión actual: v=4   (subir el ?v= al tocar este archivo)
 
    Lo usan la portada (index.html), que tiene el registro a la vista, y la
    cuenta (cuenta.html), con sus tres pasos. Vive acá para que las reglas de
@@ -16,7 +16,7 @@ import { getDatabase, connectDatabaseEmulator, ref, set }
 import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, updateProfile, sendEmailVerification }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { SALA } from "./sala.js?v=2";
-import { vigilar } from "./mantenimiento.js?v=1";
+import { vigilar } from "./mantenimiento.js?v=2";
 
 export const app  = initializeApp(FIREBASE_CONFIG);
 export const db   = getDatabase(app);

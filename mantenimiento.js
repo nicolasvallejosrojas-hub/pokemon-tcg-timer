@@ -1,7 +1,7 @@
 /* ============================================================
    mantenimiento.js — la pantalla de «Cerrado por mantenimiento»
    ------------------------------------------------------------
-   Versión actual: v=1   (subir el ?v= al tocar este archivo)
+   Versión actual: v=2   (subir el ?v= al tocar este archivo)
 
    El cierre de verdad NO está acá: lo hacen las reglas de Firebase. Con
    sistema/mantenimiento/activo = true nadie lee ni escribe nada, salvo quien
@@ -36,7 +36,7 @@ const CSS = `
 .mant .ico{width:76px;height:76px;margin:28px auto 20px;border-radius:50%;display:grid;place-items:center;color:#fff;
   background:linear-gradient(145deg,#FF8A3D,#D93A2B);box-shadow:inset 0 0 0 3px rgba(255,255,255,.3),0 10px 22px -12px #D93A2B;}
 .mant .ico svg{width:36px;height:36px;}
-.mant h1{font-size:var(--d3);line-height:1.1;letter-spacing:-.02em;margin:0 0 10px;}
+.mant h1{font-size:var(--d3);font-weight:700;line-height:1.1;letter-spacing:-.02em;margin:0 0 10px;}
 .mant p{color:var(--apagado);font-size:var(--t4);line-height:1.5;margin:0;}
 .mant details{margin-top:40px;text-align:left;}
 .mant summary{cursor:pointer;color:var(--rotulo);font-size:var(--t2);text-align:center;list-style:none;min-height:44px;
