@@ -346,6 +346,8 @@
       <ul class="menu">
         <li><a href="timer-view.html" id="aTimer">Ver el timer</a></li>
         <li><a href="tienda.html" id="aTiendas">Tiendas</a></li>
+        <li class="oculto" id="liPanel"><a href="admin.html" id="aPanel">Panel del organizador</a></li>
+        <li class="oculto" id="liHerr"><a href="herramientas.html" id="aHerr">Herramientas de administrador</a></li>
         <li><a href="cuenta.html#ajustes" id="aCuenta">Ajustes</a></li>
       </ul>
     </div>
@@ -510,6 +512,8 @@ $("aTiendas").href = "tienda.html" + qs;
 const aTienda = x => "tienda.html" + (qs ? qs + "&" : "?") + "sala=" + encodeURIComponent(x);
 $("aCuenta").href = conSala("cuenta.html" + qs) + "#ajustes";
 $("aAjustes").href = conSala("cuenta.html" + qs) + "#ajustes";
+$("aPanel").href = "admin.html" + qs;
+$("aHerr").href = "herramientas.html" + qs;
 
 let usuario = null, perfil = null, HIST = null, ESTADO = null, PAIR = null, filtro = "";
 let TIENDAS = null, errTienda = "";
@@ -1225,15 +1229,14 @@ function pintarTienda(){
                     'line-height:1.5;margin:var(--e2) 0">' + t + "</div>";
   let h = "";
 
-  /* Quien organiza esta tienda no la sigue: es suya. En vez de «Seguir», el
-     camino al panel. */
+  /* Quien organiza esta tienda no la sigue: es suya, y este muro es su perfil
+     de jugador. El cuadro no va; su panel está en el menú de la izquierda. */
   const org = usuario && TD[SALA] && TD[SALA].tienda && (TD[SALA].tienda.miembros || {})[usuario.uid];
+  $("tienda").closest(".bloque").classList.toggle("oculto", !!org);
   if (TIENDAS === null){
     h = nota("Cargando…");
   } else if (org){
-    h = '<div class="vivo"><span class="punto si"></span>' + (org.rol === "dueno" ? "Eres el dueño de esta tienda" : "Organizas esta tienda") + "</div>" +
-        nota("Tus jugadores la siguen desde acá para tenerla a mano y compartir su ID.") +
-        '<a class="btn primario ancho" href="' + conSala("admin.html" + qs) + '">Abrir el panel</a>';
+    h = "";
   } else if (!mia){
     h = nota("Síguela para tenerla a mano y para que tus resultados lleguen a tu perfil.") +
         '<button class="btn primario ancho" id="bSeguir">Seguir esta tienda</button>';
@@ -1252,7 +1255,7 @@ function pintarTienda(){
     }
     h += '<button class="btn ancho" id="bDejar" style="margin-top:var(--e2)">Dejar de seguir</button>';
   }
-  if (TIENDAS !== null){
+  if (TIENDAS !== null && !org){
     h += '<div style="margin-top:var(--e2);font-size:var(--t2)"><a href="' + aTienda(SALA) + '">Ver el perfil de la tienda</a></div>';
   }
 
@@ -1356,6 +1359,9 @@ onAuthStateChanged(auth, async u => {
   try { perfil = (await get(ref(db, "usuarios/" + u.uid))).val(); }
   catch(e){ perfil = null; }
   pintarFicha(); pintarPerfil();
+  /* Quien organiza alguna tienda, o administra el sitio, llega a eso desde el menú. */
+  get(ref(db, "organiza/" + u.uid)).then(s => $("liPanel").classList.toggle("oculto", !s.exists()), () => {});
+  get(ref(db, "admins/" + u.uid)).then(s => $("liHerr").classList.toggle("oculto", s.val() !== true), () => {});
   /* El orden de registro. Quien no tiene alta la pide acá, con la hora del
      servidor: las cuentas nuevas al llegar desde el registro, y las de antes
      del 26-09 la primera vez que abren el muro. */

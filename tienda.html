@@ -58,11 +58,16 @@
   .punto{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;flex:none;}
   .fav svg{color:var(--podio1);}
   .logoT.org{width:34px;height:34px;font-size:var(--t2);background:var(--sup-alta);color:var(--texto);}
+  /* Con foto, la foto tapa la sigla; si es transparente, se ve el color atrás. */
+  .logoT{overflow:hidden;}
+  .logoT img{width:100%;height:100%;object-fit:cover;display:block;}
 
   /* ---------------------------------------------------------- perfil */
-  .portada{height:112px;background:var(--c, var(--franja));
+  .portada{height:112px;background:var(--c, var(--franja));position:relative;overflow:hidden;
     background-image:radial-gradient(rgba(255,255,255,.14) 1.5px, transparent 1.6px);background-size:18px 18px;}
-  .ident{display:flex;flex-direction:column;gap:var(--e1);margin-top:-44px;}
+  .portada img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  /* Por encima del banner: con foto, el banner es una capa y taparía el logo. */
+  .ident{display:flex;flex-direction:column;gap:var(--e1);margin-top:-44px;position:relative;}
   .ident .logoT{width:88px;height:88px;font-size:var(--d3);box-shadow:0 0 0 4px var(--pagina);margin-bottom:6px;}
   .meta{font-size:var(--t2);color:var(--apagado);}
   .acciones{display:grid;grid-template-columns:1fr 1fr;gap:var(--e2);margin-top:var(--e3);}
@@ -101,14 +106,34 @@
   #vDir{padding-top:var(--e4);padding-bottom:var(--e6);max-width:720px;}
   #buscar{width:100%;margin-top:var(--e3);font-size:var(--t4);padding:11px 14px;}
 
+  /* ---------------------------------------------------------- editar fotos */
+  dialog.hoja{border:none;border-radius:22px;padding:var(--e4) var(--e5) var(--e5);max-width:460px;width:calc(100% - 32px);
+    background:var(--pagina);color:var(--texto);}
+  dialog.hoja::backdrop{background:rgba(10,30,26,.45);}
+  dialog.hoja h2{font-size:var(--t5);font-weight:700;margin-top:var(--e2);}
+  .dfBanner{position:relative;aspect-ratio:3/1;border-radius:var(--radio);overflow:hidden;margin-top:var(--e4);
+    background:var(--c, var(--franja));}
+  .dfBanner img{width:100%;height:100%;object-fit:cover;display:block;}
+  .dfFila{display:flex;align-items:center;gap:var(--e3);margin-top:var(--e3);}
+  .dfFila .txt{flex:1;min-width:0;}
+  .dfFila b{display:block;font-weight:600;}
+  .dfFila small{display:block;font-size:var(--t2);color:var(--apagado);line-height:1.4;}
+  .dfBtns{display:flex;gap:var(--e2);flex:none;}
+  .dfLogo{width:64px;height:64px;font-size:var(--t4);}
+  #dfMsg{min-height:1.5em;}
+  @media (max-width:600px){
+    dialog.hoja{margin:auto 0 0;width:100%;max-width:none;border-radius:24px 24px 0 0;padding:var(--e3) var(--e4) var(--e5);}
+    .dfFila{flex-wrap:wrap;} .dfBtns{width:100%;} .dfBtns .btn{flex:1;}
+  }
+
   @media (min-width:900px){
-    .portada{height:168px;}
-    .ident{flex-direction:row;align-items:flex-end;gap:var(--e4);margin-top:-60px;}
-    .ident .logoT{width:132px;height:132px;font-size:var(--d2);box-shadow:0 0 0 5px var(--pagina);margin:0;}
-    .ident .quien{flex:1;padding-bottom:6px;}
+    .portada{height:200px;}
+    .ident{flex-direction:row;align-items:flex-start;gap:var(--e4);margin-top:0;}
+    .ident .logoT{width:132px;height:132px;font-size:var(--d2);box-shadow:0 0 0 5px var(--pagina);margin:-66px 0 0;}
+    .ident .quien{flex:1;padding-top:var(--e4);}
     .ident .grande{font-size:calc(var(--d3) * 1.25);}
     .meta{font-size:var(--t3);}
-    .acciones{display:flex;align-items:center;margin:0 0 8px;}
+    .acciones{display:flex;align-items:center;margin:var(--e4) 0 0;}
     .cols{grid-template-columns:300px minmax(0,1fr);gap:28px;}
     .cols > aside{display:block;}
     .tabs .soloMovil{display:none;}
@@ -140,7 +165,7 @@
 
   <!-- ================================================= PERFIL -->
   <div class="oculto" id="vPerfil">
-    <div class="portada" id="portada"></div>
+    <div class="portada" id="portada"><img id="portadaImg" alt="" hidden></div>
     <div class="ancho">
       <div class="ident">
         <div class="logoT" id="logo" aria-hidden="true"></div>
@@ -194,6 +219,28 @@
     </div>
   </div>
 
+  <!-- ================================================= EDITAR FOTOS
+       Para quien organiza la tienda, cuando ya está verificada. -->
+  <dialog class="hoja" id="dlgFotos" aria-labelledby="dfTit">
+    <h2 id="dfTit">Fotos de la tienda</h2>
+    <p class="nota">Se achican solas antes de subirse, para que carguen rápido en cualquier celular.</p>
+    <div class="dfBanner" id="dfBanner"></div>
+    <div class="dfFila">
+      <div class="txt"><b>Banner</b><small>Horizontal. En el celular se ve la parte del medio.</small></div>
+      <div class="dfBtns"><button class="btn primario chico" data-subir="banner">Subir</button>
+        <button class="btn chico" data-quitar="banner">Quitar</button></div>
+    </div>
+    <div class="dfFila" style="margin-top:var(--e4)">
+      <div class="logoT dfLogo" id="dfLogo" aria-hidden="true"></div>
+      <div class="txt"><b>Logo</b><small>Se recorta en un cuadrado, al centro.</small></div>
+      <div class="dfBtns"><button class="btn primario chico" data-subir="logo">Subir</button>
+        <button class="btn chico" data-quitar="logo">Quitar</button></div>
+    </div>
+    <p class="nota" id="dfMsg" role="status"></p>
+    <div style="display:flex;justify-content:flex-end;margin-top:var(--e2)"><button class="btn" id="dfCerrar">Listo</button></div>
+    <input type="file" accept="image/*" id="dfArchivo" hidden>
+  </dialog>
+
   <!-- ================================================= NO EXISTE -->
   <main class="ancho oculto" id="vNada">
     <div class="vacio" style="padding-top:var(--e6)"><b style="display:block;font-size:var(--t5);color:var(--texto)">Esa tienda no existe</b>
@@ -202,7 +249,7 @@
 
 <script src="config.js?v=7"></script>
 <script type="module">
-import { ref, onValue, get, set, update, query, orderByChild, equalTo }
+import { ref, onValue, get, set, update, remove, query, orderByChild, equalTo }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { db, auth, enEmulador, urlCuenta, urlMuro, urlPanel } from "./sesion.js?v=4";
@@ -234,11 +281,14 @@ const ICO = {
   cal: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   enlace: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg>',
   mesas: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+  camara: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 016.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0120 8.5v9A2.5 2.5 0 0117.5 20h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   pantalla: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
 };
-const logo = (perfil, id, px) => '<span class="logoT" style="--c:' + esc((perfil && perfil.color) || "var(--franja)") +
+/* El logo: la foto si la tienda subió una (las reglas solo dejan datos de
+   imagen), si no la sigla sobre su color. */
+const logo = (perfil, id, px, foto) => '<span class="logoT" style="--c:' + esc((perfil && perfil.color) || "var(--franja)") +
   ';width:' + px + 'px;height:' + px + 'px;font-size:' + Math.round(px * .34) + 'px" aria-hidden="true">' +
-  esc(iniciales(nombreTienda(perfil, id))) + "</span>";
+  (foto ? '<img src="' + esc(foto) + '" alt="">' : esc(iniciales(nombreTienda(perfil, id)))) + "</span>";
 function fechaBadge(f){
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(f || "");
   return m ? '<div class="fecha"><b>' + +m[3] + "</b><small>" + MES_LARGO[+m[2] - 1].slice(0, 3) + "</small></div>"
@@ -268,11 +318,20 @@ function directorio(){
           () => { $("dirLista").innerHTML = '<div class="vacio">No se pudo cargar la lista.</div>'; });
   $("buscar").oninput = pintarDir;
 }
+/* Los logos viven aparte (fotos/<id>/logo) para que la lista no baje todas
+   las fotos de una: se piden los de las filas que se muestran, una vez. */
+const LOGOS = {};
+function pedirLogo(id){
+  if (id in LOGOS) return;
+  LOGOS[id] = null;
+  get(ref(db, "fotos/" + id + "/logo")).then(s => { if (s.val()){ LOGOS[id] = s.val(); pintarDir(); } }, () => {});
+}
 function filaTienda(id, t){
+  pedirLogo(id);
   const p = t && t.perfil, mia = (MIAS || {})[id];
   const der = mia && mia.favorita ? '<span class="fav" title="Favorita">' + ICO.estrellaLlena + "</span>"
             : mia ? '<span class="der">Siguiendo</span>' : ICO.chev;
-  return '<a class="fila" href="' + aTienda(id) + '">' + logo(p, id, 44) +
+  return '<a class="fila" href="' + aTienda(id) + '">' + logo(p, id, 44, LOGOS[id]) +
     '<div class="txt"><b>' + esc(nombreTienda(p, id)) + (t && t.verificada ? ' <span class="verif">' + ICO.verif + "</span>" : "") +
     "</b><small>" + esc((p && p.comuna) || "Sin comuna") + "</small></div>" + der + "</a>";
 }
@@ -299,14 +358,16 @@ function pintarDir(){
 }
 
 /* ============================================================ PERFIL */
-let TIENDA, OWNER, ESTADO = null, PAIR = null, HIST = null, CFG = PUNTOS_DEF, AG = [], offset = 0, mesSel = null;
+let FOTOS = {}, TIENDA, OWNER, ESTADO = null, PAIR = null, HIST = null, CFG = PUNTOS_DEF, AG = [], offset = 0, mesSel = null;
 const ahora = () => Date.now() + offset;
 
 function perfil(){
   $("vPerfil").classList.remove("oculto");
   onValue(ref(db, ".info/serverTimeOffset"), s => offset = s.val() || 0);
   onValue(ref(db, "tiendas/" + ID), s => { TIENDA = s.val(); existe(); pintarCabecera(); pintarInfo(); pintarAcciones(); });
-  onValue(ref(db, "salas/" + ID + "/owner"), s => { OWNER = s.val(); existe(); });
+  onValue(ref(db, "salas/" + ID + "/owner"), s => { OWNER = s.val(); existe(); pintarAcciones(); });
+  onValue(ref(db, "fotos/" + ID + "/banner"), s => { FOTOS.banner = s.val(); pintarFotos(); }, () => {});
+  onValue(ref(db, "fotos/" + ID + "/logo"), s => { FOTOS.logo = s.val(); pintarFotos(); }, () => {});
   onValue(ref(db, "salas/" + ID + "/timer/state"), s => { ESTADO = s.val(); pintarVivo(); });
   onValue(ref(db, "salas/" + ID + "/pairings"), s => { PAIR = s.val(); pintarVivo(); });
   onValue(ref(db, "salas/" + ID + "/config"), s => {
@@ -333,7 +394,7 @@ function pintarCabecera(){
   const color = (p && p.color) || "";
   $("portada").style.setProperty("--c", color || "var(--franja)");
   $("logo").style.setProperty("--c", color || "var(--franja)");
-  $("logo").textContent = iniciales(nom);
+  pintarFotos();
   $("nombre").textContent = nom;
   $("meta1").innerHTML = (TIENDA && TIENDA.verificada ? '<span class="verif">' + ICO.verif + " Tienda verificada</span>" : "") +
     (TIENDA && TIENDA.verificada && p && p.comuna ? " · " : "") + esc((p && p.comuna) || "");
@@ -345,14 +406,17 @@ function pintarCabecera(){
 function pintarAcciones(){
   if (!ID) return;
   const mia = (MIAS || {})[ID];
-  let h;
+  let h, nota = "";
   if (!usuario){
     h = '<a class="btn primario" href="' + urlCuenta("ingresar") + '">Seguir</a>' +
         '<a class="btn" href="' + urlCuenta("ingresar") + '">' + ICO.estrella + " Favorita</a>";
-  } else if (TIENDA && ((TIENDA.miembros || {})[usuario.uid] || OWNER === usuario.uid)){
-    /* Quien la organiza no se sigue a sí mismo: el camino es el panel. */
-    h = '<a class="btn primario" href="' + urlPanel() + '">Abrir el panel</a>' +
-        '<span class="btn" aria-disabled="true">' + ICO.check + " Organizas esta tienda</span>";
+  } else if (soyDeLaTienda()){
+    /* Quien la organiza no se sigue a sí mismo: el camino es el panel, y con
+       la tienda verificada, sus fotos. */
+    h = '<a class="btn primario" href="' + urlPanel() + '">Panel del organizador</a>' +
+        (TIENDA.verificada ? '<button class="btn" id="bFotos">' + ICO.camara + " Editar fotos</button>"
+                           : '<span class="btn" aria-disabled="true">' + ICO.check + " Organizas esta tienda</span>");
+    if (!TIENDA.verificada) nota = "Cuando verifiquemos la tienda vas a poder subirle banner y logo.";
   } else if (PERFIL === undefined){
     h = "";
   } else if (PERFIL === null){
@@ -366,12 +430,85 @@ function pintarAcciones(){
   $("acciones").innerHTML = h;
   if ($("bSeguir")) $("bSeguir").onclick = () => accion(mia ? dejar : seguir);
   if ($("bFav")) $("bFav").onclick = () => accion(() => favorita(!(mia && mia.favorita)));
+  if ($("bFotos")) $("bFotos").onclick = abrirFotos;
   /* Seguir es el momento de compartir el ID: eso vive en el muro de la tienda. */
-  const nota = mia && PERFIL && PERFIL.playerId && !mia.compartirId;
+  if (mia && PERFIL && PERFIL.playerId && !mia.compartirId)
+    nota = 'Para que tus resultados lleguen solos a tu perfil, <a href="' + urlMuro() +
+           '">comparte tu ID con la tienda desde tu muro</a>.';
   $("notaId").classList.toggle("oculto", !nota);
-  if (nota) $("notaId").innerHTML = 'Para que tus resultados lleguen solos a tu perfil, <a href="' + urlMuro() +
-    '">comparte tu ID con la tienda desde tu muro</a>.';
+  $("notaId").innerHTML = nota;
 }
+const soyDeLaTienda = () => !!(usuario && TIENDA && ((TIENDA.miembros || {})[usuario.uid] || OWNER === usuario.uid));
+
+/* ------------------------------------------------------------ fotos */
+function pintarFotos(){
+  const b = $("portadaImg");
+  b.hidden = !FOTOS.banner;
+  if (FOTOS.banner) b.src = FOTOS.banner; else b.removeAttribute("src");
+  const nom = nombreTienda(TIENDA && TIENDA.perfil, ID), color = (TIENDA && TIENDA.perfil && TIENDA.perfil.color) || "var(--franja)";
+  [$("logo"), $("dfLogo")].forEach(el => {
+    el.style.setProperty("--c", color);
+    if (FOTOS.logo){ const i = new Image(); i.alt = ""; i.src = FOTOS.logo; el.replaceChildren(i); }
+    else el.textContent = iniciales(nom);
+  });
+  $("dfBanner").style.setProperty("--c", color);
+  if (FOTOS.banner){ const i = new Image(); i.alt = ""; i.src = FOTOS.banner; $("dfBanner").replaceChildren(i); }
+  else $("dfBanner").replaceChildren();
+  document.querySelectorAll("[data-quitar]").forEach(q => q.disabled = !FOTOS[q.dataset.quitar]);
+}
+
+/* Se achica en el navegador antes de subir: cada celular que abre la tienda
+   descarga la foto, y la base cobra por lo que se baja. WebP si el navegador
+   lo sabe escribir; si no, JPEG con fondo blanco. Las reglas topan el tamaño
+   igual, por si alguien se salta esta página. */
+const TAMANO = { banner: { ancho: 1600, alto: 900, tope: 300000 }, logo: { lado: 320, tope: 60000 } };
+const WEBP = (() => { const c = document.createElement("canvas"); c.width = c.height = 1;
+                      return c.toDataURL("image/webp").startsWith("data:image/webp"); })();
+async function achicar(archivo, o){
+  let bmp;
+  try { bmp = await createImageBitmap(archivo); } catch(e){ throw new Error("imagen"); }
+  let sx = 0, sy = 0, sw = bmp.width, sh = bmp.height, w, h;
+  if (o.lado){ const l = Math.min(sw, sh); sx = (sw - l) / 2; sy = (sh - l) / 2; sw = sh = l; w = h = Math.min(o.lado, l); }
+  else { const k = Math.min(1, o.ancho / sw, o.alto / sh); w = Math.round(sw * k); h = Math.round(sh * k); }
+  const c = document.createElement("canvas"), x = c.getContext("2d");
+  for (let vuelta = 0; vuelta < 4; vuelta++){
+    c.width = w; c.height = h;
+    if (!WEBP){ x.fillStyle = "#fff"; x.fillRect(0, 0, w, h); }
+    x.drawImage(bmp, sx, sy, sw, sh, 0, 0, w, h);
+    for (const q of [.82, .7, .58]){
+      const url = c.toDataURL(WEBP ? "image/webp" : "image/jpeg", q);
+      if (url.length <= o.tope) return url;
+    }
+    w = Math.round(w * .75); h = Math.round(h * .75);   // ni con menos calidad: más chica
+  }
+  throw new Error("grande");
+}
+const kb = url => Math.round(url.length * .75 / 1024) + " KB";
+const msgF = t => $("dfMsg").textContent = t;
+function abrirFotos(){ msgF(""); pintarFotos(); $("dlgFotos").showModal(); }
+$("dfCerrar").onclick = () => $("dlgFotos").close();
+let subir = null;
+document.querySelectorAll("[data-subir]").forEach(b => b.onclick = () => { subir = b.dataset.subir; $("dfArchivo").click(); });
+$("dfArchivo").onchange = async e => {
+  const f = e.target.files[0], tipo = subir;
+  e.target.value = "";
+  if (!f || !tipo) return;
+  msgF("Achicando la imagen…");
+  try {
+    const url = await achicar(f, TAMANO[tipo]);
+    msgF("Subiendo…");
+    await set(ref(db, "fotos/" + ID + "/" + tipo), url);
+    msgF((tipo === "logo" ? "Logo" : "Banner") + " listo: pesa " + kb(url) + ".");
+  } catch(x){
+    msgF(x.message === "imagen" ? "No se pudo leer esa imagen. Prueba con una JPG o PNG."
+       : x.message === "grande" ? "Esa imagen no se pudo achicar lo suficiente. Prueba con otra."
+       : "No se pudo subir. Revisa la conexión.");
+  }
+};
+document.querySelectorAll("[data-quitar]").forEach(b => b.onclick = async () => {
+  try { await remove(ref(db, "fotos/" + ID + "/" + b.dataset.quitar)); msgF("Quitado."); }
+  catch(e){ msgF("No se pudo quitar. Revisa la conexión."); }
+});
 const miRef = () => "usuarios/" + usuario.uid + "/tiendas/" + ID;
 const seguir = () => set(ref(db, miRef()), { desde: Date.now(), compartirId: false });
 /* Dejar de seguir se lleva el ID compartido, igual que en el muro. */

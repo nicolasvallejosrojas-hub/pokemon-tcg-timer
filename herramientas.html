@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="robots" content="noindex">
+<title>Herramientas de administrador — Mis Torneos</title>
+<link rel="stylesheet" href="estilo.css?v=10">
+<style>
+  /* Herramientas de quien administra el sitio entero (admins/<uid> = true en
+     la consola): el mantenimiento y todas las tiendas. No es el panel del
+     organizador: ese es para quien controla el timer de UNA tienda. Lo que de
+     verdad protege esto son las reglas de Firebase; la página solo esconde. */
+  body{min-height:100vh;}
+  .oculto{display:none !important;}
+  .ancho{width:100%;max-width:880px;margin:0 auto;padding:var(--e4) var(--e4) var(--e6);box-sizing:border-box;}
+  h1,h2{margin:0;}
+  a{color:var(--accion-texto);}
+  .btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+
+  .sup{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:var(--e2);
+    min-height:56px;padding:0 max(var(--e4), env(safe-area-inset-right)) 0 max(var(--e4), env(safe-area-inset-left));}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);margin-right:auto;
+    color:var(--texto);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;}
+  .sup .btn{min-height:36px;padding:0 14px;font-size:var(--t2);background:transparent;}
+
+  .grande{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;}
+  .bajada{color:var(--apagado);font-size:var(--t3);margin:var(--e2) 0 0;line-height:1.5;}
+  .gtit{font-size:var(--t2);text-transform:uppercase;letter-spacing:.02em;color:var(--apagado);
+    margin:var(--e5) var(--e3) 7px;font-weight:400;display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 var(--e2);}
+  .grupo{background:var(--sup);border-radius:var(--radio);overflow:hidden;}
+  .nota{font-size:var(--t2);color:var(--apagado);line-height:1.5;margin:var(--e2) 0 0;}
+
+  /* ---------------------------------------------------------- mantenimiento
+     (.mant a secas es la pantalla de mantenimiento.js: no reusar ese nombre) */
+  .mantCaja{display:grid;grid-template-columns:1fr auto;gap:var(--e3) var(--e4);align-items:center;padding:var(--e4);}
+  .mantCaja b{display:block;font-size:var(--t4);font-weight:600;}
+  .mantCaja small{display:block;font-size:var(--t2);color:var(--apagado);line-height:1.5;margin-top:2px;}
+  .mantCaja input{grid-column:1 / -1;width:100%;}
+  .mantCaja.cerrado b{color:var(--negativo);}
+  .mantCaja .btn{min-height:44px;}
+
+  /* ---------------------------------------------------------- tiendas */
+  .tfila{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:12px 14px;position:relative;}
+  .tfila + .tfila::before{content:"";position:absolute;top:0;right:0;left:14px;height:1px;background:var(--divider);}
+  .tfila b{font-weight:600;overflow-wrap:anywhere;}
+  .tfila small{display:block;font-size:var(--t2);color:var(--apagado);line-height:1.45;margin-top:1px;}
+  .tfila small a{margin-right:10px;}
+  .estado{font-size:var(--t2);font-weight:600;color:var(--apagado);white-space:nowrap;}
+  .estado.e0{color:var(--accion-texto);} .estado.e1{color:var(--ok);}
+  .acc{grid-column:2 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:var(--e2);margin-top:var(--e2);}
+  .acc .btn{min-height:38px;padding:0 14px;box-sizing:border-box;}
+  .btn.peligro{color:var(--negativo);}
+  .logoT{flex:none;display:grid;place-items:center;border-radius:50%;background:var(--c, var(--franja));overflow:hidden;
+    color:#fff;font-weight:700;letter-spacing:-.02em;width:44px;height:44px;font-size:15px;grid-row:span 2;align-self:start;}
+  .logoT img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* ---------------------------------------------------------- borrar */
+  dialog.hoja{border:none;border-radius:22px;padding:var(--e4) var(--e5) var(--e5);max-width:480px;width:calc(100% - 32px);
+    background:var(--pagina);color:var(--texto);}
+  dialog.hoja::backdrop{background:rgba(10,30,26,.45);}
+  dialog.hoja h2{font-size:var(--t5);font-weight:700;margin-top:var(--e2);overflow-wrap:anywhere;}
+  dialog.hoja ul{margin:var(--e2) 0 0;padding-left:20px;line-height:1.6;}
+  dialog.hoja label{display:block;margin-top:var(--e4);font-size:var(--t2);color:var(--apagado);}
+  dialog.hoja label input{display:block;width:100%;margin-top:6px;font-size:var(--t4);}
+  .pie{display:flex;justify-content:flex-end;gap:var(--e2);margin-top:var(--e4);flex-wrap:wrap;}
+  .pie .btn{min-height:44px;}
+  #dbSi{background:var(--negativo);color:#fff;font-weight:600;}
+  #dbMsg{min-height:1.5em;}
+
+  @media (max-width:600px){
+    .mantCaja{grid-template-columns:1fr;}
+    .mantCaja .btn{width:100%;}
+    .acc{grid-column:1 / -1;}
+    dialog.hoja{margin:auto 0 0;width:100%;max-width:none;border-radius:24px 24px 0 0;padding:var(--e3) var(--e4) var(--e5);}
+  }
+</style>
+</head>
+<body>
+  <header class="sup vidrio">
+    <a class="marca" href="index.html" data-link="inicio">Mis Torneos</a>
+    <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
+    <a class="btn" href="muro.html" data-link="muro">Mi muro</a>
+  </header>
+
+  <main class="ancho">
+    <h1 class="grande">Herramientas de administrador</h1>
+    <p class="bajada" id="bajada">Cargando…</p>
+
+    <div id="herr" class="oculto">
+      <h2 class="gtit">Mantenimiento de todo el sitio</h2>
+      <div class="grupo"><div class="mantCaja" id="mant">
+        <div><b id="mantEstado">…</b><small id="mantDesc"></small></div>
+        <button class="btn" id="mantBtn" disabled>…</button>
+        <input id="mantMensaje" maxlength="200" placeholder="Mensaje para los jugadores (opcional)" aria-label="Mensaje de mantenimiento">
+      </div></div>
+
+      <h2 class="gtit">Todas las tiendas <span id="resumen"></span></h2>
+      <div class="grupo" id="lista"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
+      <p class="nota" style="margin:var(--e2) var(--e3) 0">Verificada: sale en el directorio y puede subir banner y logo.
+        «Panel» entra al panel del organizador de esa tienda.</p>
+    </div>
+  </main>
+
+  <dialog class="hoja" id="dlgBorrar" aria-labelledby="dbTit">
+    <h2 id="dbTit">Eliminar la tienda</h2>
+    <p class="nota" style="font-size:var(--t3);color:var(--texto)">Se borra entera y <b>no se puede deshacer</b>:</p>
+    <ul id="dbQue"></ul>
+    <p class="nota">Antes de borrar se descarga un respaldo (un archivo .json) a este equipo.
+      Quienes la seguían la dejan de ver en su muro.</p>
+    <label>Para confirmar, escribe <b id="dbId"></b>
+      <input id="dbConfirma" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <p class="nota" id="dbMsg" role="status"></p>
+    <div class="pie"><button class="btn" id="dbNo">Cancelar</button>
+      <button class="btn" id="dbSi" disabled>Descargar respaldo y eliminar</button></div>
+  </dialog>
+
+<script src="config.js?v=7"></script>
+<script type="module">
+import { ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=4";
+import { nombreTienda, iniciales } from "./sala.js?v=2";
+
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+/* El ?emu=1 viaja en cada enlace: sin eso, una prueba local abriría la base real. */
+const EMU = enEmulador() ? "emu=1&" : "";
+const aTienda = id => "tienda.html?" + EMU + "sala=" + encodeURIComponent(id);
+const aPanel  = id => "admin.html?" + EMU + "sala=" + encodeURIComponent(id);
+const DEST = { inicio: "index.html" + (EMU ? "?emu=1" : ""), tiendas: "tienda.html" + (EMU ? "?emu=1" : ""), muro: urlMuro() };
+document.querySelectorAll("[data-link]").forEach(a => a.href = DEST[a.dataset.link]);
+
+onAuthStateChanged(auth, async u => {
+  $("herr").classList.add("oculto");
+  if (!u){
+    $("bajada").innerHTML = 'Entra con tu cuenta de administrador. <a href="' + urlCuenta("ingresar") + '">Entrar</a>';
+    return;
+  }
+  let admin = false;
+  try { admin = (await get(ref(db, "admins/" + u.uid))).val() === true; } catch(e){}
+  if (!admin){
+    $("bajada").textContent = "Esta página es solo para quien administra el sitio. Tu cuenta no tiene ese permiso.";
+    return;
+  }
+  $("bajada").textContent = "Solo las ven las cuentas de administrador del sitio.";
+  $("herr").classList.remove("oculto");
+  escucharMantenimiento();
+  pintarTiendas();
+});
+
+/* ------------------------------------------------------------ mantenimiento
+   Lo que cierra de verdad son las reglas: con el sitio cerrado, nadie que no
+   administre lee ni escribe nada. */
+let MANT = {}, escuchando = false;
+function escucharMantenimiento(){
+  if (escuchando) return;
+  escuchando = true;
+  onValue(ref(db, "sistema/mantenimiento"), s => {
+    MANT = s.val() || {};
+    const cerrado = MANT.activo === true;
+    $("mant").classList.toggle("cerrado", cerrado);
+    $("mantEstado").textContent = cerrado ? "Cerrado por mantenimiento" : "Sitio abierto";
+    $("mantDesc").textContent = cerrado
+      ? "Todas las páginas y todas las tiendas muestran la pantalla de mantenimiento. Solo los administradores ven el sitio."
+      : "Cierra todas las páginas de todas las tiendas: portada, cuentas, perfiles, paneles y timers.";
+    if (document.activeElement !== $("mantMensaje")) $("mantMensaje").value = MANT.mensaje || "";
+    $("mantBtn").textContent = cerrado ? "Abrir el sitio" : "Cerrar por mantenimiento";
+    $("mantBtn").classList.toggle("primario", cerrado);
+    $("mantBtn").disabled = false;
+  }, () => {});
+}
+$("mantBtn").onclick = async () => {
+  const cerrar = MANT.activo !== true;
+  if (cerrar && !confirm("¿Cerrar TODO el sitio por mantenimiento? Nadie que no administre va a poder entrar a ninguna página ni a ninguna tienda hasta que lo abras.")) return;
+  const v = { activo: cerrar, desde: Date.now() }, msg = $("mantMensaje").value.trim();
+  if (msg) v.mensaje = msg.slice(0, 200);
+  $("mantBtn").disabled = true;
+  try { await set(ref(db, "sistema/mantenimiento"), v); }
+  catch(e){ $("mantBtn").disabled = false; $("mantDesc").textContent = "No se pudo cambiar. Revisa la conexión."; }
+};
+
+/* ------------------------------------------------------------ tiendas
+   Las que nadie ha revisado, primero. verificada: true sale en el directorio;
+   false, revisada y no; sin el campo, por revisar. */
+const ESTADO = t => t.verificada === true ? 1 : t.verificada === false ? 2 : 0;
+let TODAS = {};
+const LOGOS = {};
+async function pintarTiendas(){
+  try { TODAS = (await get(ref(db, "tiendas"))).val() || {}; }
+  catch(e){ $("lista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo cargar la lista.</div>'; return; }
+  const filas = Object.entries(TODAS).map(([id, t]) => ({ id, t, p: t.perfil || {} }))
+    .sort((a, b) => ESTADO(a.t) - ESTADO(b.t) || nombreTienda(a.p, a.id).localeCompare(nombreTienda(b.p, b.id)));
+  const porRevisar = filas.filter(f => !ESTADO(f.t)).length;
+  $("resumen").textContent = filas.length + (filas.length === 1 ? " tienda" : " tiendas") +
+    (porRevisar ? " · " + porRevisar + " por revisar" : "");
+  $("lista").innerHTML = filas.map(({ id, t, p }) => {
+    const mm = Object.values(t.miembros || {}), dueno = mm.find(m => m.rol === "dueno"), e = ESTADO(t);
+    const orgs = mm.length - (dueno ? 1 : 0);
+    const datos = [p.comuna, dueno && "dueño: " + dueno.nombre,
+      orgs && orgs + (orgs === 1 ? " organizador" : " organizadores"),
+      p.creada && "creada el " + new Date(p.creada).toLocaleDateString("es-CL")].filter(Boolean).join(" · ");
+    return '<div class="tfila"><span class="logoT" style="--c:' + esc(p.color || "var(--franja)") + '" aria-hidden="true">' +
+      (LOGOS[id] ? '<img src="' + esc(LOGOS[id]) + '" alt="">' : esc(iniciales(nombreTienda(p, id)))) + "</span>" +
+      "<div><b>" + esc(nombreTienda(p, id)) + "</b><small>" + esc(datos || "Sin datos todavía") + "</small>" +
+      '<small><a href="' + aTienda(id) + '" target="_blank" rel="noopener">Ver el perfil</a>' +
+      (p.instagram ? '<a href="https://instagram.com/' + encodeURIComponent(p.instagram) + '" target="_blank" rel="noopener">@' + esc(p.instagram) + "</a>" : "") +
+      "</small></div>" +
+      '<span class="estado e' + e + '">' + ["Por revisar", "Verificada", "No verificada"][e] + "</span>" +
+      '<div class="acc">' +
+      (e !== 1 ? '<button class="btn chico primario" data-verif="' + esc(id) + '" data-v="1">Verificar</button>' : "") +
+      (e !== 2 ? '<button class="btn chico" data-verif="' + esc(id) + '" data-v="0">' + (e ? "Quitar verificación" : "No verificar") + "</button>" : "") +
+      '<a class="btn chico" href="' + aPanel(id) + '">Panel</a>' +
+      /* «principal» es la sala que abre un enlace sin ?sala=: borrada, cualquiera
+         podría crear una tienda con ese nombre y quedarse con ella. */
+      (id !== "principal" ? '<button class="btn chico peligro" data-borrar="' + esc(id) + '">Eliminar</button>' : "") + "</div></div>";
+  }).join("") || '<div class="nota" style="padding:var(--e4)">Todavía no hay tiendas.</div>';
+  $("lista").querySelectorAll("[data-verif]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await set(ref(db, "tiendas/" + b.dataset.verif + "/verificada"), b.dataset.v === "1"); pintarTiendas(); }
+    catch(e){ b.disabled = false; $("resumen").textContent = "No se pudo guardar. Revisa la conexión."; }
+  });
+  $("lista").querySelectorAll("[data-borrar]").forEach(b => b.onclick = () => abrirBorrar(b.dataset.borrar));
+  /* Los logos, aparte y una vez cada uno: la lista no baja todas las fotos. */
+  filas.forEach(({ id }) => {
+    if (id in LOGOS) return;
+    LOGOS[id] = null;
+    get(ref(db, "fotos/" + id + "/logo")).then(s => { if (s.val()){ LOGOS[id] = s.val(); pintarTiendas(); } }, () => {});
+  });
+}
+
+/* ------------------------------------------------------------ eliminar
+   Todo lo que cuelga del id de la tienda, en una sola escritura: o se borra
+   todo o no se borra nada. Lo de cada jugador (a quién sigue, su vitrina)
+   queda en su cuenta, que nadie más puede tocar; las páginas ignoran una
+   tienda que ya no existe. */
+const NODOS = ["tiendas", "salas", "invitaciones", "enlaces", "fotos"];
+let BORRAR = null;
+async function abrirBorrar(id){
+  BORRAR = null;
+  const t = TODAS[id] || {}, nom = nombreTienda(t.perfil, id);
+  $("dbTit").textContent = "Eliminar «" + nom + "»";
+  $("dbId").textContent = id;
+  $("dbConfirma").value = ""; $("dbSi").disabled = true; $("dbMsg").textContent = "";
+  $("dbQue").innerHTML = "<li>Contando lo que tiene…</li>";
+  $("dlgBorrar").showModal();
+  const datos = {};
+  await Promise.all(NODOS.map(n => get(ref(db, n + "/" + id)).then(s => datos[n] = s.val(), () => datos[n] = null)));
+  const s = datos.salas || {}, n = Object.keys(s.historial || {}).length, ag = Object.keys(s.agenda || {}).length;
+  const mm = Object.keys((datos.tiendas || {}).miembros || {}).length, en = Object.keys(datos.enlaces || {}).length;
+  $("dbQue").innerHTML = [
+    n + (n === 1 ? " torneo archivado" : " torneos archivados") + " y su clasificación",
+    "El timer, los emparejamientos publicados y el diseño de la pantalla",
+    ag + (ag === 1 ? " fecha" : " fechas") + " de la agenda",
+    mm + (mm === 1 ? " organizador" : " organizadores") + " y las invitaciones pendientes",
+    en + (en === 1 ? " ID de jugador compartido" : " IDs de jugador compartidos"),
+    "El perfil, la verificación, las insignias de la tienda, el banner y el logo",
+  ].map(x => "<li>" + esc(x) + "</li>").join("");
+  BORRAR = { id, datos };
+  $("dbConfirma").oninput = () => $("dbSi").disabled = $("dbConfirma").value.trim() !== id;
+  $("dbConfirma").focus();
+}
+$("dbNo").onclick = () => $("dlgBorrar").close();
+$("dbSi").onclick = async () => {
+  if (!BORRAR || $("dbConfirma").value.trim() !== BORRAR.id) return;
+  const { id, datos } = BORRAR;
+  $("dbSi").disabled = true;
+  /* El respaldo primero: si algo sale mal después, los datos están en el equipo. */
+  const hoy = new Date().toISOString().slice(0, 10);
+  const blob = new Blob([JSON.stringify({ tienda: id, respaldado: new Date().toISOString(), ...datos }, null, 2)],
+                        { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "respaldo-" + id + "-" + hoy + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  const rutas = Object.fromEntries(NODOS.map(n => [n + "/" + id, null]));
+  /* El espejo de «qué tiendas organizo» de cada miembro, y del dueño de antes. */
+  Object.keys((datos.tiendas || {}).miembros || {}).forEach(uid => rutas["organiza/" + uid + "/" + id] = null);
+  if (datos.salas && typeof datos.salas.owner === "string") rutas["organiza/" + datos.salas.owner + "/" + id] = null;
+  $("dbMsg").textContent = "Eliminando…";
+  try {
+    await update(ref(db), rutas);
+    $("dlgBorrar").close();
+    delete TODAS[id];
+    pintarTiendas();
+  } catch(e){
+    $("dbMsg").textContent = "No se pudo eliminar (no se borró nada). El respaldo ya quedó descargado.";
+    $("dbSi").disabled = false;
+  }
+};
+</script>
+</body>
+</html>

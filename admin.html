@@ -68,10 +68,6 @@
   .invLink{display:flex;gap:8px;align-items:center;margin-top:8px;}
   .invLink input{flex:1;font-size:var(--t2);}
   /* Mantenimiento (solo quien administra) */
-  .mantPanel{display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center;margin-top:6px;}
-  .mantPanel .txt b{display:block;} .mantPanel small{display:block;font-size:var(--t2);color:var(--apagado);}
-  .mantPanel input{grid-column:1 / -1;font-size:var(--t3);padding:9px 10px;}
-  .mantPanel.cerrado b{color:var(--negativo);}
   /* Insignias de la tienda (el dibujo, en estilo.css) */
   .insFila{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--divider);}
   .insFila:first-child{border-top:none;}
@@ -98,12 +94,6 @@
   .prevIns .par{--fondo-ins:var(--pagina);margin-bottom:6px;}
   .prevIns small{color:var(--apagado);font-size:var(--t2);}
   @media (max-width:640px){ .insForm{grid-template-columns:1fr;} }
-  /* Todas las tiendas: solo quien administra. */
-  .adm .estado{flex:none;font-size:var(--t2);font-weight:600;color:var(--apagado);}
-  .adm .estado.e0{color:var(--accion-texto);}
-  .adm .estado.e1{color:var(--ok);}
-  .adm .acc{flex:none;display:flex;gap:6px;}
-  @media (max-width:640px){ .adm{flex-wrap:wrap;} .adm .acc{width:100%;padding-left:50px;} }
   @media (max-width:640px){ .grid2{grid-template-columns:1fr;} }
 
   table{border-collapse:collapse;width:100%;font-size:var(--t2);margin-top:10px;}
@@ -405,21 +395,8 @@
       aria-label="Nombre de la tienda nueva"><button id="nuevaBtn">Crear</button></div>
     <div id="nuevaMsg" class="muted" style="margin-top:6px"></div>
   </div>
-  <div class="row" style="margin-top:12px"><span style="flex:1"></span><button class="small sec" id="logoutBtn2">Salir</button></div>
-</div>
-
-<!-- ============ Todas las tiendas ============
-     Solo para quien administra el sistema (admins/<uid> = true en la consola). -->
-<div class="card" id="adminCard" style="display:none">
-  <h2 class="h2p">Mantenimiento de todo el sitio</h2>
-  <div class="mantPanel">
-    <div class="txt"><b id="mantEstado">…</b><small id="mantDesc"></small></div>
-    <input id="mantMensaje" maxlength="200" placeholder="Mensaje para los jugadores (opcional)" aria-label="Mensaje de mantenimiento">
-    <button id="mantBtn" disabled>…</button>
-  </div>
-  <h2 class="h2p" style="margin-top:18px">Todas las tiendas</h2>
-  <div class="muted" id="adminResumen"></div>
-  <div id="adminLista" style="margin-top:6px"></div>
+  <div class="row" style="margin-top:12px"><button class="small sec herr" hidden>Herramientas de administrador</button>
+    <span style="flex:1"></span><button class="small sec" id="logoutBtn2">Salir</button></div>
 </div>
 
 <!-- ============ Invitación a organizar ============ -->
@@ -439,6 +416,7 @@
     <div style="font-size:var(--t3)"><b id="salaName"></b> <span id="salaRol" class="muted"></span></div>
     <span id="salaMsg" class="muted"></span>
     <span style="flex:1"></span>
+    <button class="small sec herr" hidden>Herramientas de administrador</button>
     <button id="cambiarTienda" class="small sec">Cambiar de tienda</button>
     <button id="logoutBtn" class="small sec">Salir</button>
   </div>
@@ -1034,6 +1012,8 @@ const aCuenta = h => "cuenta.html" + (typeof EMULADOR !== "undefined" && EMULADO
 $("aOlvide").href = aCuenta("olvide");
 $("aCrearCuenta").href = aCuenta("crear");
 $("cambiarTienda").onclick = () => irA(null, "elegir");
+document.querySelectorAll(".herr").forEach(b => b.onclick = () =>
+  location.href = "herramientas.html" + (typeof EMULADOR !== "undefined" && EMULADOR ? "?emu=1" : ""));
 
 /* ------------------------------------------------------------
    Tiendas. Desde el 25-09-2026 una sala es una tienda (tiendas/<id>, mismo
@@ -1045,9 +1025,12 @@ const Q = new URLSearchParams(location.search);
 const PEDIDA = Q.get("sala") ? SALA : null;
 const UNIRSE = Q.get("unirse");
 const ELEGIR = Q.has("elegir");
-/* Sale en el perfil PÚBLICO de la tienda: sin nombre en la cuenta queda
-   «Organizador», no la parte del correo antes de la arroba. */
-const miNombre = u => (u.displayName || "Organizador").slice(0, 80);
+/* Sale en el perfil PÚBLICO de la tienda: el nombre de la cuenta de jugador
+   si tiene; si no, el de Auth; y sin ninguno, «Organizador» (nunca la parte
+   del correo antes de la arroba). */
+const NOMBRES = {};
+const miNombre = u => NOMBRES[u.uid] ??= get(ref(db, "usuarios/" + u.uid + "/nombre"))
+  .then(s => s.val(), () => null).then(n => (n || u.displayName || "Organizador").slice(0, 80));
 /* Quien administra el sistema: admins/<uid> = true, puesto a mano en la consola.
    Cuenta como dueño de todas las tiendas sin quedar de miembro de ninguna. */
 const ADMIN = {};
@@ -1072,7 +1055,7 @@ async function rolEn(sala, u){
   } catch(e){ return null; }
   if (mem.exists()) return mem.val().rol;
   if (own.val() !== u.uid) return own.exists() && await soyAdmin(u) ? "admin" : null;
-  const rutas = { ["tiendas/" + sala + "/miembros/" + u.uid]: { rol: "dueno", nombre: miNombre(u), desde: Date.now() },
+  const rutas = { ["tiendas/" + sala + "/miembros/" + u.uid]: { rol: "dueno", nombre: await miNombre(u), desde: Date.now() },
                   ["organiza/" + u.uid + "/" + sala]: "dueno" };
   try {
     if (!(await get(ref(db, "tiendas/" + sala + "/perfil"))).exists())
@@ -1104,9 +1087,7 @@ async function mostrarSelector(u, aviso){
     return { id, t, rol: m.rol };
   }))).filter(Boolean).sort((a, b) => nombreTienda(a.t.perfil, a.id).localeCompare(nombreTienda(b.t.perfil, b.id)));
 
-  /* Con tiendas por revisar, quien administra se queda acá para verlas. */
-  const porRevisar = await soyAdmin(u) ? await pintarAdmin() : 0;
-  if (filas.length === 1 && !ELEGIR && !aviso && !porRevisar) return irA(filas[0].id);
+  if (filas.length === 1 && !ELEGIR && !aviso) return irA(filas[0].id);
   $("elegirLista").innerHTML = filas.length ? filas.map(f =>
     '<button class="tfila" data-id="' + esc(f.id) + '">' + logoT(f.t.perfil, f.id, 44) +
     '<span class="txt"><b>' + esc(nombreTienda(f.t.perfil, f.id)) + "</b><small>" +
@@ -1128,72 +1109,11 @@ async function mostrarSelector(u, aviso){
       await update(ref(db), {
         ["salas/" + id + "/owner"]: u.uid,
         ["tiendas/" + id + "/perfil"]: { nombre, creada: Date.now() },
-        ["tiendas/" + id + "/miembros/" + u.uid]: { rol: "dueno", nombre: miNombre(u), desde: Date.now() },
+        ["tiendas/" + id + "/miembros/" + u.uid]: { rol: "dueno", nombre: await miNombre(u), desde: Date.now() },
         ["organiza/" + u.uid + "/" + id]: "dueno" });
       irA(id);
     } catch(e){ msg("No se pudo crear. Revisa la conexión y vuelve a intentar."); }
   };
-}
-
-/* El interruptor de mantenimiento. Lo que cierra de verdad son las reglas: con
-   el sitio cerrado, nadie que no administre lee ni escribe nada. */
-let MANT = {};
-onValue(ref(db, "sistema/mantenimiento"), s => {
-  MANT = s.val() || {};
-  const cerrado = MANT.activo === true;
-  document.querySelector(".mantPanel").classList.toggle("cerrado", cerrado);
-  $("mantEstado").textContent = cerrado ? "Cerrado por mantenimiento" : "Sitio abierto";
-  $("mantDesc").textContent = cerrado ? "Todas las páginas y todas las tiendas muestran la pantalla de mantenimiento. Solo los administradores ven el sitio."
-                                      : "Cierra todas las páginas de todas las tiendas: portada, cuentas, perfiles, paneles y timers.";
-  if (document.activeElement !== $("mantMensaje")) $("mantMensaje").value = MANT.mensaje || "";
-  $("mantBtn").textContent = cerrado ? "Abrir el sitio" : "Cerrar por mantenimiento";
-  $("mantBtn").className = cerrado ? "" : "sec";
-  $("mantBtn").disabled = false;
-}, () => {});
-$("mantBtn").onclick = async () => {
-  const cerrar = MANT.activo !== true;
-  if (cerrar && !confirm("¿Cerrar TODO el sitio por mantenimiento? Nadie que no administre va a poder entrar a ninguna página ni a ninguna tienda hasta que lo abras.")) return;
-  const v = { activo: cerrar, desde: Date.now() }, msg = $("mantMensaje").value.trim();
-  if (msg) v.mensaje = msg.slice(0, 200);
-  $("mantBtn").disabled = true;
-  try { await set(ref(db, "sistema/mantenimiento"), v); }
-  catch(e){ $("mantBtn").disabled = false; $("mantDesc").textContent = "No se pudo cambiar. Revisa la conexión."; }
-};
-
-/* Todas las tiendas, las que nadie ha revisado primero. verificada: true sale
-   en el directorio; false, revisada y no; sin el campo, por revisar. */
-const ESTADO = t => t.verificada === true ? 1 : t.verificada === false ? 2 : 0;
-async function pintarAdmin(){
-  let todas = {};
-  try { todas = (await get(ref(db, "tiendas"))).val() || {}; } catch(e){}
-  const filas = Object.entries(todas).map(([id, t]) => ({ id, t, p: t.perfil || {} }))
-    .sort((a, b) => ESTADO(a.t) - ESTADO(b.t) || nombreTienda(a.p, a.id).localeCompare(nombreTienda(b.p, b.id)));
-  const porRevisar = filas.filter(f => !ESTADO(f.t)).length;
-  $("adminCard").style.display = "block";
-  $("adminResumen").textContent = filas.length + (filas.length === 1 ? " tienda" : " tiendas") +
-    (porRevisar ? " · " + porRevisar + " por revisar" : " · todas revisadas");
-  $("adminLista").innerHTML = filas.map(({ id, t, p }) => {
-    const mm = Object.values(t.miembros || {}), dueno = mm.find(m => m.rol === "dueno"), e = ESTADO(t);
-    const orgs = mm.length - (dueno ? 1 : 0);
-    const datos = [p.comuna, p.direccion, dueno && "dueño: " + dueno.nombre,
-      orgs && orgs + (orgs === 1 ? " organizador" : " organizadores"),
-      p.creada && "creada el " + new Date(p.creada).toLocaleDateString("es-CL")].filter(Boolean).join(" · ");
-    return '<div class="miembro adm">' + logoT(p, id, 38) + '<div class="txt"><b>' + esc(nombreTienda(p, id)) + "</b>" +
-      "<small>" + esc(datos) + "</small><small>" +
-      (p.instagram ? '<a href="https://instagram.com/' + esc(p.instagram) + '" target="_blank" rel="noopener">@' + esc(p.instagram) + "</a> · " : "") +
-      '<a href="tienda.html?sala=' + esc(id) + conEmu() + '" target="_blank">Ver el perfil</a></small></div>' +
-      '<span class="estado e' + e + '">' + ["Por revisar", "Verificada", "No verificada"][e] + '</span><span class="acc">' +
-      (e !== 1 ? '<button class="small" data-verif="' + esc(id) + '" data-v="1">Verificar</button>' : "") +
-      (e !== 2 ? '<button class="small sec" data-verif="' + esc(id) + '" data-v="0">' + (e ? "Quitar verificación" : "No verificar") + "</button>" : "") +
-      '<button class="small sec" data-entrar="' + esc(id) + '">Entrar</button></span></div>';
-  }).join("") || '<div class="muted">Todavía no hay tiendas.</div>';
-  $("adminLista").querySelectorAll("[data-verif]").forEach(b => b.onclick = async () => {
-    b.disabled = true;
-    try { await set(ref(db, "tiendas/" + b.dataset.verif + "/verificada"), b.dataset.v === "1"); pintarAdmin(); }
-    catch(e){ b.disabled = false; $("adminResumen").textContent = "No se pudo guardar. Revisa la conexión."; }
-  });
-  $("adminLista").querySelectorAll("[data-entrar]").forEach(b => b.onclick = () => irA(b.dataset.entrar));
-  return porRevisar;
 }
 
 async function mostrarInvitacion(u){
@@ -1218,7 +1138,7 @@ async function mostrarInvitacion(u){
   $("unirseSi").onclick = async () => {
     try {
       await update(ref(db), {
-        ["tiendas/" + PEDIDA + "/miembros/" + u.uid]: { rol: "organizador", nombre: miNombre(u), codigo: UNIRSE, desde: Date.now() },
+        ["tiendas/" + PEDIDA + "/miembros/" + u.uid]: { rol: "organizador", nombre: await miNombre(u), codigo: UNIRSE, desde: Date.now() },
         ["invitaciones/" + PEDIDA + "/" + UNIRSE]: null,
         ["organiza/" + u.uid + "/" + PEDIDA]: "organizador" });
       irA(PEDIDA);
@@ -1230,8 +1150,11 @@ let soyDueno = false;          // puede organizar ESTA tienda (el nombre es de c
 let miRol = null;              // "dueno" | "organizador"
 onAuthStateChanged(auth, async u => {
   $("loginCard").style.display = u ? "none" : "block";
-  ["all", "elegirCard", "adminCard", "unirseCard"].forEach(id => $(id).style.display = "none");
+  ["all", "elegirCard", "unirseCard"].forEach(id => $(id).style.display = "none");
+  document.querySelectorAll(".herr").forEach(b => b.hidden = true);
   if (!u) return;
+  /* Lo del sitio entero vive en su propia página, solo para quien administra. */
+  soyAdmin(u).then(si => document.querySelectorAll(".herr").forEach(b => b.hidden = !si));
 
   if (UNIRSE && PEDIDA) return mostrarInvitacion(u);
   if (!PEDIDA || ELEGIR) return mostrarSelector(u);
@@ -1244,6 +1167,10 @@ onAuthStateChanged(auth, async u => {
       : "La tienda «" + PEDIDA + "» no existe. Puedes crearla abajo.");
   }
   $("all").style.display = "block";
+  /* Mi nombre en la tienda, al día con mi cuenta (antes quedaba «Organizador»). */
+  if (miRol === "dueno" || miRol === "organizador") miNombre(u).then(n =>
+    get(ref(db, "tiendas/" + PEDIDA + "/miembros/" + u.uid + "/nombre")).then(s => {
+      if (s.exists() && s.val() !== n) return set(s.ref, n); })).catch(() => {});
 
   // Oculto pestañas y timer hasta confirmar que eres el dueño de la sala,
   // para no mostrar por un instante controles que después se esconden.
@@ -1384,7 +1311,7 @@ function escucharTienda(u){
     $("invitarBtn").onclick = async () => {
       const ABC = "abcdefghijkmnpqrstuvwxyz23456789";
       const cod = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => ABC[b % 32]).join("");
-      try { await set(ref(db, "invitaciones/" + SALA + "/" + cod), { rol: "organizador", creado: Date.now(), por: miNombre(u) }); }
+      try { await set(ref(db, "invitaciones/" + SALA + "/" + cod), { rol: "organizador", creado: Date.now(), por: await miNombre(u) }); }
       catch(e){ $("orgMsg").textContent = "No se pudo crear la invitación. Revisa la conexión."; }
     };
   } else {
