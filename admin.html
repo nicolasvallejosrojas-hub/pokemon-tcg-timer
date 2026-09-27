@@ -67,7 +67,6 @@
   .miembro small{display:block;font-size:var(--t2);color:var(--apagado);}
   .invLink{display:flex;gap:8px;align-items:center;margin-top:8px;}
   .invLink input{flex:1;font-size:var(--t2);}
-  /* Mantenimiento (solo quien administra) */
   /* Insignias de la tienda (el dibujo, en estilo.css) */
   .insFila{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--divider);}
   .insFila:first-child{border-top:none;}
@@ -414,6 +413,7 @@
   <div class="row">
     <span id="salaLogo"></span>
     <div style="font-size:var(--t3)"><b id="salaName"></b> <span id="salaRol" class="muted"></span></div>
+    <select id="timerSel" aria-label="Timer de la tienda" style="font-size:var(--t2);padding:6px 10px"></select>
     <span id="salaMsg" class="muted"></span>
     <span style="flex:1"></span>
     <button class="small sec herr" hidden>Herramientas de administrador</button>
@@ -867,6 +867,15 @@
      TIENDA: su perfil público y quiénes la organizan
      ============================================================ -->
 <div class="panel hide" id="panelO">
+  <div class="card" id="timersCard">
+    <div class="row"><h2 class="h2p" style="margin:0">Timers de la tienda</h2><span style="flex:1"></span>
+      <span class="muted" id="timersCuenta"></span></div>
+    <div class="muted" style="margin-top:4px">Cada timer tiene su propio reloj, sus mesas y su sorteo: sirven para correr
+      torneos a la vez. Los torneos que archives en cualquiera quedan en el historial de la tienda.</div>
+    <div id="timersLista" style="margin-top:6px"></div>
+    <div class="row" style="margin-top:12px"><button id="timerNuevo" class="sec">Crear otro timer</button>
+      <span id="timersMsg" class="muted"></span></div>
+  </div>
   <div class="card">
     <div class="row"><h2 class="h2p" style="margin:0">Perfil público</h2><span style="flex:1"></span>
       <a id="verPerfil" target="_blank" rel="noopener">Ver el perfil de la tienda</a></div>
@@ -948,7 +957,7 @@ import { getDatabase, connectDatabaseEmulator, ref, onValue, set, get, push, rem
 import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=4";
-import { slug, SALA, BASE, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=2";
+import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=3";
 import { vigilar } from "./mantenimiento.js?v=2";
 import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila } from "./insignias.js?v=1";
 import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_SETS,
@@ -1022,7 +1031,7 @@ document.querySelectorAll(".herr").forEach(b => b.onclick = () =>
    una invitación. Las reglas de Firebase son las que de verdad lo aseguran.
    ------------------------------------------------------------ */
 const Q = new URLSearchParams(location.search);
-const PEDIDA = Q.get("sala") ? SALA : null;
+const PEDIDA = Q.get("sala") ? TIENDA : null;   // la tienda, aunque se abra uno de sus timers
 const UNIRSE = Q.get("unirse");
 const ELEGIR = Q.has("elegir");
 /* Sale en el perfil PÚBLICO de la tienda: el nombre de la cuenta de jugador
@@ -1076,8 +1085,6 @@ async function mostrarSelector(u, aviso){
   $("elegirLista").innerHTML = '<div class="muted" style="margin-top:10px">Buscando tus tiendas…</div>';
   let mias = {};
   try { mias = (await get(ref(db, "organiza/" + u.uid))).val() || {}; } catch(e){}
-  /* La sala principal es la de siempre: si era tuya, entra sin invitación. */
-  if (!mias.principal && await rolEn("principal", u) === "dueno") mias.principal = "dueno";
   const filas = (await Promise.all(Object.keys(mias).map(async id => {
     let t = null;
     try { t = (await get(ref(db, "tiendas/" + id))).val(); } catch(e){}
@@ -1102,6 +1109,8 @@ async function mostrarSelector(u, aviso){
     const id = slug(nombre);
     const msg = t => $("nuevaMsg").textContent = t;
     if (nombre.length < 2 || !id) return msg("Escribe el nombre de la tienda.");
+    /* «principal» y los nombres con forma de timer (…-t2) están reservados. */
+    if (id === "principal" || /-t[0-9]+$/.test(id)) return msg("Ese nombre está reservado. Prueba con otro.");
     try {
       const [own, t] = await Promise.all([get(ref(db, "salas/" + id + "/owner")), get(ref(db, "tiendas/" + id))]);
       if (own.exists() || t.exists())
@@ -1166,6 +1175,11 @@ onAuthStateChanged(auth, async u => {
       ? "No organizas «" + PEDIDA + "». Para entrar, pídele al dueño un enlace de invitación."
       : "La tienda «" + PEDIDA + "» no existe. Puedes crearla abajo.");
   }
+  if (SALA !== TIENDA){
+    let de = null;
+    try { de = (await get(ref(db, BASE + "/tienda"))).val(); } catch(e){}
+    if (de !== TIENDA) return mostrarSelector(u, "Ese timer no existe, o lo eliminaron. Elige la tienda de nuevo.");
+  }
   $("all").style.display = "block";
   /* Mi nombre en la tienda, al día con mi cuenta (antes quedaba «Organizador»). */
   if (miRol === "dueno" || miRol === "organizador") miNombre(u).then(n =>
@@ -1176,7 +1190,7 @@ onAuthStateChanged(auth, async u => {
   // para no mostrar por un instante controles que después se esconden.
   $("tabs").style.display = "none";
   $("panelT").style.display = "none";
-  $("salaName").textContent = SALA;
+  $("salaName").textContent = TIENDA;
 
   /* Lo publicado de la tienda: estado, diseño e imágenes. Si no hay nada, es
      una tienda recién creada y la primera vez se publica todo. */
@@ -1184,6 +1198,7 @@ onAuthStateChanged(auth, async u => {
   try { publicado = (await get(T)).val(); salaNueva = !publicado; } catch(e){}
   soyDueno = true;
   escucharTienda(u);
+  escucharTimers();
 
   if (soyDueno){
     $("salaMsg").innerHTML = "";
@@ -1231,11 +1246,81 @@ onAuthStateChanged(auth, async u => {
 });
 
 /* ------------------------------------------------------------
+   Timers de la tienda. El 1 es la sala de la tienda; del 2 al MAX_TIMERS son
+   <tienda>-tN (ver sala.js). Existe el que tiene salas/<id>/tienda. Las
+   reglas ponen el tope y quién los crea: quien organiza la tienda.
+   ------------------------------------------------------------ */
+const HAY = { 1: true }, NOM = {};
+const nombreTimer = n => NOM[n] || "Timer " + n;
+const pantallaDe = id => carpeta() + "timer-view.html?sala=" + id + conEmu();
+function escucharTimers(){
+  for (let n = 1; n <= MAX_TIMERS; n++){
+    const id = salaDeTimer(TIENDA, n);
+    onValue(ref(db, "salas/" + id + "/nombre"), s => { NOM[n] = s.val(); pintarTimers(); }, () => {});
+    if (n > 1) onValue(ref(db, "salas/" + id + "/tienda"), s => {
+      if (s.val() === TIENDA) HAY[n] = true; else delete HAY[n];
+      pintarTimers(); }, () => {});
+  }
+  $("timerSel").onchange = e => e.target.value === "nuevo" ? crearTimer() : irA(salaDeTimer(TIENDA, +e.target.value));
+  $("timerNuevo").onclick = crearTimer;
+}
+function pintarTimers(){
+  const ns = Object.keys(HAY).map(Number).sort((a, b) => a - b), actual = numTimer(SALA);
+  $("timerSel").innerHTML = ns.map(n => '<option value="' + n + '"' + (n === actual ? " selected" : "") + ">" +
+      esc(nombreTimer(n)) + "</option>").join("") +
+    (ns.length < MAX_TIMERS ? '<option value="nuevo">+ Crear otro timer</option>' : "");
+  $("timersCuenta").textContent = ns.length + " de " + MAX_TIMERS;
+  $("timerNuevo").disabled = ns.length >= MAX_TIMERS;
+  $("timerNuevo").textContent = ns.length >= MAX_TIMERS ? "Llegaste al tope de " + MAX_TIMERS + " timers" : "Crear otro timer";
+  $("timersLista").innerHTML = ns.map(n => {
+    const id = salaDeTimer(TIENDA, n);
+    return '<div class="miembro"><div class="txt"><b>' + esc(nombreTimer(n)) + (n === actual ? " · el que tienes abierto" : "") +
+      '</b><small>Timer ' + n + ' · pantalla: <a href="' + esc(pantallaDe(id)) + '" target="_blank" rel="noopener">' + esc(id) + "</a></small></div>" +
+      (n !== actual ? '<button class="small" data-abrir="' + n + '">Abrir</button>' : "") +
+      '<button class="small sec" data-renombrar="' + n + '">Renombrar</button>' +
+      (n > 1 ? '<button class="small sec" data-eliminar="' + n + '">Eliminar</button>' : "") + "</div>";
+  }).join("");
+  $("timersLista").querySelectorAll("[data-abrir]").forEach(b => b.onclick = () => irA(salaDeTimer(TIENDA, +b.dataset.abrir)));
+  $("timersLista").querySelectorAll("[data-renombrar]").forEach(b => b.onclick = async () => {
+    const n = +b.dataset.renombrar, v = (prompt("Nombre del timer:", nombreTimer(n)) || "").trim().slice(0, 40);
+    if (!v) return;
+    try { await set(ref(db, "salas/" + salaDeTimer(TIENDA, n) + "/nombre"), v); }
+    catch(e){ $("timersMsg").textContent = "No se pudo renombrar. Revisa la conexión."; }
+  });
+  $("timersLista").querySelectorAll("[data-eliminar]").forEach(b => b.onclick = async () => {
+    const n = +b.dataset.eliminar;
+    if (!confirm("¿Eliminar «" + nombreTimer(n) + "»? Se borran su reloj, sus mesas y su sorteo. Los torneos que archivaste quedan en la tienda.")) return;
+    try { await remove(ref(db, "salas/" + salaDeTimer(TIENDA, n))); if (n === actual) irA(TIENDA); }
+    catch(e){ $("timersMsg").textContent = "No se pudo eliminar. Revisa la conexión."; }
+  });
+}
+/* Uno nuevo parte con el diseño del timer 1 (logo, fondo, colores), que es el
+   de la tienda. Se escribe en dos pasos: las reglas del reloj miran a qué
+   tienda pertenece el timer, y eso tiene que existir antes. */
+async function crearTimer(){
+  pintarTimers();
+  const libre = Array.from({ length: MAX_TIMERS - 1 }, (_, i) => i + 2).find(n => !HAY[n]);
+  if (!libre) return;
+  const nombre = (prompt("Nombre del timer nuevo (por ejemplo «Mesa grande» o «Juvenil»):", "Timer " + libre) || "").trim().slice(0, 40);
+  if (!nombre) return;
+  const id = salaDeTimer(TIENDA, libre);
+  $("timersMsg").textContent = "Creando…";
+  try {
+    await update(ref(db, "salas/" + id), { tienda: TIENDA, nombre });
+    const t1 = (await get(ref(db, BASE_T + "/timer"))).val() || {};
+    const diseno = {};
+    ["theme", "media", "mediaVersion"].forEach(k => { if (t1[k] !== undefined) diseno[k] = t1[k]; });
+    if (Object.keys(diseno).length) await update(ref(db, "salas/" + id + "/timer"), diseno);
+    irA(id);
+  } catch(e){ $("timersMsg").textContent = "No se pudo crear. Revisa la conexión."; }
+}
+
+/* ------------------------------------------------------------
    Pestaña Tienda: el perfil público y los organizadores
    ------------------------------------------------------------ */
 function escucharTienda(u){
   const esDueno = miRol === "dueno" || miRol === "admin";
-  $("verPerfil").href = "tienda.html?sala=" + SALA + conEmu();
+  $("verPerfil").href = "tienda.html?sala=" + TIENDA + conEmu();
   ["pfNombre", "pfComuna", "pfDireccion", "pfHorario", "pfInstagram", "pfColor"].forEach(id => $(id).disabled = !esDueno);
   $("pfAcciones").hidden = !esDueno;
   $("pfSoloDueno").hidden = esDueno;
@@ -1246,16 +1331,16 @@ function escucharTienda(u){
   ["pfNombre", "pfComuna", "pfDireccion", "pfHorario", "pfInstagram", "pfColor"].forEach(id =>
     $(id).addEventListener("input", () => editando = true));
 
-  onValue(ref(db, "tiendas/" + SALA), s => {
+  onValue(ref(db, "tiendas/" + TIENDA), s => {
     const t = s.val() || {}, p = t.perfil || {}, mm = t.miembros || {};
     TIENDA_P = t; pintarInsPanel();
-    $("salaName").textContent = nombreTienda(p, SALA);
-    $("salaLogo").innerHTML = logoT(p, SALA, 30);
+    $("salaName").textContent = nombreTienda(p, TIENDA);
+    $("salaLogo").innerHTML = logoT(p, TIENDA, 30);
     $("salaRol").textContent = { dueno: "· dueño", organizador: "· organizador", admin: "· administrador" }[miRol];
-    document.title = nombreTienda(p, SALA) + " — Panel";
+    document.title = nombreTienda(p, TIENDA) + " — Panel";
     /* Lo que el dueño está escribiendo no se pisa con lo que llega. */
     if (!editando){
-      $("pfNombre").value = p.nombre || nombreTienda(null, SALA);
+      $("pfNombre").value = p.nombre || nombreTienda(null, TIENDA);
       $("pfComuna").value = p.comuna || "";
       $("pfDireccion").value = p.direccion || "";
       $("pfHorario").value = p.horario || "";
@@ -1275,7 +1360,7 @@ function escucharTienda(u){
         (esDueno && m.rol !== "dueno" ? '<button class="small sec" data-quitar="' + esc(uid) + '">Quitar</button>' : "") + "</div>").join("");
     $("miembrosLista").querySelectorAll("[data-quitar]").forEach(b => b.onclick = async () => {
       if (!confirm("¿Quitar a esta persona? Deja de poder organizar en esta tienda.")) return;
-      try { await remove(ref(db, "tiendas/" + SALA + "/miembros/" + b.dataset.quitar)); }
+      try { await remove(ref(db, "tiendas/" + TIENDA + "/miembros/" + b.dataset.quitar)); }
       catch(e){ $("orgMsg").textContent = "No se pudo quitar. Revisa la conexión."; }
     });
   });
@@ -1286,7 +1371,7 @@ function escucharTienda(u){
     if (nombre.length < 2) return $("pfMsg").textContent = "El nombre es obligatorio.";
     if (!/^[A-Za-z0-9._]*$/.test(insta)) return $("pfMsg").textContent = "El Instagram solo lleva letras, números, punto y guion bajo.";
     try {
-      await update(ref(db, "tiendas/" + SALA + "/perfil"), { nombre, comuna: $("pfComuna").value.trim(),
+      await update(ref(db, "tiendas/" + TIENDA + "/perfil"), { nombre, comuna: $("pfComuna").value.trim(),
         direccion: $("pfDireccion").value.trim(), horario: $("pfHorario").value.trim(),
         instagram: insta, color: $("pfColor").value.toUpperCase() });
       editando = false;
@@ -1295,8 +1380,8 @@ function escucharTienda(u){
   };
 
   if (esDueno){
-    const enlace = cod => carpeta() + "admin.html?sala=" + SALA + "&unirse=" + cod + conEmu();
-    onValue(ref(db, "invitaciones/" + SALA), s => {
+    const enlace = cod => carpeta() + "admin.html?sala=" + TIENDA + "&unirse=" + cod + conEmu();
+    onValue(ref(db, "invitaciones/" + TIENDA), s => {
       const inv = Object.entries(s.val() || {}).sort(([, a], [, b]) => b.creado - a.creado);
       $("invPend").innerHTML = inv.length ? '<div class="muted" style="margin-top:12px">Enlaces sin usar:</div>' + inv.map(([cod]) =>
         '<div class="invLink"><input readonly value="' + esc(enlace(cod)) + '" aria-label="Enlace de invitación">' +
@@ -1305,20 +1390,20 @@ function escucharTienda(u){
       $("invPend").querySelectorAll("[data-copiar]").forEach(b => b.onclick = () => {
         navigator.clipboard?.writeText(enlace(b.dataset.copiar)); b.textContent = "Copiado"; });
       $("invPend").querySelectorAll("[data-anular]").forEach(b => b.onclick = () =>
-        remove(ref(db, "invitaciones/" + SALA + "/" + b.dataset.anular)).catch(() => {}));
+        remove(ref(db, "invitaciones/" + TIENDA + "/" + b.dataset.anular)).catch(() => {}));
     });
     /* 12 letras de un alfabeto de 32 son 60 bits: no se adivina. Sin 0/o ni 1/l. */
     $("invitarBtn").onclick = async () => {
       const ABC = "abcdefghijkmnpqrstuvwxyz23456789";
       const cod = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => ABC[b % 32]).join("");
-      try { await set(ref(db, "invitaciones/" + SALA + "/" + cod), { rol: "organizador", creado: Date.now(), por: await miNombre(u) }); }
+      try { await set(ref(db, "invitaciones/" + TIENDA + "/" + cod), { rol: "organizador", creado: Date.now(), por: await miNombre(u) }); }
       catch(e){ $("orgMsg").textContent = "No se pudo crear la invitación. Revisa la conexión."; }
     };
   } else {
     $("salirTienda").onclick = async () => {
       if (!confirm("¿Dejar de organizar esta tienda? Para volver vas a necesitar otra invitación.")) return;
       try {
-        await update(ref(db), { ["tiendas/" + SALA + "/miembros/" + u.uid]: null, ["organiza/" + u.uid + "/" + SALA]: null });
+        await update(ref(db), { ["tiendas/" + TIENDA + "/miembros/" + u.uid]: null, ["organiza/" + u.uid + "/" + TIENDA]: null });
         irA(null, "elegir");
       } catch(e){ $("orgMsg").textContent = "No se pudo. Revisa la conexión."; }
     };
@@ -1337,7 +1422,7 @@ let TIENDA_P = null, HIST_P = {}, IE_ICONO = "estrella";
 const puedeIns = () => miRol === "dueno" || miRol === "admin";
 const estiloIns = () => {
   const p = (TIENDA_P && TIENDA_P.perfil) || {};
-  return { color: p.color || COLOR_TIENDA, sigla: iniciales(nombreTienda(p, SALA)), nombre: nombreTienda(p, SALA) };
+  return { color: p.color || COLOR_TIENDA, sigla: iniciales(nombreTienda(p, TIENDA)), nombre: nombreTienda(p, TIENDA) };
 };
 function pintarInsPanel(){
   if (!TIENDA_P) return;
@@ -1348,7 +1433,7 @@ function pintarInsPanel(){
     '<input type="checkbox" role="switch" class="sw" data-auto="' + d.id + '" aria-label="' + esc(d.nombre) + '"' +
     (auto[d.id] !== false ? " checked" : "") + (puedeIns() ? "" : " disabled") + "></label>").join("");
   $("insAuto").querySelectorAll("[data-auto]").forEach(c => c.onchange = async () => {
-    try { await set(ref(db, "tiendas/" + SALA + "/insignias/auto/" + c.dataset.auto), c.checked); }
+    try { await set(ref(db, "tiendas/" + TIENDA + "/insignias/auto/" + c.dataset.auto), c.checked); }
     catch(e){ c.checked = !c.checked; $("ieMsg").textContent = "No se pudo guardar. Revisa la conexión."; }
   });
   const evs = Object.entries(ins.eventos || {}).sort((a, b) => (b[1].fecha || "").localeCompare(a[1].fecha || ""));
@@ -1363,7 +1448,7 @@ function pintarInsPanel(){
   }).join("") : '<div class="muted" style="margin-top:8px">Todavía no creas ninguna.</div>';
   $("insEventos").querySelectorAll("[data-borrar-ev]").forEach(b => b.onclick = async () => {
     if (!confirm("¿Borrar esta insignia? Si ya se entregó, los jugadores la pierden.")) return;
-    try { await remove(ref(db, "tiendas/" + SALA + "/insignias/eventos/" + b.dataset.borrarEv)); }
+    try { await remove(ref(db, "tiendas/" + TIENDA + "/insignias/eventos/" + b.dataset.borrarEv)); }
     catch(e){ $("ieMsg").textContent = "No se pudo borrar. Revisa la conexión."; }
   });
   $("insCrear").hidden = !puedeIns();
@@ -1414,7 +1499,7 @@ $("ieCrear").onclick = async () => {
     ev.elegidos = [...$("ieElegidos").querySelectorAll("input:checked")].map(c => c.value);
     if (!ev.elegidos.length) return msg("Marca al menos un jugador.");
   }
-  try { await push(ref(db, "tiendas/" + SALA + "/insignias/eventos"), ev); $("ieNombre").value = ""; pintarPreviaIns(); msg("Creada ✓"); }
+  try { await push(ref(db, "tiendas/" + TIENDA + "/insignias/eventos"), ev); $("ieNombre").value = ""; pintarPreviaIns(); msg("Creada ✓"); }
   catch(e){ msg("No se pudo crear. Revisa la conexión."); }
 };
 
@@ -2143,7 +2228,7 @@ function renderAll(){
   // Netlify y otros servidores esconden el ".html", así que cortamos por "/"
   const carpeta = location.pathname.replace(/admin\/?$/, "").replace(/[^/]*$/, "");
   const url = location.origin + carpeta + "timer-view.html"
-              + (SALA === "principal" ? "" : "?sala="+SALA);
+              + "?sala=" + SALA;
   $("shareUrl").value = url;
   $("qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(url);
   $("qr").onerror = () => { $("qr").style.opacity = ".25"; $("qr").title = "No se pudo generar el QR — usa el enlace de abajo"; };
@@ -2627,7 +2712,7 @@ onValue(ref(db, BASE + "/pairings"), snap => {
 /* =========================================================
    13. Historial y puntos por puesto
    ========================================================= */
-const R_HIST = ref(db, BASE + "/historial");
+const R_HIST = ref(db, BASE_T + "/historial");
 
 /* Quien compartio su ID de jugador con esta sala: ID del .tdf -> uid de la
    cuenta. El nodo enlaces/<sala> solo lo lee el dueño de la sala, asi que esto
@@ -2638,7 +2723,7 @@ const R_HIST = ref(db, BASE + "/historial");
    exactamente como funcionaba antes. */
 let ENLACES = {};
 function escucharEnlaces(){
-  onValue(ref(db, "enlaces/" + SALA), s => {
+  onValue(ref(db, "enlaces/" + TIENDA), s => {
     const v = s.val() || {};
     ENLACES = {};
     Object.entries(v).forEach(([uid, e]) => {
@@ -2648,7 +2733,7 @@ function escucharEnlaces(){
     });
   }, () => { ENLACES = {}; });
 }
-const R_CFG  = ref(db, BASE + "/config");
+const R_CFG  = ref(db, BASE_T + "/config");
 const PTS_DEF = [12,10,8,7,6,5,4,3], PTS_REST_DEF = 1;
 let CFG = { puntos: PTS_DEF, resto: PTS_REST_DEF };
 
@@ -2742,7 +2827,7 @@ onValue(R_HIST, snap => {
     b.className = "small sec"; b.textContent = "Borrar";
     b.onclick = async () => {
       if (!confirm('¿Borrar "' + t.nombre + '" del historial? Dejará de sumar a la clasificación.')) return;
-      try { await remove(ref(db, BASE + "/historial/" + id)); } catch(e){}
+      try { await remove(ref(db, BASE_T + "/historial/" + id)); } catch(e){}
     };
     row.appendChild(b);
     $("histList").appendChild(row);
@@ -2969,7 +3054,7 @@ $("rBorrar").onclick = async () => {
    a Google Calendar no necesita API ni permisos: es la URL pública de "evento
    nuevo" con los campos ya rellenos, y en el celular la abre la app.
    ========================================================= */
-const R_AGENDA = ref(db, BASE + "/agenda");
+const R_AGENDA = ref(db, BASE_T + "/agenda");
 let AGENDA = [], editandoId = null, verPasados = false;
 let mesVista = null;                                // {a, m} con m de 0 a 11
 
@@ -3022,7 +3107,7 @@ $("evGuardar").onclick = async () => {
   try {
     if (editandoId){
       // update y no set: set borraría "creado", que el formulario no vuelve a mandar
-      await conTimeout(update(ref(db, BASE + "/agenda/" + editandoId), ev), 15000);
+      await conTimeout(update(ref(db, BASE_T + "/agenda/" + editandoId), ev), 15000);
       $("evMsg").innerHTML = '<span class="ok">Fecha actualizada ✓</span>';
     } else {
       await conTimeout(push(R_AGENDA, { ...ev, creado: Date.now() }), 15000);
@@ -3051,7 +3136,7 @@ function editar(ev){
 
 async function borrar(ev){
   if (!confirm('¿Borrar "' + ev.titulo + '" del calendario?\n\nDesaparece de la agenda de los jugadores. Los que ya lo agregaron a su Google Calendar lo conservan.')) return;
-  try { await remove(ref(db, BASE + "/agenda/" + ev.id)); } catch(e){ alert(mensajeConexion(e)); }
+  try { await remove(ref(db, BASE_T + "/agenda/" + ev.id)); } catch(e){ alert(mensajeConexion(e)); }
 }
 
 const MES_CORTO = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
@@ -3164,7 +3249,7 @@ function renderAgenda(){
 $("evVerPasados").onclick = () => { verPasados = !verPasados; renderAgenda(); };
 $("evIcsTodo").onclick = () => {
   const futuros = AGENDA.filter(e => estaVigente(e));
-  if (futuros.length) bajarIcs(futuros, "torneos-" + SALA + ".ics", "Torneos · " + SALA);
+  if (futuros.length) bajarIcs(futuros, "torneos-" + TIENDA + ".ics", "Torneos · " + TIENDA);
 };
 
 modoTodoDia();

@@ -483,7 +483,9 @@ import { getDatabase, connectDatabaseEmulator, ref, onValue, get, set, update, r
 import { getAuth, connectAuthEmulator, signOut, onAuthStateChanged, sendEmailVerification }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { estaVigente, urlGoogle, fechaLegible, cuantoFalta, ordenar } from "./agenda.js?v=4";
-import { SALA, BASE, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=2";
+/* SALA es el timer que se está mirando (su reloj y sus mesas); TIENDA, la
+   tienda de ese timer: historial, agenda, a quién sigo y mi ID compartido. */
+import { SALA, BASE, TIENDA, BASE_T, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=3";
 import { nombreMes } from "./clasificacion.js?v=1";
 import { vigilar } from "./mantenimiento.js?v=2";
 import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga } from "./insignias.js?v=1";
@@ -778,7 +780,7 @@ function cargarTienda(sala){
   onValue(ref(db, "tiendas/" + sala), s => listo("tienda", s.val() || {}), () => listo("tienda", {}));
 }
 const cargada = s => !!TD[s] && TD[s].hist !== undefined && TD[s].cfg !== undefined && TD[s].tienda !== undefined;
-const misSalas = () => [SALA, ...Object.keys(TIENDAS || {}).filter(x => x !== SALA)];
+const misSalas = () => [TIENDA, ...Object.keys(TIENDAS || {}).filter(x => x !== TIENDA)];
 let pintura = 0;
 function repintarInsignias(){
   cancelAnimationFrame(pintura);
@@ -846,7 +848,7 @@ function pintarInsigniasPropias(){
     const items = ganadasPrimero(g.items), n = items.filter(i => i.ok).length;
     return '<div class="insGrupo"><div class="tiendaCab"><span class="logoT" style="background:' + esc(colorTienda(g.color)[1]) +
       '">' + esc(iniciales(g.nombre)) + "</span><div><b>" + esc(g.nombre) + "</b><small>" + n + " de " + items.length +
-      " ganadas" + (g.sala === SALA ? " · la que estás mirando" : "") + "</small></div></div>" +
+      " ganadas" + (g.sala === TIENDA ? " · la que estás mirando" : "") + "</small></div></div>" +
       (items.length ? grilla(items) : '<div class="vacio">Esta tienda no tiene insignias activas.</div>') + "</div>";
   }).join("");
   pintarVitrina($("pfVitrina"), VITRINA, r.porClave, true);
@@ -1011,7 +1013,7 @@ function pintarMisTiendas(){
   const nom = x => nombreTienda(PERFILES[x], x);
   /* Favoritas arriba; después la que estás mirando y el resto por nombre. */
   const salas = Object.keys(t).sort((a, b) => (!!t[b].favorita - !!t[a].favorita) ||
-    (a === SALA ? -1 : b === SALA ? 1 : nom(a).localeCompare(nom(b))));
+    (a === TIENDA ? -1 : b === TIENDA ? 1 : nom(a).localeCompare(nom(b))));
   $("pfTiendas").innerHTML = TIENDAS === null
     ? '<div class="vacio">Cargando…</div>'
     : salas.length
@@ -1019,8 +1021,8 @@ function pintarMisTiendas(){
        Tiendas, junto a sus botones. */
     ? '<table class="tabla"><tbody>' + salas.map(x =>
         '<tr><td><a href="' + aTienda(x) + '">' + esc(nom(x)) + "</a>" +
-        (x === SALA ? '<div class="rec">la que estás mirando</div>' : "") + "</td>" +
-        '<td class="res">' + (x === SALA ? "" : t[x].compartirId ? "compartes tu ID" : "sin ID compartido") + "</td>" +
+        (x === TIENDA ? '<div class="rec">la que estás mirando</div>' : "") + "</td>" +
+        '<td class="res">' + (x === TIENDA ? "" : t[x].compartirId ? "compartes tu ID" : "sin ID compartido") + "</td>" +
         '<td class="res" style="width:36px"><button class="estrella' + (t[x].favorita ? " on" : "") + '" data-fav="' +
         esc(x) + '" aria-pressed="' + !!t[x].favorita + '" aria-label="Favorita: ' + esc(nom(x)) + '"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z"/></svg></button></td></tr>').join("") +
         "</tbody></table>"
@@ -1173,8 +1175,8 @@ function pintarVivo(){
    no se resuelve escribiendo el ID en las tablas: serían los ID de jugador de
    toda la sala, a la vista de cualquiera.
    ------------------------------------------------------------ */
-const refTienda = () => ref(db, "usuarios/" + usuario.uid + "/tiendas/" + SALA);
-const refEnlace = () => ref(db, "enlaces/" + SALA + "/" + usuario.uid);
+const refTienda = () => ref(db, "usuarios/" + usuario.uid + "/tiendas/" + TIENDA);
+const refEnlace = () => ref(db, "enlaces/" + TIENDA + "/" + usuario.uid);
 
 async function conAviso(f){
   errTienda = "";
@@ -1223,7 +1225,7 @@ const dejarDeSeguir = () => conAviso(async () => {
 });
 
 function pintarTienda(){
-  const mia = (TIENDAS || {})[SALA];
+  const mia = (TIENDAS || {})[TIENDA];
   const id  = perfil && perfil.playerId;
   const nota = t => '<div style="font-size:var(--t2);color:var(--apagado);' +
                     'line-height:1.5;margin:var(--e2) 0">' + t + "</div>";
@@ -1231,8 +1233,11 @@ function pintarTienda(){
 
   /* Quien organiza esta tienda no la sigue: es suya, y este muro es su perfil
      de jugador. El cuadro no va; su panel está en el menú de la izquierda. */
-  const org = usuario && TD[SALA] && TD[SALA].tienda && (TD[SALA].tienda.miembros || {})[usuario.uid];
-  $("tienda").closest(".bloque").classList.toggle("oculto", !!org);
+  const org = usuario && TD[TIENDA] && TD[TIENDA].tienda && (TD[TIENDA].tienda.miembros || {})[usuario.uid];
+  /* Tampoco va si la tienda no existe (un enlace viejo, o una ya eliminada):
+     no hay nada que seguir. */
+  const sinTienda = TD[TIENDA] && TD[TIENDA].tienda && !TD[TIENDA].tienda.perfil;
+  $("tienda").closest(".bloque").classList.toggle("oculto", !!org || !!sinTienda);
   if (TIENDAS === null){
     h = nota("Cargando…");
   } else if (org){
@@ -1256,7 +1261,7 @@ function pintarTienda(){
     h += '<button class="btn ancho" id="bDejar" style="margin-top:var(--e2)">Dejar de seguir</button>';
   }
   if (TIENDAS !== null && !org){
-    h += '<div style="margin-top:var(--e2);font-size:var(--t2)"><a href="' + aTienda(SALA) + '">Ver el perfil de la tienda</a></div>';
+    h += '<div style="margin-top:var(--e2);font-size:var(--t2)"><a href="' + aTienda(TIENDA) + '">Ver el perfil de la tienda</a></div>';
   }
 
   if (errTienda)
@@ -1380,10 +1385,19 @@ onAuthStateChanged(auth, async u => {
   }, () => {});
 
   onValue(ref(db, "usuarios/" + u.uid + "/tiendas"), s => {
-    TIENDAS = s.val() || {}; pintarTienda(); repintarInsignias();
+    TIENDAS = s.val() || {};
+    /* Sin ?sala= en el enlace, el muro abre la tienda favorita (o la primera
+       que sigue), no una sala que no es de nadie. */
+    const ids = Object.keys(TIENDAS);
+    if (!new URLSearchParams(location.search).get("sala") && ids.length){
+      const u2 = new URL(location.href);
+      u2.searchParams.set("sala", ids.find(x => TIENDAS[x] && TIENDAS[x].favorita) || ids[0]);
+      return location.replace(u2);
+    }
+    pintarTienda(); repintarInsignias();
   }, () => { TIENDAS = {}; pintarTienda(); repintarInsignias(); });
 
-  onValue(ref(db, BASE + "/historial"), s => {
+  onValue(ref(db, BASE_T + "/historial"), s => {
     HIST = s.val() || {};
     pintarFicha(); pintarMuro(); pintarPerfil(); pintarJugador();
   }, () => { HIST = {}; pintarMuro(); });
@@ -1397,7 +1411,7 @@ onAuthStateChanged(auth, async u => {
   onValue(ref(db, BASE + "/pairings"), s => { PAIR = s.val(); pintarVivo(); },
           () => { PAIR = null; pintarVivo(); });
 
-  onValue(ref(db, BASE + "/agenda"), s => {
+  onValue(ref(db, BASE_T + "/agenda"), s => {
     const v = s.val() || {};
     pintarProximo(Object.keys(v).map(k => Object.assign({ id:k }, v[k])));
   }, () => pintarProximo([]));

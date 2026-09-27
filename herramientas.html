@@ -120,8 +120,8 @@
 <script type="module">
 import { ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=4";
-import { nombreTienda, iniciales } from "./sala.js?v=2";
+import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=5";
+import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=3";
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
@@ -213,9 +213,7 @@ async function pintarTiendas(){
       (e !== 1 ? '<button class="btn chico primario" data-verif="' + esc(id) + '" data-v="1">Verificar</button>' : "") +
       (e !== 2 ? '<button class="btn chico" data-verif="' + esc(id) + '" data-v="0">' + (e ? "Quitar verificación" : "No verificar") + "</button>" : "") +
       '<a class="btn chico" href="' + aPanel(id) + '">Panel</a>' +
-      /* «principal» es la sala que abre un enlace sin ?sala=: borrada, cualquiera
-         podría crear una tienda con ese nombre y quedarse con ella. */
-      (id !== "principal" ? '<button class="btn chico peligro" data-borrar="' + esc(id) + '">Eliminar</button>' : "") + "</div></div>";
+      '<button class="btn chico peligro" data-borrar="' + esc(id) + '">Eliminar</button></div></div>';
   }).join("") || '<div class="nota" style="padding:var(--e4)">Todavía no hay tiendas.</div>';
   $("lista").querySelectorAll("[data-verif]").forEach(b => b.onclick = async () => {
     b.disabled = true;
@@ -248,11 +246,16 @@ async function abrirBorrar(id){
   $("dlgBorrar").showModal();
   const datos = {};
   await Promise.all(NODOS.map(n => get(ref(db, n + "/" + id)).then(s => datos[n] = s.val(), () => datos[n] = null)));
+  /* Sus timers extra (<id>-t2 …): se van con ella. */
+  datos.timers = {};
+  await Promise.all(Array.from({ length: MAX_TIMERS - 1 }, (_, i) => salaDeTimer(id, i + 2)).map(t =>
+    get(ref(db, "salas/" + t)).then(s => { if (s.exists()) datos.timers[t] = s.val(); }, () => {})));
+  const nt = Object.keys(datos.timers).length + 1;
   const s = datos.salas || {}, n = Object.keys(s.historial || {}).length, ag = Object.keys(s.agenda || {}).length;
   const mm = Object.keys((datos.tiendas || {}).miembros || {}).length, en = Object.keys(datos.enlaces || {}).length;
   $("dbQue").innerHTML = [
     n + (n === 1 ? " torneo archivado" : " torneos archivados") + " y su clasificación",
-    "El timer, los emparejamientos publicados y el diseño de la pantalla",
+    (nt === 1 ? "Su timer" : "Sus " + nt + " timers") + ", los emparejamientos publicados y el diseño de la pantalla",
     ag + (ag === 1 ? " fecha" : " fechas") + " de la agenda",
     mm + (mm === 1 ? " organizador" : " organizadores") + " y las invitaciones pendientes",
     en + (en === 1 ? " ID de jugador compartido" : " IDs de jugador compartidos"),
@@ -276,6 +279,7 @@ $("dbSi").onclick = async () => {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   const rutas = Object.fromEntries(NODOS.map(n => [n + "/" + id, null]));
+  Object.keys(datos.timers || {}).forEach(t => rutas["salas/" + t] = null);
   /* El espejo de «qué tiendas organizo» de cada miembro, y del dueño de antes. */
   Object.keys((datos.tiendas || {}).miembros || {}).forEach(uid => rutas["organiza/" + uid + "/" + id] = null);
   if (datos.salas && typeof datos.salas.owner === "string") rutas["organiza/" + datos.salas.owner + "/" + id] = null;

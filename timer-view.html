@@ -372,7 +372,12 @@ import { vigilar } from "./mantenimiento.js?v=2";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
-import { SALA, BASE } from "./sala.js?v=2";
+import { SALA, BASE, TIENDA, BASE_T } from "./sala.js?v=3";
+
+/* Sin ?sala= no hay qué mostrar (antes abría «principal», que no era de
+   nadie): se va al directorio, a elegir la tienda. */
+if (!new URLSearchParams(location.search).get("sala"))
+  location.replace("tienda.html" + (typeof EMULADOR !== "undefined" && EMULADOR ? "?emu=1" : ""));
 
 /* El enlace a la cuenta lleva ?desde=torneo: con eso, la entrada muestra la
    ronda en vivo arriba del formulario en vez de la pantalla de siempre. La
@@ -384,7 +389,7 @@ import { SALA, BASE } from "./sala.js?v=2";
   if (typeof EMULADOR !== "undefined" && EMULADOR) p.set("emu", "1");
   document.getElementById("aCuentaTorneo").href = "cuenta.html?" + p + "#crear";
   /* El perfil de la tienda: su clasificación, sus torneos y a quién seguir. */
-  const q = new URLSearchParams({ sala: SALA });
+  const q = new URLSearchParams({ sala: TIENDA });
   if (typeof EMULADOR !== "undefined" && EMULADOR) q.set("emu", "1");
   document.getElementById("aPerfil").href = "tienda.html?" + q;
 }
@@ -817,12 +822,12 @@ let HIST = null, CFG = PUNTOS_DEF, mesSel = null, histOn = false;
 function suscribirHistorial(){
   if (histOn) return;
   histOn = true;
-  onValue(ref(db, BASE + "/config"), snap => {
+  onValue(ref(db, BASE_T + "/config"), snap => {
     const v = snap.val();
     if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? 1 };
     renderClas();
   });
-  onValue(ref(db, BASE + "/historial"), snap => { HIST = snap.val() || {}; renderClas(); },
+  onValue(ref(db, BASE_T + "/historial"), snap => { HIST = snap.val() || {}; renderClas(); },
           () => { $("cstatus").textContent = "No se pudo cargar la clasificación."; });
 }
 
@@ -1053,7 +1058,7 @@ let AG = null, agendaOn = false, mesVista = null;
 function suscribirAgenda(){
   if (agendaOn) return;
   agendaOn = true;
-  onValue(ref(db, BASE + "/agenda"), snap => {
+  onValue(ref(db, BASE_T + "/agenda"), snap => {
     const v = snap.val() || {};
     AG = ordenar(Object.entries(v).map(([id, e]) => ({ id, ...e })));
     renderAgenda();

@@ -458,11 +458,11 @@ import { ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail,
          verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { fechaLegible, ordenar, MES_LARGO } from "./agenda.js?v=4";
-import { BASE } from "./sala.js?v=2";
+import { BASE, BASE_T } from "./sala.js?v=3";   // BASE: el timer; BASE_T: su tienda
 /* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=4";
+         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=5";
 
 const $ = id => document.getElementById(id);
 
@@ -931,7 +931,7 @@ if (DESDE_TORNEO){
   onValue(ref(db, ".info/serverTimeOffset"), s => { VT.offset = s.val() || 0; });
   onValue(ref(db, BASE + "/pairings"),    s => { VT.pair = s.val(); pintarVitrina(); }, () => {});
   onValue(ref(db, BASE + "/timer/state"), s => { VT.estado = s.val(); pintarVitrina(); }, () => {});
-  onValue(ref(db, BASE + "/agenda"), s => {
+  onValue(ref(db, BASE_T + "/agenda"), s => {
     const v = s.val() || {};
     VT.agenda = Object.keys(v).map(k => Object.assign({ id: k }, v[k]));
     pintarVitrina();
