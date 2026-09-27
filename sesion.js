@@ -1,7 +1,7 @@
 /* ============================================================
    sesion.js — entrar y crear cuenta
    ------------------------------------------------------------
-   Versión actual: v=5   (subir el ?v= al tocar este archivo)
+   Versión actual: v=6   (subir el ?v= al tocar este archivo)
 
    Lo usan la portada (index.html), que tiene el registro a la vista, y la
    cuenta (cuenta.html), con sus tres pasos. Vive acá para que las reglas de
@@ -83,8 +83,8 @@ export const CORREO_OK = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 /* Fuerza de la contraseña. Nota honesta sobre el criterio: la guía moderna
    (NIST 800-63B) prefiere LARGO por sobre exigir variedad de caracteres,
    porque las reglas de composición empujan a la gente hacia "Clave2026!".
-   Acá se piden las dos cosas —10 de largo y las cuatro clases, que fue lo
-   pedido— más el filtro de que no contenga el nombre ni el correo, que es lo
+   Acá se piden las dos cosas —8 de largo (eran 10 hasta el 27-09-2026) y las
+   cuatro clases, que fue lo pedido— más el filtro de que no contenga el nombre ni el correo, que es lo
    que de verdad atrapa a "camilarios2004". */
 export function revisarClave(clave, nombre, correo){
   const propios = [];
@@ -93,7 +93,7 @@ export function revisarClave(clave, nombre, correo){
   if (local.length >= 3) propios.push(local.toLowerCase());
   const baja = clave.toLowerCase();
   return {
-    largo:  clave.length >= 10,
+    largo:  clave.length >= 8,
     min:    /[a-záéíóúñü]/.test(clave),
     may:    /[A-ZÁÉÍÓÚÑÜ]/.test(clave),
     num:    /[0-9]/.test(clave),
@@ -102,14 +102,14 @@ export function revisarClave(clave, nombre, correo){
   };
 }
 export const claveOk = r => Object.values(r).every(Boolean);
-export const QUE_FALTA = { largo:"más caracteres (van al menos 10)", min:"una minúscula",
+export const QUE_FALTA = { largo:"más caracteres (van al menos 8)", min:"una minúscula",
                            may:"una mayúscula", num:"un número", sim:"un símbolo (. , - _ ! ? @ #)" };
 export const unir = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " y " + xs[xs.length - 1];
 
 /* Lo que va debajo del medidor: SOLO lo que falta. Devuelve HTML, porque lo
    pendiente va en negrita. */
 export function textoFalta(clave, r){
-  if (!clave) return "Mínimo 10 caracteres, con minúscula, mayúscula, número y símbolo.";
+  if (!clave) return "Mínimo 8 caracteres, con minúscula, mayúscula, número y símbolo.";
   if (claveOk(r)) return "Lista.";
   const faltan = Object.keys(QUE_FALTA).filter(k => !r[k]).map(k => QUE_FALTA[k]);
   return (faltan.length ? "Falta: <b>" + unir(faltan) + "</b>." : "") +

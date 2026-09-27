@@ -240,7 +240,7 @@
             <div>
               <input type="password" id="rgClave" autocomplete="new-password">
               <div class="medidor" id="rgMedidor" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-              <span class="falta" id="rgFalta" aria-live="polite">Mínimo 10 caracteres, con minúscula, mayúscula, número y símbolo.</span>
+              <span class="falta" id="rgFalta" aria-live="polite">Mínimo 8 caracteres, con minúscula, mayúscula, número y símbolo.</span>
             </div></div>
           <div class="fila" role="group" aria-labelledby="lblNac"><span class="lbl" id="lblNac">Nacimiento</span>
             <div>
@@ -365,7 +365,7 @@ import { signInWithEmailAndPassword, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { MES_LARGO } from "./agenda.js?v=4";
 import { db, auth, params, enEmulador, urlMuro, urlCuenta, urlPanel, decir, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=5";
+         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=6";
 
 const $ = id => document.getElementById(id);
 function aviso(id, msg){ $(id).textContent = msg; $(id).classList.toggle("oculto", !msg); }

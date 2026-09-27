@@ -805,6 +805,13 @@
     con un bot&oacute;n para meterlo a su Google Calendar de un toque.</div>
 
   <div id="evForm">
+    <div class="row" style="margin-bottom:10px;align-items:flex-end">
+      <label style="margin:0;flex:1;min-width:180px">Plantilla
+        <select id="evPlantilla" style="display:block;width:100%;margin-top:4px"></select>
+      </label>
+      <button id="evPlGuardar" class="small sec">Guardar como plantilla</button>
+      <button id="evPlBorrar" class="small sec" hidden>Borrar plantilla</button>
+    </div>
     <label>T&iacute;tulo
       <input id="evTit" style="width:100%;margin-top:4px" placeholder="Torneo mensual Primer Bloque" maxlength="80">
     </label>
@@ -3063,6 +3070,55 @@ onValue(R_AGENDA, snap => {
   AGENDA = ordenar(Object.entries(v).map(([id, e]) => ({ id, ...e })));
   renderAgenda();
 }, () => $("evLista").innerHTML = '<span class="err">No se pudo cargar el calendario.</span>');
+
+/* Plantillas: lo que se repite de una fecha a otra (título, hora, duración,
+   lugar, detalle) guardado en la tienda, para todos sus organizadores. Se
+   elige una y el formulario queda listo: solo falta la fecha. Se guardan con
+   el título como nombre; guardar otra con el mismo título la reemplaza. */
+const R_PLANT = ref(db, BASE_T + "/plantillas");
+let PLANTILLAS = {};
+onValue(R_PLANT, s => {
+  PLANTILLAS = s.val() || {};
+  const elegida = $("evPlantilla").value;
+  const ids = Object.keys(PLANTILLAS).sort((a, b) => PLANTILLAS[a].titulo.localeCompare(PLANTILLAS[b].titulo));
+  $("evPlantilla").innerHTML = '<option value="">' + (ids.length ? "Elige una…" : "Todavía no hay plantillas") + "</option>" +
+    ids.map(id => '<option value="' + esc(id) + '">' + esc(PLANTILLAS[id].titulo) + "</option>").join("");
+  $("evPlantilla").value = PLANTILLAS[elegida] ? elegida : "";
+  $("evPlBorrar").hidden = !$("evPlantilla").value;
+}, () => {});
+$("evPlantilla").onchange = () => {
+  const p = PLANTILLAS[$("evPlantilla").value];
+  $("evPlBorrar").hidden = !p;
+  if (!p) return;
+  $("evTit").value = p.titulo || "";
+  $("evTodoDia").checked = !p.hora;
+  $("evHora").value = p.hora || "";
+  if (p.duracion) $("evDur").value = p.duracion;
+  $("evLugar").value = p.lugar || "";
+  $("evDet").value = p.detalle || "";
+  modoTodoDia();
+  $("evMsg").textContent = "Plantilla cargada: elige la fecha y agrégala.";
+  $("evFecha").focus();
+};
+$("evPlGuardar").onclick = async () => {
+  const titulo = $("evTit").value.trim(), todoDia = $("evTodoDia").checked;
+  if (!titulo){ $("evMsg").innerHTML = '<span class="err">Escribe al menos el título para guardarlo como plantilla.</span>'; return; }
+  const p = { titulo, hora: todoDia ? "" : ($("evHora").value || ""), duracion: todoDia ? 0 : +$("evDur").value,
+              lugar: $("evLugar").value.trim(), detalle: $("evDet").value.trim() };
+  const igual = Object.keys(PLANTILLAS).find(id => PLANTILLAS[id].titulo.toLowerCase() === titulo.toLowerCase());
+  try {
+    const r = igual ? ref(db, BASE_T + "/plantillas/" + igual) : push(R_PLANT);
+    await conTimeout(set(r, p), 15000);
+    $("evPlantilla").value = r.key; $("evPlBorrar").hidden = false;
+    $("evMsg").innerHTML = '<span class="ok">' + (igual ? "Plantilla actualizada ✓" : "Plantilla guardada ✓") + "</span>";
+  } catch(e){ $("evMsg").innerHTML = '<span class="err">' + mensajeConexion(e) + "</span>"; }
+};
+$("evPlBorrar").onclick = async () => {
+  const id = $("evPlantilla").value, p = PLANTILLAS[id];
+  if (!p || !confirm("¿Borrar la plantilla «" + p.titulo + "»? Las fechas ya agendadas no cambian.")) return;
+  try { await remove(ref(db, BASE_T + "/plantillas/" + id)); $("evMsg").textContent = "Plantilla borrada."; }
+  catch(e){ $("evMsg").innerHTML = '<span class="err">' + mensajeConexion(e) + "</span>"; }
+};
 
 /* Los eventos de todo el día no llevan hora ni duración */
 function modoTodoDia(){

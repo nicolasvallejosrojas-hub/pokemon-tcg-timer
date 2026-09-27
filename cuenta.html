@@ -74,7 +74,7 @@
   .campo input{width:100%;padding:14px 15px;font-size:var(--t4);}
   .pista{font-size:var(--t2);color:var(--apagado);line-height:1.45;}
   /* El botón Ver va dentro del campo: en el teléfono, escribir una clave de
-     diez caracteres con símbolos sin poder mirarla es donde más se equivoca
+     ocho caracteres con símbolos sin poder mirarla es donde más se equivoca
      la gente. */
   .conVer{position:relative;}
   .conVer input{padding-right:84px;}
@@ -146,6 +146,7 @@
     background:var(--sup);min-height:52px;box-sizing:border-box;width:100%;
     border:none;font-family:inherit;color:var(--texto);text-align:left;font-size:var(--t3);}
   button.filaj{cursor:pointer;}
+  button.filaj.peligro .k{color:var(--negativo);}
   button.filaj:hover{background:var(--sup-alta);}
   .filaj .k{flex:1;min-width:0;}
   .filaj .k small{display:block;font-size:var(--t2);color:var(--apagado);margin-top:3px;line-height:1.4;}
@@ -272,7 +273,7 @@
           <button type="button" class="ver" data-ver="nvClave" aria-controls="nvClave">Ver</button>
         </div>
         <div class="medidor" id="nvMedidor" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <span class="pista falta" id="nvFalta" aria-live="polite">Mínimo 10 caracteres, con minúscula, mayúscula, número y símbolo.</span>
+        <span class="pista falta" id="nvFalta" aria-live="polite">Mínimo 8 caracteres, con minúscula, mayúscula, número y símbolo.</span>
       </label>
       <div class="aviso mal oculto" id="errNueva" role="alert"></div>
       <div class="abajo">
@@ -326,7 +327,7 @@
             <button type="button" class="ver" data-ver="crClave" aria-controls="crClave">Ver</button>
           </div>
           <div class="medidor" id="medidor" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <span class="pista falta" id="falta" aria-live="polite">Mínimo 10 caracteres, con minúscula, mayúscula, número y símbolo.</span>
+          <span class="pista falta" id="falta" aria-live="polite">Mínimo 8 caracteres, con minúscula, mayúscula, número y símbolo.</span>
         </label>
         <div class="aviso mal oculto" id="err2" role="alert"></div>
         <div class="abajo">
@@ -446,6 +447,12 @@
       <div class="aviso oculto" id="msgTorneo" role="status"></div>
     </div>
 
+    <div class="grupo" id="grPrivacidad">
+      <h2>Privacidad en tus tiendas</h2>
+      <div class="filas" id="ajTiendas"></div>
+      <div class="aviso oculto" id="msgPriv" role="status"></div>
+    </div>
+
     <div class="abajo"><button class="btn ancho" type="button" id="btnSalir">Cerrar sesión</button></div>
   </section>
 
@@ -458,13 +465,14 @@ import { ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail,
          verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { fechaLegible, ordenar, MES_LARGO } from "./agenda.js?v=4";
-import { BASE, BASE_T } from "./sala.js?v=3";   // BASE: el timer; BASE_T: su tienda
+import { BASE, BASE_T, nombreTienda } from "./sala.js?v=3";   // BASE: el timer; BASE_T: su tienda
 /* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=5";
+         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=6";
 
 const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 /* ------------------------------------------------------------
    Vistas por hash, para que el botón "atrás" del navegador sirva también
@@ -480,7 +488,9 @@ const ACCION = OOB && { resetPassword: "nueva", verifyEmail: "confirma" }[Q.get(
 /* Nombres viejos que siguen llegando por enlaces guardados: la portada ya no
    existe (la entrada es «Entra») y el perfil ahora vive en el muro; lo que
    quedó acá son los ajustes. */
-const ALIAS = { "": "ingresar", portada: "ingresar", perfil: "ajustes" };
+const ALIAS = { "": "ingresar", portada: "ingresar", perfil: "ajustes", privacidad: "ajustes" };
+/* #privacidad (desde el cuadro «Tiendas» del muro) abre los ajustes en esa parte. */
+const A_PRIVACIDAD = location.hash === "#privacidad";
 let usuario = null, perfil = null, vista = "ingresar", paso = 1;
 /* Mientras se crea una cuenta, onAuthStateChanged dispara ANTES de que los
    datos terminen de guardarse. Si en ese momento redirigiera al muro, la
@@ -768,6 +778,64 @@ function pintarAjustes(){
   $("ajIdFijo").textContent = p.playerId || "";
   $("ajId").textContent = "Agregar";
   $("ajPublico").checked = !!p.publico;
+  pintarPrivacidad();
+}
+
+/* ------------------------------------------------------------
+   Privacidad en tus tiendas: con cuáles comparto mi ID, y dejar de seguir
+   ------------------------------------------------------------
+   El ID NO se publica. Se escribe en enlaces/<tienda>/<uid>, que por reglas
+   leen solo quien organiza esa tienda y uno mismo. Lo que llega al historial
+   público es el uid —opaco— y solo de quien lo compartió. Por eso no se
+   escribe el ID en las tablas: serían los ID de toda la tienda a la vista.
+   ------------------------------------------------------------ */
+const NOMBRES_T = {};
+function pintarPrivacidad(){
+  const t = (perfil && perfil.tiendas) || {}, idOk = !!(perfil && perfil.playerId);
+  const ids = Object.keys(t).sort((a, b) => (t[a].orden ?? 999) - (t[b].orden ?? 999));
+  ids.filter(s => !(s in NOMBRES_T)).forEach(s => {
+    NOMBRES_T[s] = null;
+    get(ref(db, "tiendas/" + s + "/perfil/nombre")).then(x => { if (x.val()){ NOMBRES_T[s] = x.val(); pintarPrivacidad(); } }, () => {});
+  });
+  const nom = s => esc(NOMBRES_T[s] || nombreTienda(null, s));
+  $("ajTiendas").innerHTML = ids.length ? ids.map(s =>
+    '<label class="filaj"><span class="k">Compartir mi ID con <b>' + nom(s) + "</b><small>" +
+      (idOk || t[s].compartirId ? "Tus resultados entran solos aunque te inscriban con el nombre escrito distinto. Solo lo ve quien organiza la tienda."
+                                : "Primero agrega tu ID de jugador, más arriba.") + "</small></span>" +
+      '<input type="checkbox" role="switch" class="sw" data-compartir="' + esc(s) + '"' +
+      (t[s].compartirId ? " checked" : "") + (idOk || t[s].compartirId ? "" : " disabled") + "></label>" +
+    '<button class="filaj peligro" type="button" data-dejar="' + esc(s) + '"><span class="k">Dejar de seguir ' + nom(s) + "</span></button>").join("")
+    : '<div class="filaj"><span class="k">No sigues ninguna tienda todavía.<small>Síguelas desde su perfil, en «Tiendas».</small></span></div>';
+  $("ajTiendas").querySelectorAll("[data-compartir]").forEach(c => c.onchange = () => compartir(c.dataset.compartir, c));
+  $("ajTiendas").querySelectorAll("[data-dejar]").forEach(b => b.onclick = () => dejar(b.dataset.dejar));
+}
+async function compartir(s, c){
+  const si = c.checked, en = "enlaces/" + s + "/" + usuario.uid, mia = "usuarios/" + usuario.uid + "/tiendas/" + s;
+  if (si && !confirm("¿Compartir tu ID de jugador " + perfil.playerId + " con " + (NOMBRES_T[s] || s) + "?\n\n" +
+      "Sirve para que tus resultados entren solos a tu perfil, aunque en el torneo te inscriban con el nombre escrito distinto.\n\n" +
+      "Lo ve solo quien organiza esa tienda: no aparece en el muro ni en las clasificaciones.")){ c.checked = false; return; }
+  try {
+    /* En una sola escritura: lo que se ve tiene que ser lo que quedó guardado.
+       La preferencia de clasificación viaja con el enlace: el perfil es privado
+       y el panel de la tienda no lo puede leer. */
+    await update(ref(db), si
+      ? { [en]: { playerId: perfil.playerId, nombre: perfil.nombre, publico: !!perfil.publico, desde: Date.now() }, [mia + "/compartirId"]: true }
+      : { [en]: null, [mia + "/compartirId"]: false });
+    perfil.tiendas[s].compartirId = si;
+    aviso("msgPriv", si ? "Listo: tus resultados en " + (NOMBRES_T[s] || s) + " entran solos." : "Listo: ya no compartes tu ID con " + (NOMBRES_T[s] || s) + ".");
+  } catch(e){ c.checked = !si; aviso("msgPriv", "No se pudo guardar. Revisa la conexión."); }
+}
+async function dejar(s){
+  const n = NOMBRES_T[s] || s;
+  if (!confirm("¿Dejar de seguir " + n + "?\n\nTambién dejas de compartirle tu ID. Tus resultados de ahí siguen en tu historial.")) return;
+  try {
+    /* Dejar de seguir se lleva el ID compartido: dejar el enlace vivo después
+       de irse sería justo lo que nadie espera. */
+    await update(ref(db), { ["enlaces/" + s + "/" + usuario.uid]: null, ["usuarios/" + usuario.uid + "/tiendas/" + s]: null });
+    delete perfil.tiendas[s];
+    pintarPrivacidad();
+    aviso("msgPriv", "Listo: ya no sigues " + n + ".");
+  } catch(e){ aviso("msgPriv", "No se pudo. Revisa la conexión."); }
 }
 
 /* Filas que se abren para editar en su lugar. Una abierta a la vez. */
@@ -954,7 +1022,11 @@ onAuthStateChanged(auth, async u => {
     /* Con sesión, el hogar del jugador es el muro. Acá solo se queda quien pidió
        explícitamente los ajustes, porque si no los dos se rebotarían el uno al
        otro para siempre. */
-    if (HASH_INICIAL === "ajustes"){ mostrar("ajustes"); return; }
+    if (HASH_INICIAL === "ajustes"){
+      mostrar("ajustes");
+      if (A_PRIVACIDAD) $("grPrivacidad").scrollIntoView({ block: "start" });
+      return;
+    }
     location.replace(urlMuro());
     return;
   }
