@@ -368,12 +368,12 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { vigilar } from "./mantenimiento.js?v=2";
-import { getDatabase, connectDatabaseEmulator, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { vigilar } from "./mantenimiento.js?v=3";
+import { getDatabase, connectDatabaseEmulator, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
 import { SALA, BASE, TIENDA, BASE_T } from "./sala.js?v=4";
-import { estoyEnLinea } from "./presencia.js?v=1";
+import { estoyEnLinea } from "./presencia.js?v=2";
 
 /* Sin ?sala= no hay qué mostrar (antes abría «principal», que no era de
    nadie): se va al directorio, a elegir la tienda. */
@@ -496,19 +496,8 @@ onValue(ref(db, ".info/connected"), s => {
                                     : (S ? "Sin conexión — mostrando lo último recibido" : "Sin conexión…");
 });
 
-/* Soltar la conexión cuando el teléfono se bloquea o se cambia de app.
-   El reloj sigue andando solo porque conoce la hora exacta de término. */
-let dormirTimer = null;
-document.addEventListener("visibilitychange", () => {
-  clearTimeout(dormirTimer);
-  if (document.hidden){
-    dormirTimer = setTimeout(() => { try { goOffline(db); } catch(e){} }, 20000);
-  } else {
-    // Se reconecta siempre al volver: si el teléfono cortó la conexión por su
-    // cuenta, goOnline es inofensivo y evita quedarse mirando datos viejos.
-    try { goOnline(db); } catch(e){}
-  }
-});
+/* Soltar la conexión en segundo plano: lo hace presencia.js. El reloj sigue
+   andando solo porque conoce la hora exacta de término. */
 
 /* =========================================================
    5. Reloj

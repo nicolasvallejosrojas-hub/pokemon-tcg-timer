@@ -1,7 +1,7 @@
 /* ============================================================
    presencia.js — cuántas personas hay en línea
    ------------------------------------------------------------
-   Versión actual: v=1   (subir el ?v= al tocar este archivo)
+   Versión actual: v=2   (subir el ?v= al tocar este archivo)
 
    Cada pestaña abierta deja una entrada en presencia/<id> con la hora del
    servidor y en qué página está, y nada más: ni uid ni nombre. Firebase la
@@ -12,8 +12,13 @@
 
    Es un contador de pestañas, no de personas: la misma persona con dos
    pestañas cuenta dos. Para una tienda eso alcanza.
+
+   También suelta la conexión con Firebase cuando la pestaña pasa 20 segundos
+   en segundo plano (teléfono bloqueado, otra app encima) y la retoma al
+   volver. Lo que se paga es la conexión abierta, no los datos, así que es el
+   ahorro más grande. El panel no se duerme: la tienda lo necesita siempre.
    ============================================================ */
-import { ref, push, set, remove, onValue, onDisconnect, serverTimestamp }
+import { ref, push, set, remove, onValue, onDisconnect, serverTimestamp, goOffline, goOnline }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const LATIDO = 120000, VIGENTE = 300000, VIEJA = 600000;
@@ -31,6 +36,14 @@ export function estoyEnLinea(db, pagina){
        en medio, no queda una entrada sin quien la borre. */
     onDisconnect(yo).remove().then(marcar).catch(() => {});
     latido = setInterval(marcar, LATIDO);
+  });
+  if (pagina === "panel") return;
+  let dormir = null;
+  document.addEventListener("visibilitychange", () => {
+    clearTimeout(dormir);
+    if (document.hidden) dormir = setTimeout(() => { try { goOffline(db); } catch(e){} }, 20000);
+    // Siempre al volver: si el teléfono cortó por su cuenta, es inofensivo.
+    else try { goOnline(db); } catch(e){}
   });
 }
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mis Torneos — Inicio</title>
+<title>ByePass — Inicio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="estilo.css?v=11">
@@ -337,7 +337,7 @@
 
 <header class="barra vidrio">
   <div class="dentro">
-    <a class="logo" href="muro.html">Mis&nbsp;Torneos</a>
+    <a class="logo" href="muro.html">ByePass</a>
     <input id="buscar" type="search" placeholder="Buscar un jugador en el historial" aria-label="Buscar un jugador en el historial">
     <div class="yo">
       <span class="enlinea" id="enLinea" hidden></span>
@@ -497,7 +497,7 @@
       </div>
     </div>
     <p class="legal"><a href="cuenta.html#sugerencias">Sugerencias</a> · <a href="terminos.html">Términos</a> ·
-      <a href="privacidad.html">Privacidad</a> · Mis Torneos © 2026</p>
+      <a href="privacidad.html">Privacidad</a> · ByePass © 2026</p>
   </aside>
 
 </div>
@@ -518,8 +518,9 @@ import { estaVigente, urlGoogle, fechaLegible, cuantoFalta, ordenar } from "./ag
    tienda de ese timer: historial, agenda, a quién sigo y mi ID compartido. */
 import { SALA, BASE, TIENDA, BASE_T, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
 import { nombreMes } from "./clasificacion.js?v=1";
-import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=1";
-import { vigilar } from "./mantenimiento.js?v=2";
+import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=2";
+import { leerHistorial } from "./historial.js?v=1";
+import { vigilar } from "./mantenimiento.js?v=3";
 import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga } from "./insignias.js?v=1";
 
 const $ = id => document.getElementById(id);
@@ -827,7 +828,7 @@ function cargarTienda(sala){
   if (!sala || TD[sala]) return;
   const x = TD[sala] = { hist: undefined, cfg: undefined, tienda: undefined, agenda: undefined };
   const listo = (k, v) => { x[k] = v; repintarInsignias(); };
-  onValue(ref(db, "salas/" + sala + "/historial"), s => listo("hist", s.val() || {}), () => listo("hist", {}));
+  leerHistorial(db, sala, h => listo("hist", h), () => listo("hist", {}));
   get(ref(db, "salas/" + sala + "/config")).then(s => listo("cfg", s.val()), () => listo("cfg", null));
   onValue(ref(db, "tiendas/" + sala), s => listo("tienda", s.val() || {}), () => listo("tienda", {}));
   onValue(ref(db, "salas/" + sala + "/agenda"), s => listo("agenda", s.val() || {}), () => listo("agenda", {}));
@@ -1469,8 +1470,8 @@ onAuthStateChanged(auth, async u => {
     pintarTienda(); repintarInsignias();
   }, () => { TIENDAS = {}; pintarTienda(); repintarInsignias(); });
 
-  onValue(ref(db, BASE_T + "/historial"), s => {
-    HIST = s.val() || {};
+  leerHistorial(db, TIENDA, h => {
+    HIST = h;
     pintarFicha(); pintarMuro(); pintarPerfil(); pintarJugador();
     if (JUG_PEDIDO){ const n = JUG_PEDIDO; JUG_PEDIDO = null; verJugador(n); }
   }, () => { HIST = {}; pintarMuro(); });

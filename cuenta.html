@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mis Torneos — Cuenta</title>
+<title>ByePass — Cuenta</title>
 <link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* =========================================================
@@ -179,7 +179,7 @@
 <body>
 
 <header class="sup vidrio">
-  <a class="marca" href="index.html">Mis Torneos</a>
+  <a class="marca" href="index.html">ByePass</a>
   <a class="btn oculto" id="aPerfil" href="muro.html">Mi perfil</a>
 </header>
 
@@ -538,8 +538,8 @@ import { BASE, BASE_T, nombreTienda, slug } from "./sala.js?v=4";   // BASE: el 
 /* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar, params } from "./sesion.js?v=7";
-import { estoyEnLinea } from "./presencia.js?v=1";
+         textoFalta, errorNacimiento, registrar, params } from "./sesion.js?v=8";
+import { estoyEnLinea } from "./presencia.js?v=2";
 estoyEnLinea(db, "cuenta");
 
 const $ = id => document.getElementById(id);
@@ -603,7 +603,7 @@ function mostrar(hash){
   if (location.hash.slice(1) !== destino) history.replaceState(null, "", "#" + destino);
   document.title = { ajustes: "Ajustes", crear: "Crear cuenta", olvide: "Recuperar la contraseña",
                      nueva: "Contraseña nueva", confirma: "Confirmar el correo" }[v] ?? "Entra";
-  document.title += " — Mis Torneos";
+  document.title += " — ByePass";
   $("tabIn").removeAttribute("aria-current");
   $("tabCr").removeAttribute("aria-current");
   if (v === "ingresar") $("tabIn").setAttribute("aria-current", "page");

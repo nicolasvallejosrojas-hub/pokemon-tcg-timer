@@ -1,7 +1,7 @@
 /* ============================================================
    mantenimiento.js — la pantalla de «Cerrado por mantenimiento»
    ------------------------------------------------------------
-   Versión actual: v=2   (subir el ?v= al tocar este archivo)
+   Versión actual: v=3   (subir el ?v= al tocar este archivo)
 
    El cierre de verdad NO está acá: lo hacen las reglas de Firebase. Con
    sistema/mantenimiento/activo = true nadie lee ni escribe nada, salvo quien
@@ -68,7 +68,7 @@ export function vigilar(db, auth){
        sesión ya se sabe. Sus lecturas se rechazaron. */
     if (cerrado && authListo && !primera) seCerro = true;
     if (cerrado && !capa.isConnected){
-      capa.innerHTML = '<div class="caja"><div class="marca">Mis Torneos</div><div class="ico">' + LLAVE + "</div>" +
+      capa.innerHTML = '<div class="caja"><div class="marca">ByePass</div><div class="ico">' + LLAVE + "</div>" +
         '<h1 id="mantTit">Cerrado por mantenimiento</h1><p id="mantMsg"></p>' +
         '<details><summary>Acceso de administración</summary><form id="mantForm" novalidate>' +
         '<input type="email" id="mantCorreo" placeholder="Correo" autocomplete="username" aria-label="Correo">' +

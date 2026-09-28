@@ -413,7 +413,7 @@
   <div class="muted" style="margin-top:8px"><a href="cuenta.html#olvide" id="aOlvide">¿Olvidaste tu contraseña?</a></div>
   <div class="muted" style="margin-top:8px">¿No tienes cuenta? <a href="cuenta.html#crear" id="aCrearCuenta">Créala en Mi cuenta</a>
     y vuelve a abrir el enlace que te mandaron.</div>
-  <div class="muted" style="margin-top:8px">¿Tu tienda todavía no está en Mis Torneos? <a href="cuenta.html#tienda" id="aPedirTienda">Pide su cuenta</a>:
+  <div class="muted" style="margin-top:8px">¿Tu tienda todavía no está en ByePass? <a href="cuenta.html#tienda" id="aPedirTienda">Pide su cuenta</a>:
     el panel se abre cuando la aprobamos.</div>
 </div>
 
@@ -970,7 +970,7 @@
     <div id="miembrosLista"></div>
     <div id="invitarCaja" hidden>
       <div class="muted" style="margin-top:12px">Para sumar a alguien, crea un enlace y mándaselo. Entra con su propia
-        cuenta de Mis Torneos: si se va, lo quitas y nadie tiene que cambiar una clave. Cada enlace sirve una sola vez.</div>
+        cuenta de ByePass: si se va, lo quitas y nadie tiene que cambiar una clave. Cada enlace sirve una sola vez.</div>
       <div class="row" style="margin-top:8px"><button id="invitarBtn" class="sec">Crear enlace de invitación</button></div>
       <div id="invPend"></div>
     </div>
@@ -980,7 +980,7 @@
   <div class="card" id="insCard">
     <h2 class="h2p">Insignias de la tienda</h2>
     <div class="muted">Se ganan jugando acá y llevan el color y la sigla de la tienda. Las permanentes —Beta tester,
-      Veterano, Campeón…— son de la cuenta de cada jugador y las define Mis Torneos.</div>
+      Veterano, Campeón…— son de la cuenta de cada jugador y las define ByePass.</div>
     <div id="insAuto" style="margin-top:10px"></div>
     <h3 class="h3ins">Insignias de evento</h3>
     <div class="muted">Para un torneo especial: se entregan solas cuando archivas el torneo de esa fecha.</div>
@@ -1031,8 +1031,8 @@ import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, signOut, onAu
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=4";
 import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
-import { vigilar } from "./mantenimiento.js?v=2";
-import { estoyEnLinea } from "./presencia.js?v=1";
+import { vigilar } from "./mantenimiento.js?v=3";
+import { estoyEnLinea } from "./presencia.js?v=2";
 import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=1";
 import { rondasDe, resumen, tabla, emparejar, rondasSugeridas, aPairings, aHistorial,
          delCorte, emparejarCorte, clasificacion, tamanoCorte, corteTerminado, nombreCorte, CORTES,
@@ -2957,7 +2957,9 @@ onValue(R_HIST, snap => {
     b.className = "small sec"; b.textContent = "Borrar";
     b.onclick = async () => {
       if (!confirm('¿Borrar "' + t.nombre + '" del historial? Dejará de sumar a la clasificación.')) return;
-      try { await remove(ref(db, BASE_T + "/historial/" + id)); } catch(e){}
+      /* historialVer nuevo: los celulares que guardaron el historial
+         (historial.js) lo bajan de nuevo, sin este torneo. */
+      try { await update(ref(db, BASE_T), { ["historial/" + id]: null, historialVer: Date.now() }); } catch(e){}
     };
     row.appendChild(b);
     $("histList").appendChild(row);

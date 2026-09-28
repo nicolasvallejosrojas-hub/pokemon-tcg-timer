@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B7F6C">
 <meta name="robots" content="noindex">
-<title>Herramientas de administrador — Mis Torneos</title>
+<title>Herramientas de administrador — ByePass</title>
 <link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* Herramientas de quien administra el sitio entero (admins/<uid> = true en
@@ -107,7 +107,7 @@
 </head>
 <body>
   <header class="sup vidrio">
-    <a class="marca" href="index.html" data-link="inicio">Mis Torneos</a>
+    <a class="marca" href="index.html" data-link="inicio">ByePass</a>
     <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
     <a class="btn" href="muro.html" data-link="muro">Mi muro</a>
   </header>
@@ -171,9 +171,9 @@
 <script type="module">
 import { ref, onValue, get, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=7";
+import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=8";
 import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=4";
-import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=1";
+import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=2";
 estoyEnLinea(db, "herramientas");
 
 const $ = id => document.getElementById(id);
@@ -330,7 +330,7 @@ function pintarBuzon(){
       (m.pagina ? '<span>desde <a href="' + esc(m.pagina) + '" target="_blank" rel="noopener">' + esc(m.pagina.split("?")[0]) + "</a></span>" : "") + "</div>" +
       "<p>" + esc(m.texto) + "</p>" +
       '<div class="acc">' +
-      (correo ? '<a class="btn chico primario" href="mailto:' + esc(m.contacto) + "?subject=" + encodeURIComponent("Re: tu mensaje a Mis Torneos") + '">Responder</a>'
+      (correo ? '<a class="btn chico primario" href="mailto:' + esc(m.contacto) + "?subject=" + encodeURIComponent("Re: tu mensaje a ByePass") + '">Responder</a>'
               : m.contacto ? '<span class="nota" style="margin:0">Contacto: ' + esc(m.contacto) + "</span>" : "") +
       '<button class="btn chico" data-leido="' + esc(id) + '" data-v="' + (m.leido ? 0 : 1) + '">' + (m.leido ? "Marcar sin leer" : "Marcar leído") + "</button>" +
       '<button class="btn chico peligro" data-bzborrar="' + esc(id) + '">Borrar</button></div></div>';

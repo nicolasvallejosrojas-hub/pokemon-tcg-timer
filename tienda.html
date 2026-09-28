@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B7F6C">
-<title>Tiendas — Mis Torneos</title>
+<title>Tiendas — ByePass</title>
 <link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* El perfil público de una tienda, y sin ?sala= el directorio de tiendas.
@@ -155,7 +155,7 @@
 </head>
 <body>
   <header class="sup vidrio">
-    <a class="marca" href="index.html" data-link="inicio">Mis Torneos</a>
+    <a class="marca" href="index.html" data-link="inicio">ByePass</a>
     <span class="enlinea" id="enLinea" hidden></span>
     <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
     <a class="btn" href="cuenta.html" id="aCuenta">Entrar</a>
@@ -268,19 +268,20 @@
   </main>
   <footer class="ancho" style="padding-bottom:var(--e5)"><p class="legal"><a href="cuenta.html#sugerencias">Sugerencias</a> ·
     <a href="terminos.html">Términos</a> ·
-    <a href="privacidad.html">Privacidad</a> · Mis Torneos © 2026</p></footer>
+    <a href="privacidad.html">Privacidad</a> · ByePass © 2026</p></footer>
 
 <script src="config.js?v=8"></script>
 <script type="module">
 import { ref, onValue, get, set, update, remove, query, orderByChild, equalTo }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, enEmulador, urlCuenta, urlMuro, urlPanel } from "./sesion.js?v=7";
+import { db, auth, enEmulador, urlCuenta, urlMuro, urlPanel } from "./sesion.js?v=8";
 import { slug, tiendaDe, salaDeTimer, MAX_TIMERS, nombreTienda, iniciales } from "./sala.js?v=4";
 import { ordenar, estaVigente, fechaLegible, cuantoFalta, urlGoogle, MES_LARGO } from "./agenda.js?v=4";
 import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF } from "./clasificacion.js?v=1";
 import { norm as normNombre } from "./insignias.js?v=1";
-import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=1";
+import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=2";
+import { leerHistorial, historialUnaVez } from "./historial.js?v=1";
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
@@ -340,7 +341,7 @@ onAuthStateChanged(auth, u => {
 let VERIF = null, EXTRA = {};
 function directorio(){
   $("vDir").classList.remove("oculto");
-  document.title = "Tiendas — Mis Torneos";
+  document.title = "Tiendas — ByePass";
   onValue(query(ref(db, "tiendas"), orderByChild("verificada"), equalTo(true)),
           s => { VERIF = s.val() || {}; pintarDir(); if (DIR === "jugadores") cargarJugadores(); },
           () => { $("dirLista").innerHTML = '<div class="vacio">No se pudo cargar la lista.</div>'; });
@@ -364,15 +365,16 @@ function elegirDir(m){
    buscados por nombre. Sale todo del historial, que ya es público; los
    «Jugador reservado» no aparecen. El perfil se abre en el muro (con cuenta),
    en la tienda donde más ha jugado.
-   ponytail: baja el historial de cada tienda verificada una vez; con muchas
-   tiendas convendría un índice de nombres aparte. */
+   ponytail: baja el historial de cada tienda verificada (desde la segunda
+   visita, solo los torneos nuevos: historial.js); con muchas tiendas
+   convendría un índice de nombres aparte. */
 let DIR = "tiendas", JUGS = null, cargandoJ = false;
 async function cargarJugadores(){
   if (JUGS || cargandoJ || VERIF === null) return;
   cargandoJ = true;
   const idx = {};
-  await Promise.all(Object.keys(VERIF).map(id => get(ref(db, "salas/" + id + "/historial")).then(s => {
-    Object.values(s.val() || {}).forEach(t => Object.values(t.standings || {}).forEach(f => {
+  await Promise.all(Object.keys(VERIF).map(id => historialUnaVez(db, id).then(h => {
+    Object.values(h).forEach(t => Object.values(t.standings || {}).forEach(f => {
       if (!f || f.reservado || !f.name) return;
       const k = normNombre(f.name);
       const j = idx[k] ??= { k, nombre: f.name, torneos: 0, tiendas: {}, mejor: 99, ultimo: "" };
@@ -463,7 +465,7 @@ function perfil(){
   onValue(ref(db, "salas/" + ID + "/config"), s => {
     const v = s.val(); if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? 1 };
     pintarClas(); });
-  onValue(ref(db, "salas/" + ID + "/historial"), s => { HIST = Object.values(s.val() || {});
+  leerHistorial(db, ID, h => { HIST = Object.values(h);
     pintarCabecera(); pintarClas(); pintarTorneos(); });
   onValue(ref(db, "salas/" + ID + "/agenda"), s => {
     AG = ordenar(Object.entries(s.val() || {}).map(([id, e]) => ({ id, ...e }))); pintarVivo(); pintarAgenda(); });
@@ -505,7 +507,7 @@ function existe(){
 
 function pintarCabecera(){
   const p = TIENDA && TIENDA.perfil, nom = nombreTienda(p, ID);
-  document.title = nom + " — Mis Torneos";
+  document.title = nom + " — ByePass";
   const color = (p && p.color) || "";
   $("portada").style.setProperty("--c", color || "var(--franja)");
   $("logo").style.setProperty("--c", color || "var(--franja)");
