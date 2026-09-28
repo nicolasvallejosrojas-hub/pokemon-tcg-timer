@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0B7F6C">
 <meta name="description" content="Tu tienda, tus torneos y la gente que juega contigo. Crea tu cuenta gratis: cada torneo que juegues queda en tu muro.">
 <title>Mis Torneos</title>
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* La portada es la puerta del registro, como la de Facebook en 2009: la
      franja de marca con el ingreso a la derecha, y abajo la frase, el dibujo
@@ -86,6 +86,7 @@
   @media (min-width:600px){ .enviar{margin-left:calc(128px + var(--e3));} }
   .enviar .btn{min-height:48px;padding:0 var(--e5);font-size:var(--t4);}
   .enviar .despues{font-size:var(--t2);color:var(--apagado);margin:var(--e2) 0 0;line-height:1.5;}
+  .enviar .despues a{color:var(--accion-texto);}
   #errRegistro{margin-bottom:var(--e3);}
   .org{font-size:var(--t2);color:var(--apagado);margin-top:var(--e5);padding-top:var(--e3);
     border-top:1px solid var(--divider);text-align:center;}
@@ -205,6 +206,7 @@
   <main>
     <section class="hero ancho">
       <h1>Mis Torneos te conecta con tu tienda y con la gente que juega contigo.</h1>
+      <p class="enlinea" id="enLinea" hidden></p>
 
       <div class="mapa" aria-hidden="true">
         <svg viewBox="0 0 560 330" id="mapa">
@@ -256,7 +258,8 @@
           <div class="enviar">
             <div class="aviso mal oculto" id="errRegistro" role="alert"></div>
             <button class="btn primario" type="submit" id="btnRegistro">Crear mi cuenta</button>
-            <p class="despues">Tu ID de jugador lo agregas después, en tus ajustes.</p>
+            <p class="despues">Tu ID de jugador lo agregas después, en tus ajustes. Al crear tu cuenta aceptas los
+              <a href="terminos.html">Términos y condiciones</a> y la <a href="privacidad.html">Política de privacidad</a>.</p>
           </div>
         </form>
         <p class="org">¿Organizas torneos en tu tienda? <a href="admin.html" data-link="panel">Entra al panel</a>.</p>
@@ -354,18 +357,24 @@
         <a href="tienda.html" data-link="tiendas">Tiendas</a>
         <a href="timer-view.html" data-link="torneo">Ver el torneo</a>
         <a href="admin.html" data-link="panel">Organizadores</a>
+        <a href="cuenta.html#sugerencias">Sugerencias</a>
+        <a href="terminos.html">Términos</a>
+        <a href="privacidad.html">Privacidad</a>
       </nav>
     </div>
   </footer>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script type="module">
 import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { signInWithEmailAndPassword, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { MES_LARGO } from "./agenda.js?v=4";
 import { db, auth, params, enEmulador, urlMuro, urlCuenta, urlPanel, decir, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=6";
+         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=7";
+import { estoyEnLinea, contarEnLinea, textoEnLinea } from "./presencia.js?v=1";
+estoyEnLinea(db, "portada");
+contarEnLinea(db, n => { $("enLinea").hidden = !n; if (n) $("enLinea").textContent = textoEnLinea(n); });
 
 const $ = id => document.getElementById(id);
 function aviso(id, msg){ $(id).textContent = msg; $(id).classList.toggle("oculto", !msg); }

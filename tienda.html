@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B7F6C">
 <title>Tiendas — Mis Torneos</title>
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* El perfil público de una tienda, y sin ?sala= el directorio de tiendas.
      Estructura «Página», la que eligió el usuario: portada del color de la
@@ -31,6 +31,11 @@
   .gtit a,.gtit button{color:var(--accion-texto);text-transform:none;letter-spacing:0;text-decoration:none;
     background:none;border:none;font:inherit;cursor:pointer;padding:0;}
   .grupo{background:var(--sup);border-radius:var(--radio);overflow:hidden;}
+  /* Tiendas | Jugadores, sobre el buscador. */
+  .seg{display:inline-flex;background:var(--campo);border-radius:10px;padding:3px;margin:var(--e3) 0 var(--e2);}
+  .seg button{border:none;background:none;font:inherit;font-size:var(--t3);color:var(--apagado);padding:7px 16px;
+    border-radius:8px;cursor:pointer;min-height:36px;}
+  .seg button[aria-selected="true"]{background:var(--sup);color:var(--texto);font-weight:600;box-shadow:0 1px 3px rgba(16,35,30,.12);}
   .fila{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 14px;position:relative;
     box-sizing:border-box;color:var(--texto);text-decoration:none;}
   .fila + .fila::before{content:"";position:absolute;top:0;right:0;left:14px;height:1px;background:var(--divider);}
@@ -73,6 +78,9 @@
   .acciones{display:grid;grid-template-columns:1fr 1fr;gap:var(--e2);margin-top:var(--e3);}
   .acciones .btn{min-height:44px;padding:0 18px;}
   .nota{font-size:var(--t2);color:var(--apagado);line-height:1.5;margin:var(--e2) 0 0;}
+  /* Términos y Privacidad, al final: discretos, como en cualquier sitio. */
+  .legal{font-size:var(--t1);color:var(--rotulo);line-height:1.6;margin:var(--e4) 0 0;}
+  .legal a{color:var(--apagado);}
 
   .tabs{display:flex;gap:var(--e4);margin-top:var(--e4);border-bottom:1px solid var(--divider);overflow-x:auto;
     scrollbar-width:none;}
@@ -148,19 +156,30 @@
 <body>
   <header class="sup vidrio">
     <a class="marca" href="index.html" data-link="inicio">Mis Torneos</a>
+    <span class="enlinea" id="enLinea" hidden></span>
     <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
     <a class="btn" href="cuenta.html" id="aCuenta">Entrar</a>
   </header>
 
   <!-- ================================================= DIRECTORIO -->
   <main class="ancho oculto" id="vDir">
-    <h1 class="grande">Tiendas</h1>
+    <h1 class="grande" id="tituloDir">Tiendas</h1>
+    <div class="seg" role="tablist" aria-label="Qué buscar">
+      <button role="tab" aria-selected="true" data-dir="tiendas">Tiendas</button>
+      <button role="tab" aria-selected="false" data-dir="jugadores">Jugadores</button></div>
     <input type="search" id="buscar" placeholder="Busca por nombre o comuna" aria-label="Buscar tiendas">
-    <div id="dirFav"></div>
-    <h2 class="gtit">Tiendas verificadas</h2>
-    <div class="grupo" id="dirLista"><div class="vacio">Cargando…</div></div>
-    <p class="nota" style="margin:var(--e4) var(--e1) 0">¿Organizas torneos en una tienda?
-      <a href="admin.html" data-link="panel">Crea su cuenta desde el panel</a>. Aparece acá cuando la verifiquemos.</p>
+    <div id="dirTiendas">
+      <div id="dirFav"></div>
+      <h2 class="gtit">Tiendas verificadas</h2>
+      <div class="grupo" id="dirLista"><div class="vacio">Cargando…</div></div>
+      <p class="nota" style="margin:var(--e4) var(--e1) 0">¿Organizas torneos en una tienda?
+        <a href="admin.html" data-link="panel">Pide su cuenta desde el panel</a>. Aparece acá cuando la aprobemos.</p>
+    </div>
+    <div id="dirJugadores" hidden>
+      <h2 class="gtit" id="jugTit">Jugadores</h2>
+      <div class="grupo" id="jugLista"></div>
+      <p class="nota" id="jugNota" style="margin:var(--e4) var(--e1) 0"></p>
+    </div>
   </main>
 
   <!-- ================================================= PERFIL -->
@@ -247,16 +266,21 @@
     <div class="vacio" style="padding-top:var(--e6)"><b style="display:block;font-size:var(--t5);color:var(--texto)">Esa tienda no existe</b>
       Puede que el enlace esté mal escrito. <a href="tienda.html" data-link="tiendas">Ver todas las tiendas</a>.</div>
   </main>
+  <footer class="ancho" style="padding-bottom:var(--e5)"><p class="legal"><a href="cuenta.html#sugerencias">Sugerencias</a> ·
+    <a href="terminos.html">Términos</a> ·
+    <a href="privacidad.html">Privacidad</a> · Mis Torneos © 2026</p></footer>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script type="module">
 import { ref, onValue, get, set, update, remove, query, orderByChild, equalTo }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, enEmulador, urlCuenta, urlMuro, urlPanel } from "./sesion.js?v=6";
-import { slug, tiendaDe, salaDeTimer, MAX_TIMERS, nombreTienda, iniciales } from "./sala.js?v=3";
+import { db, auth, enEmulador, urlCuenta, urlMuro, urlPanel } from "./sesion.js?v=7";
+import { slug, tiendaDe, salaDeTimer, MAX_TIMERS, nombreTienda, iniciales } from "./sala.js?v=4";
 import { ordenar, estaVigente, fechaLegible, cuantoFalta, urlGoogle, MES_LARGO } from "./agenda.js?v=4";
 import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF } from "./clasificacion.js?v=1";
+import { norm as normNombre } from "./insignias.js?v=1";
+import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=1";
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
@@ -268,6 +292,8 @@ const ID = tiendaDe(slug(new URLSearchParams(location.search).get("sala"), 28));
    base real. */
 const EMU = enEmulador() ? "emu=1&" : "";
 const aTienda = id => "tienda.html?" + EMU + "sala=" + encodeURIComponent(id);
+estoyEnLinea(db, "tiendas");
+contarEnLinea(db, n => { $("enLinea").hidden = !n; if (n) $("enLinea").textContent = n + " en línea"; });
 const aTimer  = (id, h) => "timer-view.html?" + EMU + "sala=" + encodeURIComponent(id) + (h ? "#" + h : "");
 const DEST = { inicio: "index.html" + (EMU ? "?" + EMU.slice(0, -1) : ""), tiendas: "tienda.html" + (EMU ? "?" + EMU.slice(0, -1) : ""),
                panel: urlPanel() };
@@ -316,9 +342,71 @@ function directorio(){
   $("vDir").classList.remove("oculto");
   document.title = "Tiendas — Mis Torneos";
   onValue(query(ref(db, "tiendas"), orderByChild("verificada"), equalTo(true)),
-          s => { VERIF = s.val() || {}; pintarDir(); },
+          s => { VERIF = s.val() || {}; pintarDir(); if (DIR === "jugadores") cargarJugadores(); },
           () => { $("dirLista").innerHTML = '<div class="vacio">No se pudo cargar la lista.</div>'; });
-  $("buscar").oninput = pintarDir;
+  $("buscar").oninput = () => DIR === "tiendas" ? pintarDir() : pintarJugadores();
+  document.querySelectorAll("[data-dir]").forEach(b => b.onclick = () => elegirDir(b.dataset.dir));
+}
+function elegirDir(m){
+  DIR = m;
+  document.querySelectorAll("[data-dir]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.dir === m)));
+  $("dirTiendas").hidden = m !== "tiendas";
+  $("dirJugadores").hidden = m !== "jugadores";
+  $("tituloDir").textContent = m === "tiendas" ? "Tiendas" : "Jugadores";
+  $("buscar").placeholder = m === "tiendas" ? "Busca por nombre o comuna" : "Busca un jugador por su nombre";
+  $("buscar").setAttribute("aria-label", m === "tiendas" ? "Buscar tiendas" : "Buscar jugadores");
+  if (m === "jugadores"){ cargarJugadores(); pintarJugadores(); } else pintarDir();
+  $("buscar").focus();
+}
+
+/* ------------------------------------------------------------ jugadores
+   Quienes aparecen en los torneos archivados de las tiendas verificadas,
+   buscados por nombre. Sale todo del historial, que ya es público; los
+   «Jugador reservado» no aparecen. El perfil se abre en el muro (con cuenta),
+   en la tienda donde más ha jugado.
+   ponytail: baja el historial de cada tienda verificada una vez; con muchas
+   tiendas convendría un índice de nombres aparte. */
+let DIR = "tiendas", JUGS = null, cargandoJ = false;
+async function cargarJugadores(){
+  if (JUGS || cargandoJ || VERIF === null) return;
+  cargandoJ = true;
+  const idx = {};
+  await Promise.all(Object.keys(VERIF).map(id => get(ref(db, "salas/" + id + "/historial")).then(s => {
+    Object.values(s.val() || {}).forEach(t => Object.values(t.standings || {}).forEach(f => {
+      if (!f || f.reservado || !f.name) return;
+      const k = normNombre(f.name);
+      const j = idx[k] ??= { k, nombre: f.name, torneos: 0, tiendas: {}, mejor: 99, ultimo: "" };
+      j.torneos++; j.tiendas[id] = (j.tiendas[id] || 0) + 1; j.mejor = Math.min(j.mejor, +f.place || 99);
+      /* El nombre como lo escribió la tienda en su torneo más reciente. */
+      if ((t.fecha || "") >= j.ultimo){ j.ultimo = t.fecha || ""; j.nombre = f.name; }
+    }));
+  }, () => {})));
+  JUGS = Object.values(idx); cargandoJ = false;
+  pintarJugadores();
+}
+function pintarJugadores(){
+  if (DIR !== "jugadores") return;
+  $("jugNota").textContent = usuario ? "" : "Para abrir el perfil de un jugador necesitas tu cuenta.";
+  if (JUGS === null){ $("jugLista").innerHTML = '<div class="vacio">Buscando en los torneos de las tiendas…</div>'; return; }
+  const texto = $("buscar").value.trim(), q = normNombre(texto);
+  if (q.length < 2){
+    $("jugTit").textContent = JUGS.length + (JUGS.length === 1 ? " jugador" : " jugadores") + " en los torneos";
+    $("jugLista").innerHTML = '<div class="vacio">Escribe al menos dos letras del nombre.</div>';
+    return;
+  }
+  const res = JUGS.filter(j => j.k.includes(q)).sort((a, b) => b.torneos - a.torneos || a.nombre.localeCompare(b.nombre));
+  $("jugTit").textContent = res.length === 1 ? "1 jugador" : res.length + " jugadores";
+  $("jugLista").innerHTML = res.slice(0, 40).map(filaJugador).join("") ||
+    '<div class="vacio">Nadie llamado «' + esc(texto) + '» en los torneos archivados.</div>';
+}
+function filaJugador(j){
+  const ids = Object.keys(j.tiendas).sort((a, b) => j.tiendas[b] - j.tiendas[a]);
+  const href = "muro.html?" + EMU + "sala=" + encodeURIComponent(ids[0]) + "#jugador=" + encodeURIComponent(j.k);
+  return '<a class="fila" href="' + href + '"><span class="logoT" style="--c:var(--sup-alta);color:var(--texto);width:40px;height:40px;font-size:15px">' +
+    esc(iniciales(j.nombre)) + '</span><div class="txt"><b>' + esc(j.nombre) + "</b><small>" +
+    j.torneos + (j.torneos === 1 ? " torneo" : " torneos") + " · " +
+    esc(ids.map(id => nombreTienda(VERIF[id] && VERIF[id].perfil, id)).join(", ")) +
+    (j.mejor <= 3 ? " · mejor puesto: " + j.mejor + "º" : "") + "</small></div>" + ICO.chev + "</a>";
 }
 /* Los logos viven aparte (fotos/<id>/logo) para que la lista no baje todas
    las fotos de una: se piden los de las filas que se muestran, una vez. */
@@ -579,7 +667,7 @@ function pintarVivo(){
     const orden = [...ms].sort((a, b) => (mia(b) - mia(a)) || (!a.p2 - !b.p2) || ((+a.table || 0) - (+b.table || 0)));
     const rec = x => x ? x.w + "-" + x.l + "-" + x.t : "";
     $("vivo").innerHTML = '<div class="envivo isla"><div>' +
-      '<div class="vivo"><span class="punto"></span>En vivo' + (r ? " · Ronda " + r.number : "") + "</div>" +
+      '<div class="vivo"><span class="punto"></span>En vivo' + (r ? " · " + esc(r.etiqueta || "Ronda " + r.number) : "") + "</div>" +
       '<div class="reloj num" id="vtReloj">--:--</div>' +
       '<div class="nom">' + esc((PAIR && PAIR.name) || "Torneo en curso") + "</div>" +
       '<div class="acc"><a class="btn primario" href="' + aTimer(ID, "mesas") + '">' + ICO.mesas + " Mesas</a>" +

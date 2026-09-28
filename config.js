@@ -72,6 +72,19 @@ if (!EMULADOR){
   document.head.appendChild(csp);
 }
 
+// ====== APP INSTALABLE ======
+// El manifiesto (nombre e ícono al instalarla en el celular) y el ícono de la
+// pestaña, puestos desde acá para que sean UNO para todas las páginas, igual
+// que la política de arriba. sw.js es lo que la deja abrir sin señal.
+["manifest:manifest.webmanifest", "icon:icono.svg", "apple-touch-icon:icono-apple.png"].forEach(function(x){
+  var l = document.createElement("link"), p = x.split(":");
+  l.rel = p[0]; l.href = p[1];
+  document.head.appendChild(l);
+});
+if ("serviceWorker" in navigator) addEventListener("load", function(){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+});
+
 // Barra fija, para que nunca se confunda una sesión de prueba con la real.
 if (EMULADOR) addEventListener("DOMContentLoaded", function(){
   var b = document.createElement("div");

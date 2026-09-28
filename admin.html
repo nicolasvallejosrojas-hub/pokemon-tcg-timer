@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel del organizador</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* =========================================================
      1. Base y controles comunes
@@ -61,6 +61,7 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
   .grid2 input{width:100%;font-size:var(--t3);padding:9px 10px;margin-top:4px;}
   .grid2 input[type=color]{height:38px;padding:3px;}
+  .grid2 select{width:100%;font-size:var(--t3);padding:9px 10px;margin-top:4px;}
   .miembro{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--divider);}
   .miembro:first-child{border-top:none;}
   .miembro .txt{flex:1;min-width:0;}
@@ -94,6 +95,42 @@
   .prevIns small{color:var(--apagado);font-size:var(--t2);}
   @media (max-width:640px){ .insForm{grid-template-columns:1fr;} }
   @media (max-width:640px){ .grid2{grid-template-columns:1fr;} }
+
+  /* --- emparejamientos: con TOM o con la página --- */
+  .modos{display:inline-flex;background:var(--campo);border-radius:10px;padding:3px;gap:2px;}
+  .modos button{background:none;color:var(--apagado);font-weight:500;padding:8px 16px;border-radius:8px;font-size:var(--t3);}
+  .modos button:hover{background:var(--sup-alta);color:var(--texto);}
+  .modos button[aria-selected="true"]{background:var(--sup);color:var(--texto);font-weight:600;box-shadow:0 1px 3px rgba(16,35,30,.12);}
+  /* Una mesa: se toca al ganador. */
+  .mesa{display:grid;grid-template-columns:62px 1fr 24px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--divider);}
+  .mesa:first-child{border-top:none;}
+  .mesa .n{font-size:var(--t2);color:var(--apagado);}
+  .mesa .vs{font-size:var(--t2);color:var(--apagado);text-align:center;}
+  .mesa .solo{grid-column:2 / -1;font-size:var(--t3);}
+  .jugBtn{background:var(--sup-alta);color:var(--texto);font-weight:500;text-align:left;padding:8px 12px;font-size:var(--t3);min-height:44px;}
+  .jugBtn:hover{background:var(--sup-hover);}
+  .jugBtn small{display:block;font-size:var(--t1);color:var(--apagado);font-weight:400;margin-top:1px;}
+  .jugBtn.gana{background:var(--accion);color:var(--sobre-accion);font-weight:700;}
+  .jugBtn.gana:hover{background:var(--accion-clara);}
+  .jugBtn.gana small{color:inherit;opacity:.8;}
+  .jugBtn.pierde{opacity:.5;}
+  .otros{display:flex;gap:6px;}
+  .otros button{background:var(--sup-alta);color:var(--texto);font-weight:400;padding:6px 10px;font-size:var(--t2);}
+  .otros button:hover{background:var(--sup-hover);}
+  .otros button.on{background:var(--texto);color:var(--sup);font-weight:600;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .chip{display:inline-flex;align-items:center;gap:2px;background:var(--sup-alta);border-radius:999px;padding:3px 4px 3px 12px;font-size:var(--t2);}
+  .chip button{background:none;color:var(--apagado);padding:4px 8px;font-size:var(--t3);line-height:1;font-weight:400;}
+  .chip button:hover{background:var(--sup-hover);border-radius:999px;}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .retirado{color:var(--apagado);}
+  details.plegable{margin-top:14px;border-top:1px solid var(--divider);padding-top:10px;}
+  details.plegable summary{cursor:pointer;font-size:var(--t3);font-weight:600;}
+  #bjBuscar{width:100%;font-size:var(--t3);padding:10px 12px;margin-top:10px;}
+  @media (max-width:640px){
+    .mesa{grid-template-columns:1fr 1fr;}
+    .mesa .n{grid-column:1 / -1;} .mesa .vs{display:none;} .mesa .otros,.mesa .solo{grid-column:1 / -1;}
+  }
 
   table{border-collapse:collapse;width:100%;font-size:var(--t2);margin-top:10px;}
   td,th{border-bottom:1px solid var(--divider);padding:6px 8px;text-align:left;}
@@ -387,12 +424,22 @@
   <div id="elegirAviso" class="aviso accion" style="margin-top:10px" hidden></div>
   <div id="elegirLista"></div>
   <div class="crear">
-    <div style="font-weight:600;font-size:var(--t3)">Crear una tienda</div>
-    <div class="muted" style="margin:2px 0 8px">Quedas de dueño. Puedes usar el timer al tiro; sale en el directorio
-      de tiendas cuando la verifiquemos.</div>
-    <div class="row"><input id="nuevaNombre" placeholder="Nombre de la tienda" maxlength="60" style="flex:1;max-width:320px"
-      aria-label="Nombre de la tienda nueva"><button id="nuevaBtn">Crear</button></div>
-    <div id="nuevaMsg" class="muted" style="margin-top:6px"></div>
+    <div style="font-weight:600;font-size:var(--t3)" id="crearTit">Pedir una tienda</div>
+    <div class="muted" id="crearTxt" style="margin:2px 0 8px">Cuéntanos cuál es y cómo te contactamos. Cuando la aprobemos,
+      la creas desde acá y quedas de dueño.</div>
+    <div id="pedirEstado" class="aviso" style="margin-bottom:10px" hidden></div>
+    <div id="crearForm" hidden>
+      <div class="grid2">
+        <label>Nombre de la tienda<input id="nuevaNombre" maxlength="60" autocomplete="organization"></label>
+        <label class="soloPedir">Comuna<input id="nuevaComuna" maxlength="60"></label>
+        <label class="soloPedir">Instagram, WhatsApp o correo<input id="nuevaContacto" maxlength="120"></label>
+        <label class="soloPedir">Algo más que debamos saber (opcional)<input id="nuevaMensaje" maxlength="500"></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button id="nuevaBtn">Enviar solicitud</button>
+        <span class="muted soloPedir">Al pedir una tienda aceptas los <a href="terminos.html#tiendas" target="_blank" rel="noopener">Términos
+          y condiciones</a>.</span></div>
+    </div>
+    <div id="nuevaMsg" class="muted" style="margin-top:6px" role="status"></div>
   </div>
   <div class="row" style="margin-top:12px"><button class="small sec herr" hidden>Herramientas de administrador</button>
     <span style="flex:1"></span><button class="small sec" id="logoutBtn2">Salir</button></div>
@@ -656,6 +703,15 @@
      EMPAREJAMIENTOS
      ============================================================ -->
 <div class="panel hide" id="panelP">
+<div class="card">
+  <div class="modos" role="tablist" aria-label="Cómo se corre el torneo">
+    <button role="tab" data-modo="tom" aria-selected="true">Con TOM</button>
+    <button role="tab" data-modo="pagina" aria-selected="false">Torneo de la página</button>
+  </div>
+  <div class="muted" id="modoTxt" style="margin-top:8px"></div>
+</div>
+
+<div id="modoTom">
 <!-- Tarjeta propia, no anidada dentro de la de abajo: sincronizar con TOM y
      cargar un archivo a mano son dos caminos distintos para lo mismo, no uno
      dentro del otro. -->
@@ -715,6 +771,26 @@
     <button id="archiveBtn" disabled>Archivar torneo</button>
   </div>
   <div id="archMsg" class="muted" style="margin-top:6px"></div>
+</div>
+</div><!-- /modoTom -->
+
+<!-- El torneo de la página: la base de jugadores de la tienda y el torneo de
+     este timer. Lo que ven los jugadores sale igual que con TOM. -->
+<div id="modoPagina" hidden>
+<div class="card" id="tnCard">
+  <div id="tnCuerpo"><div class="muted">Cargando&hellip;</div></div>
+  <div class="row" style="margin-top:8px"><span id="tnMsg" class="muted"></span><span id="tnPub" class="muted"></span></div>
+</div>
+
+<div class="card" id="bjCard">
+  <div class="row"><h2 class="h2p" style="margin:0;flex:1">Jugadores de la tienda</h2>
+    <span class="muted" id="bjCuenta"></span></div>
+  <div class="muted" style="margin-top:4px">Se inscriben por nombre. Búscalo y toca Inscribir; si no está, escríbelo y agrégalo.
+    Con Enter: inscribe al único que coincida, o agrega el nombre nuevo.</div>
+  <input type="search" id="bjBuscar" placeholder="Busca o escribe un nombre" aria-label="Buscar o agregar jugador" autocomplete="off">
+  <div id="bjLista" style="margin-top:6px"></div>
+  <div id="bjMsg" class="muted" style="margin-top:6px"></div>
+</div>
 </div>
 
 <div class="card">
@@ -957,16 +1033,20 @@
 <div id="menu"></div>
 <input type="file" accept="image/*" id="fBox" style="display:none">
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=4";
-import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=3";
+import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
 import { vigilar } from "./mantenimiento.js?v=2";
-import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila } from "./insignias.js?v=1";
+import { estoyEnLinea } from "./presencia.js?v=1";
+import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=1";
+import { rondasDe, resumen, tabla, emparejar, rondasSugeridas, aPairings, aHistorial,
+         delCorte, emparejarCorte, clasificacion, tamanoCorte, corteTerminado, nombreCorte, CORTES,
+         GANA_A, GANA_B, EMPATE, DOBLE } from "./torneo.js?v=1";
 import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_SETS,
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
          revisar, esOriginal, aplicar as palAplicarEn, alDia } from "./paleta.js?v=4";
@@ -986,6 +1066,7 @@ if (typeof EMULADOR !== "undefined" && EMULADOR){
   connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
 }
 vigilar(db, auth);   // la pantalla de mantenimiento
+estoyEnLinea(db, "panel");
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
@@ -1108,28 +1189,106 @@ async function mostrarSelector(u, aviso){
     (f.rol === "dueno" ? "Dueño" : "Organizador") + " · " +
     (f.t.verificada ? "verificada" : f.t.verificada === false ? "no verificada" : "pendiente de verificación") +
     "</small></span></button>").join("")
-    : '<div class="muted" style="margin-top:10px">Todavía no organizas ninguna tienda. Crea la tuya abajo, o abre el enlace de invitación que te mandó el dueño de una.</div>';
+    : '<div class="muted" style="margin-top:10px">Todavía no organizas ninguna tienda. Pide la tuya abajo, o abre el enlace de invitación que te mandó el dueño de una.</div>';
   $("elegirLista").querySelectorAll(".tfila").forEach(b => b.onclick = () => irA(b.dataset.id));
 
-  $("nuevaBtn").onclick = async () => {
-    const nombre = $("nuevaNombre").value.trim().replace(/\s+/g, " ");
-    const id = slug(nombre);
-    const msg = t => $("nuevaMsg").textContent = t;
-    if (nombre.length < 2 || !id) return msg("Escribe el nombre de la tienda.");
-    /* «principal» y los nombres con forma de timer (…-t2) están reservados. */
-    if (id === "principal" || /-t[0-9]+$/.test(id)) return msg("Ese nombre está reservado. Prueba con otro.");
-    try {
-      const [own, t] = await Promise.all([get(ref(db, "salas/" + id + "/owner")), get(ref(db, "tiendas/" + id))]);
-      if (own.exists() || t.exists())
-        return msg("Ya hay una tienda con ese nombre. Prueba agregándole la comuna: «" + nombre + " Temuco».");
-      await update(ref(db), {
-        ["salas/" + id + "/owner"]: u.uid,
-        ["tiendas/" + id + "/perfil"]: { nombre, creada: Date.now() },
-        ["tiendas/" + id + "/miembros/" + u.uid]: { rol: "dueno", nombre: await miNombre(u), desde: Date.now() },
-        ["organiza/" + u.uid + "/" + id]: "dueno" });
-      irA(id);
-    } catch(e){ msg("No se pudo crear. Revisa la conexión y vuelve a intentar."); }
+  pintarPedir(u);
+}
+
+/* ------------------------------------------------------------
+   Pedir una tienda. Desde el 27-09-2026 no se crea sola: se pide, quien
+   administra la aprueba en Herramientas, y recién ahí se crea desde acá (las
+   reglas no dejan reclamar la sala sin la solicitud aprobada con ese id).
+   Quien administra la crea directo, sin pedirla.
+   ------------------------------------------------------------ */
+let dejarSol = null;
+async function pintarPedir(u){
+  const admin = await soyAdmin(u), msg = t => $("nuevaMsg").textContent = t;
+  document.querySelectorAll(".soloPedir").forEach(l => l.hidden = admin);
+  if (admin){
+    $("crearTit").textContent = "Crear una tienda";
+    $("crearTxt").textContent = "Como administras, la creas sin pedirla. Quedas de dueño.";
+    $("nuevaBtn").textContent = "Crear";
+    $("crearForm").hidden = false;
+  }
+  /* «principal» y los nombres con forma de timer (…-t2) están reservados. */
+  const revisar = async (nombre, id) => {
+    if (nombre.length < 2 || !id) return "Escribe el nombre de la tienda.";
+    if (id === "principal" || /-t[0-9]+$/.test(id)) return "Ese nombre está reservado. Prueba con otro.";
+    const [own, t] = await Promise.all([get(ref(db, "salas/" + id + "/owner")), get(ref(db, "tiendas/" + id))]);
+    if (own.exists() || t.exists()) return "Ya hay una tienda con ese nombre. Prueba agregándole la comuna: «" + nombre + " Temuco».";
+    return "";
   };
+  $("nuevaBtn").onclick = async () => {
+    const nombre = $("nuevaNombre").value.trim().replace(/\s+/g, " "), id = slug(nombre);
+    const comuna = $("nuevaComuna").value.trim(), contacto = $("nuevaContacto").value.trim(), mensaje = $("nuevaMensaje").value.trim();
+    try {
+      const falla = await revisar(nombre, id);
+      if (falla) return msg(falla);
+      if (admin) return await crearTienda(u, { id, nombre }, false);
+      if (contacto.length < 3) return msg("Deja un Instagram, WhatsApp o correo para contactarte.");
+      const sol = { id, nombre, quien: await miNombre(u), contacto, creada: Date.now() };
+      if (comuna) sol.comuna = comuna;
+      if (mensaje) sol.mensaje = mensaje;
+      await set(ref(db, "solicitudes/" + u.uid), sol);
+      msg("");
+    } catch(e){ msg(admin ? "No se pudo crear. Revisa la conexión y vuelve a intentar." : "No se pudo enviar. Revisa la conexión y vuelve a intentar."); }
+  };
+  if (admin) return;
+  /* La solicitud propia, en vivo: si la aprueban con la página abierta, el
+     botón para crearla aparece solo. */
+  if (dejarSol) dejarSol();
+  dejarSol = onValue(ref(db, "solicitudes/" + u.uid), s => {
+    const sol = s.val(), est = $("pedirEstado");
+    est.hidden = !sol;
+    $("crearForm").hidden = !!sol && !sol.rechazada;
+    if (!sol){ $("nuevaBtn").textContent = "Enviar solicitud"; return; }
+    const nom = "«" + esc(sol.nombre) + "»";
+    if (sol.aprobada){
+      est.className = "aviso accion";
+      est.innerHTML = "<b>Aprobamos " + nom + ".</b> Créala ahora y quedas de dueño." +
+        '<div class="row" style="margin-top:10px"><button id="solCrear">Crear ' + nom + "</button></div>";
+      $("solCrear").onclick = async () => {
+        $("solCrear").disabled = true;
+        try { await crearTienda(u, sol, true); }
+        catch(e){ $("solCrear").disabled = false; msg("No se pudo crear. Revisa la conexión y vuelve a intentar."); }
+      };
+    } else if (sol.rechazada){
+      est.className = "aviso";
+      est.innerHTML = "<b>No aprobamos " + nom + ".</b>" + (sol.nota ? " " + esc(sol.nota) : "") +
+        " Puedes corregirla y mandarla de nuevo.";
+      $("nuevaBtn").textContent = "Mandar de nuevo";
+      /* Se rellena una vez, sin pisar lo que se esté corrigiendo. */
+      if (!$("nuevaNombre").value){
+        $("nuevaNombre").value = sol.nombre; $("nuevaComuna").value = sol.comuna || "";
+        $("nuevaContacto").value = sol.contacto; $("nuevaMensaje").value = sol.mensaje || "";
+      }
+    } else {
+      est.className = "aviso";
+      est.innerHTML = "<b>Tu solicitud de " + nom + " está en revisión.</b> Te contactamos por " + esc(sol.contacto) + "." +
+        '<div class="row" style="margin-top:10px"><button class="sec small" id="solRetirar" style="background:var(--sup)">Retirar la solicitud</button></div>';
+      $("solRetirar").onclick = async () => {
+        if (!confirm("¿Retirar la solicitud de «" + sol.nombre + "»?")) return;
+        try { await remove(ref(db, "solicitudes/" + u.uid)); }
+        catch(e){ msg("No se pudo retirar. Revisa la conexión."); }
+      };
+    }
+  }, () => { $("crearForm").hidden = false; });
+}
+
+/* Crear la tienda es reclamar su sala, escribir su perfil y quedar de dueño,
+   todo en una escritura. Con una solicitud aprobada, se gasta en la misma. */
+async function crearTienda(u, { id, nombre, comuna }, gastar){
+  const perfil = { nombre, creada: Date.now() };
+  if (comuna) perfil.comuna = comuna;
+  const rutas = {
+    ["salas/" + id + "/owner"]: u.uid,
+    ["tiendas/" + id + "/perfil"]: perfil,
+    ["tiendas/" + id + "/miembros/" + u.uid]: { rol: "dueno", nombre: await miNombre(u), desde: Date.now() },
+    ["organiza/" + u.uid + "/" + id]: "dueno" };
+  if (gastar) rutas["solicitudes/" + u.uid] = null;
+  await update(ref(db), rutas);
+  irA(id);
 }
 
 async function mostrarInvitacion(u){
@@ -1180,7 +1339,7 @@ onAuthStateChanged(auth, async u => {
     try { existe = (await get(ref(db, "salas/" + PEDIDA + "/owner"))).exists(); } catch(e){}
     return mostrarSelector(u, existe
       ? "No organizas «" + PEDIDA + "». Para entrar, pídele al dueño un enlace de invitación."
-      : "La tienda «" + PEDIDA + "» no existe. Puedes crearla abajo.");
+      : "La tienda «" + PEDIDA + "» no existe. Puedes pedirla abajo.");
   }
   if (SALA !== TIENDA){
     let de = null;
@@ -1211,6 +1370,7 @@ onAuthStateChanged(auth, async u => {
     $("salaMsg").innerHTML = "";
     $("tabs").style.display = ""; $("panelT").style.display = "";
     escucharEnlaces();
+    escucharTorneoPagina();
     /* Si la huella guardada no coincide con lo que hay ahora, esta sesion se
        abrio sobre un borrador que nunca se confirmo: hay que avisarlo en vez
        de dejar al organizador creyendo que los jugadores ya lo ven. */
@@ -2708,10 +2868,12 @@ onValue(ref(db, BASE + "/pairings"), snap => {
     return;
   }
   const deN = p.rondasTotales ? " de " + p.rondasTotales : "";
+  /* Las del top cut traen su nombre («Semifinal»); las suizas, su número. */
+  const etq = ((p.rounds.find(r => r.number === p.lastRound) || {}).etiqueta) || "Ronda " + p.lastRound + deN;
   $("ttitle").textContent = p.name || "Timer de torneo";
-  $("tsubt").textContent = "Ronda " + p.lastRound + deN +
+  $("tsubt").textContent = etq +
     (p.roundtime ? " · rondas de " + p.roundtime + " min" : "");
-  $("ronda").textContent = "Ronda " + p.lastRound + deN +
+  $("ronda").textContent = etq +
     (p.phase === "results" ? " · resultados" : " · en curso");
   $("ronda").style.display = "block";
 }, () => {});
@@ -2840,6 +3002,350 @@ onValue(R_HIST, snap => {
     $("histList").appendChild(row);
   });
 });
+
+/* =========================================================
+   12d. Torneo de la página (sin TOM)
+   Dos caminos para lo mismo: TOM arma el torneo y el panel lee su .tdf, o la
+   página lo corre sola con torneo.js. Los dos publican el mismo pairings (lo
+   que ven la pantalla y los celulares) y archivan igual en el historial.
+   La base de jugadores es de la TIENDA (jugadores/<tienda>); el torneo, de
+   cada TIMER (salas/<sala>/torneo), así se pueden correr dos a la vez.
+   ========================================================= */
+const R_TN = ref(db, BASE + "/torneo");
+const rutaT = k => BASE + "/torneo" + (k ? "/" + k : "");
+const rutaJ = id => "jugadores/" + TIENDA + (id ? "/" + id : "");
+let TN = null, BASEJ = {}, MODO = "tom", modoLeido = false;
+try { MODO = localStorage.getItem(LS("modoTorneo")) || "tom"; } catch(e){}
+function elegirModo(m){
+  MODO = m;
+  try { localStorage.setItem(LS("modoTorneo"), m); } catch(e){}
+  document.querySelectorAll("[data-modo]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.modo === m)));
+  $("modoTom").hidden = m !== "tom";
+  $("modoPagina").hidden = m !== "pagina";
+  $("modoTxt").textContent = m === "tom"
+    ? "TOM arma el torneo (emparejamientos, resultados, tabla) y acá se publica lo que guarda en su archivo .tdf. Es el camino para los torneos oficiales."
+    : "La página corre el torneo: inscribes a los jugadores por nombre, empareja en suizo, anotas quién ganó cada mesa y la tabla se arma sola, con los desempates del manual.";
+}
+document.querySelectorAll("[data-modo]").forEach(b => b.onclick = () => elegirModo(b.dataset.modo));
+elegirModo(MODO);
+
+const hoyISO = () => { const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const horaCorta = () => new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+const tnFallo = e => $("tnMsg").innerHTML = '<span class="err">' + esc(mensajeConexion(e)) + "</span>";
+const abierto = () => !!TN && !TN.archivado;
+
+function escucharTorneoPagina(){
+  onValue(R_TN, s => {
+    TN = s.val();
+    /* Si en este timer quedó un torneo a medias, el panel abre en ese modo. */
+    if (!modoLeido && TN && !TN.archivado) elegirModo("pagina");
+    modoLeido = true;
+    pintarTorneo(); pintarBaseJ();
+  }, () => { $("tnCuerpo").innerHTML = '<div class="muted">No se pudo leer el torneo. ¿Publicaste las reglas nuevas?</div>'; });
+  onValue(ref(db, rutaJ()), s => { BASEJ = s.val() || {}; pintarBaseJ(); },
+    () => { $("bjLista").innerHTML = '<div class="muted">No se pudo leer la base. ¿Publicaste las reglas nuevas?</div>'; });
+}
+
+/* Cada cambio del torneo se publica al tiro: los jugadores ven su mesa apenas
+   se empareja y el resultado apenas se anota. Después de update(), TN ya trae
+   el cambio: Firebase avisa las escrituras propias antes de confirmarlas. */
+async function escribirT(rutas, publicar = true){
+  $("tnMsg").textContent = "";
+  await conTimeout(update(ref(db), rutas), 15000);
+  if (publicar) await publicarTorneo();
+}
+async function publicarTorneo(){
+  if (!TN || !rondasDe(TN).length) return;
+  try {
+    await conTimeout(set(ref(db, BASE + "/pairings"), aPairings(TN)), 15000);
+    $("tnPub").innerHTML = '<span class="ok">Publicado ✓ ' + horaCorta() + "</span>";
+  } catch(e){ $("tnPub").innerHTML = '<span class="err">' + esc(mensajeConexion(e)) + "</span>"; }
+}
+
+/* ------------------------------------------------------------ el torneo */
+/* Las rondas del corte van después de las suizas y se nombran por cuántos quedan. */
+const esDelCorte = r => TN.rondas > 0 && r.n > TN.rondas;
+const nomRonda = r => esDelCorte(r) ? nombreCorte(r.mesas.length * 2) : "Ronda " + r.n;
+/* «la semifinal», «la final», pero «los cuartos», «los octavos». */
+const conArticulo = nombre => (/s$/.test(nombre) ? "los " : "la ") + nombre.toLowerCase();
+const opcionesCorte = v => CORTES.map(k => '<option value="' + k + '"' + (k === (v || 0) ? " selected" : "") + ">" +
+  (k ? "Top " + k : "Sin top cut") + "</option>").join("");
+const selCorte = () => '<label style="margin:0">Top cut <select id="tnCorteSel" style="margin-left:6px">' + opcionesCorte(TN.corte) + "</select></label>";
+function pintarTorneo(){
+  if (!TN) return pintarNuevo();
+  const rs = rondasDe(TN), J = TN.jugadores || {}, ids = Object.keys(J), n = rs.length;
+  const tot = TN.rondas || rondasSugeridas(ids.length);
+  let h = '<div class="row"><h2 class="h2p" style="margin:0;flex:1">' + esc(TN.nombre) + '</h2><span class="muted">' +
+    esc(fechaLarga(TN.fecha)) + (TN.minutos ? " · rondas de " + TN.minutos + " min" : "") + "</span></div>";
+
+  if (!n){
+    /* Inscripción: todavía no hay rondas. */
+    const k = ids.length, sug = rondasSugeridas(k);
+    h += '<div class="muted" style="margin-top:4px">' + k + (k === 1 ? " inscrito" : " inscritos") +
+      ". Búscalos abajo, en los jugadores de la tienda.</div>" +
+      (k ? '<div class="chips">' + ids.sort((a, b) => J[a].nombre.localeCompare(J[b].nombre)).map(id =>
+        '<span class="chip">' + esc(J[id].nombre) + '<button data-quitar="' + esc(id) + '" aria-label="Quitar a ' + esc(J[id].nombre) + '">×</button></span>').join("") + "</div>" : "") +
+      '<div class="row" style="margin-top:12px"><label style="margin:0">Rondas <input type="number" id="tnRondas" min="1" max="20" ' +
+      'style="width:70px;margin-left:6px" placeholder="' + sug + '" value="' + (TN.rondas || "") + '"></label>' +
+      '<span class="muted" style="flex:1">' + (TN.rondas ? "Fijas en " + TN.rondas + "." : "Automático: " + sug + " para " + k + " jugadores, como pide el manual.") + "</span></div>" +
+      '<div class="row" style="margin-top:8px">' + selCorte() + '<span class="muted" style="flex:1">' +
+      (TN.corte ? "Después del suizo, los " + TN.corte + " primeros de la tabla juegan eliminación directa." : "Se puede cambiar hasta que termine el suizo.") + "</span></div>" +
+      '<div class="row" style="margin-top:12px"><button id="tnEmparejar"' + (k < 2 ? " disabled" : "") + ">Emparejar la ronda 1</button>" +
+      '<button class="sec small" id="tnDescartar">Descartar torneo</button></div>';
+  } else {
+    const act = rs[n - 1], antes = resumen(TN, n - 1), pend = act.mesas.filter(m => m.b && m.r == null).length;
+    const cortes = delCorte(TN), enCorte = cortes.length > 0, corteAct = esDelCorte(act);
+    const titulo = corteAct ? "Top " + cortes[0].mesas.length * 2 + " · " + nombreCorte(act.mesas.length * 2) : "Ronda " + n + " de " + tot;
+    h += '<div style="margin-top:6px;font-size:var(--t3)"><b>' + titulo + "</b> · " +
+      (pend ? '<span class="warnc">' + pend + (pend === 1 ? " mesa sin resultado" : " mesas sin resultado") + "</span>"
+            : '<span class="ok">todos los resultados anotados</span>') + "</div>" +
+      (TN.archivado ? "" : '<div class="muted" style="margin-top:2px">Toca al ganador de cada mesa. Tocarlo de nuevo borra el resultado.' +
+        (corteAct ? " En el top cut no hay empate: se juega hasta que alguien gane." : "") + "</div>") +
+      '<div style="margin-top:8px">' + act.mesas.map((m, i) => mesaHtml(m, i, antes, !TN.archivado, corteAct)).join("") + "</div>";
+
+    h += '<div class="row" style="margin-top:14px">';
+    if (TN.archivado){
+      h += '<span class="ok" style="flex:1">Archivado ✓ Ya suma a la clasificación del mes.</span>' +
+        '<button id="tnCerrar">Cerrar el torneo</button>';
+    } else if (pend){
+      /* Falta anotar: nada que emparejar todavía. */
+    } else if (!enCorte && n < tot){
+      h += '<button id="tnEmparejar">Emparejar la ronda ' + (n + 1) + "</button>";
+    } else if (!enCorte && tamanoCorte(TN)){
+      /* Terminó el suizo y hay corte: se empieza, o se juega otra suiza. */
+      const k = tamanoCorte(TN);
+      h += '<button id="tnEmparejar">Empezar el top ' + k + "</button>" + selCorte() +
+        '<button class="sec small" id="tnOtra">Jugar una ronda suiza más</button>';
+    } else if (enCorte && !corteTerminado(TN)){
+      h += '<button id="tnEmparejar">Emparejar ' + conArticulo(nombreCorte(act.mesas.length)) + "</button>";
+    } else {
+      h += '<label style="margin:0;white-space:nowrap">Fecha <input type="date" id="tnArchFecha" value="' + esc(TN.fecha) + '" style="width:auto"></label>' +
+        '<button id="tnArchivar">Terminar y archivar</button>' +
+        (enCorte ? "" : selCorte() + '<button class="sec small" id="tnOtra">Jugar una ronda suiza más</button>');
+    }
+    if (!TN.archivado) h += '<span style="flex:1"></span><button class="sec small" id="tnDeshacer">Deshacer ' +
+      (corteAct ? conArticulo(nombreCorte(act.mesas.length * 2)) : "la ronda " + n) + "</button>" +
+      '<button class="sec small" id="tnDescartar">Descartar torneo</button>';
+    h += "</div>";
+
+    /* La tabla, con los desempates a la vista. Con el corte empezado, son las
+       posiciones finales: arriba los del corte, según hasta dónde llegaron. */
+    const tab = clasificacion(TN);
+    h += '<details class="plegable" open><summary>' + (enCorte ? "Posiciones" : "Tabla") + '</summary><table><tr><th>#</th><th>Jugador</th>' +
+      (enCorte ? "<th>Top cut</th>" : "") + '<th class="num">Pts</th>' +
+      '<th class="num">V-D-E</th><th class="num">% rivales</th><th class="num">% riv. de riv.</th></tr>' +
+      tab.map(p => "<tr" + (p.drop ? ' class="retirado"' : "") + "><td>" + p.puesto + "</td><td>" + esc(p.nombre) +
+        (p.drop ? " · se retiró" : "") + "</td>" + (enCorte ? "<td>" + esc(p.etapa || "") + "</td>" : "") +
+        '<td class="num">' + p.pts + '</td><td class="num">' + p.w + "-" + p.l + "-" + p.e +
+        '</td><td class="num">' + (p.owp * 100).toFixed(2) + '%</td><td class="num">' + (p.oowp * 100).toFixed(2) + "%</td></tr>").join("") +
+      "</table></details>";
+
+    /* Los jugadores: retirar a quien se va, o devolverlo. */
+    if (!TN.archivado && !enCorte) h += '<details class="plegable"><summary>Jugadores (' + ids.filter(id => !J[id].drop).length + " siguen)</summary>" +
+      ids.sort((a, b) => J[a].nombre.localeCompare(J[b].nombre)).map(id => '<div class="miembro"><div class="txt"><b>' + esc(J[id].nombre) + "</b><small>" +
+        (J[id].drop ? "Se retiró después de la ronda " + J[id].drop : (J[id].desde || 1) > 1 ? "Entró en la ronda " + J[id].desde : "Desde la ronda 1") +
+        "</small></div>" + (J[id].drop ? '<button class="small sec" data-volver="' + esc(id) + '">Volver a emparejarlo</button>'
+                                      : '<button class="small sec" data-retirar="' + esc(id) + '">Retirar</button>') + "</div>").join("") + "</details>";
+
+    /* Las rondas anteriores, para revisar. */
+    if (n > 1) h += '<details class="plegable"><summary>Rondas anteriores</summary>' + rs.slice(0, -1).reverse().map(r =>
+      '<div style="margin-top:8px;font-weight:600">' + nomRonda(r) + "</div>" + r.mesas.map((m, i) => mesaHtml(m, i, resumen(TN, r.n - 1), false, esDelCorte(r))).join("")).join("") + "</details>";
+  }
+  $("tnCuerpo").innerHTML = h;
+  enlazarTorneo();
+}
+
+/* Una mesa. El bye no tiene rival: gana solo. */
+function mesaHtml(m, i, antes, editable, corte = false){
+  const J = TN.jugadores || {}, nom = id => (J[id] || {}).nombre || "?";
+  const rec = id => { const p = antes[id]; return p ? p.w + "-" + p.l + "-" + p.e + " · " + p.pts + " pts" : ""; };
+  if (!m.b) return '<div class="mesa"><span class="n">Bye</span><span class="solo"><b>' + esc(nom(m.a)) + "</b> gana la ronda sin jugar</span></div>";
+  const clase = lado => m.r == null || m.r === EMPATE || m.r === DOBLE ? "" : m.r === lado ? " gana" : " pierde";
+  const dis = editable ? "" : " disabled";
+  return '<div class="mesa"><span class="n">Mesa ' + (i + 1) + "</span>" +
+    '<button class="jugBtn' + clase(GANA_A) + '" data-mesa="' + i + '" data-r="' + GANA_A + '"' + dis + ">" + esc(nom(m.a)) + "<small>" + rec(m.a) + "</small></button>" +
+    '<span class="vs">vs</span>' +
+    '<button class="jugBtn' + clase(GANA_B) + '" data-mesa="' + i + '" data-r="' + GANA_B + '"' + dis + ">" + esc(nom(m.b)) + "<small>" + rec(m.b) + "</small></button>" +
+    (corte ? "<span></span>" : '<span class="otros"><button class="' + (m.r === EMPATE ? "on" : "") + '" data-mesa="' + i + '" data-r="' + EMPATE + '"' + dis + ">Empate</button>" +
+    '<button class="' + (m.r === DOBLE ? "on" : "") + '" data-mesa="' + i + '" data-r="' + DOBLE + '"' + dis + ' title="Los dos pierden">Doble derrota</button></span>') + "</div>";
+}
+
+function enlazarTorneo(){
+  const b = $("tnCuerpo"), n = rondasDe(TN).length;
+  const btn = (id, f) => { if ($(id)) $(id).onclick = f; };
+  /* El resultado de una mesa de la ronda actual. Tocar el mismo lo borra. */
+  b.querySelectorAll("[data-mesa]:not([disabled])").forEach(x => x.onclick = () => {
+    const i = x.dataset.mesa, r = +x.dataset.r, m = rondasDe(TN)[n - 1].mesas[i];
+    escribirT({ [rutaT("ronda/" + n + "/mesas/" + i + "/r")]: m.r === r ? null : r }).catch(tnFallo);
+  });
+  b.querySelectorAll("[data-quitar]").forEach(x => x.onclick = () =>
+    escribirT({ [rutaT("jugadores/" + x.dataset.quitar)]: null }, false).catch(tnFallo));
+  b.querySelectorAll("[data-retirar]").forEach(x => x.onclick = () => {
+    const nom = TN.jugadores[x.dataset.retirar].nombre;
+    if (!confirm("¿Retirar a " + nom + "? Sigue en la tabla con lo que jugó, pero no se empareja desde la ronda " + (n + 1) + ".")) return;
+    escribirT({ [rutaT("jugadores/" + x.dataset.retirar + "/drop")]: n }).catch(tnFallo);
+  });
+  b.querySelectorAll("[data-volver]").forEach(x => x.onclick = () =>
+    escribirT({ [rutaT("jugadores/" + x.dataset.volver + "/drop")]: 0 }).catch(tnFallo));
+  if ($("tnRondas")) $("tnRondas").onchange = e => {
+    const v = parseInt(e.target.value, 10);
+    escribirT({ [rutaT("rondas")]: v >= 1 && v <= 20 ? v : 0 }, false).catch(tnFallo);
+  };
+  if ($("tnCorteSel")) $("tnCorteSel").onchange = e =>
+    escribirT({ [rutaT("corte")]: +e.target.value || 0 }, false).catch(tnFallo);
+  btn("tnEmparejar", async () => {
+    const rutas = {};
+    if (!n) rutas[rutaT("rondas")] = TN.rondas || rondasSugeridas(Object.keys(TN.jugadores || {}).length);
+    /* Terminado el suizo, lo que sigue es el corte. */
+    const suizoListo = TN.rondas > 0 && n >= TN.rondas;
+    const sig0 = suizoListo ? emparejarCorte(TN) : emparejar(TN);
+    if (!sig0) return;
+    const { n: sig, mesas, revanchas } = sig0;
+    if (revanchas && !confirm("Con estos jugadores ya no alcanza para no repetir rivales. ¿Emparejar igual, repitiendo alguna mesa?")) return;
+    rutas[rutaT("ronda/" + sig)] = { mesas };
+    $("tnEmparejar").disabled = true;
+    try { await escribirT(rutas); } catch(e){ tnFallo(e); $("tnEmparejar").disabled = false; }
+  });
+  btn("tnDeshacer", () => {
+    const r = rondasDe(TN)[n - 1];
+    if (!confirm("¿Deshacer " + (esDelCorte(r) ? conArticulo(nomRonda(r)) : "la ronda " + n) +
+                 "? Se borran sus mesas y los resultados que tenga. Después la puedes volver a emparejar.")) return;
+    escribirT({ [rutaT("ronda/" + n)]: null }).then(() => { if (n === 1) return remove(ref(db, BASE + "/pairings")); }).catch(tnFallo);
+  });
+  btn("tnOtra", () => escribirT({ [rutaT("rondas")]: n + 1 }).catch(tnFallo));
+  btn("tnDescartar", async () => {
+    if (!confirm("¿Descartar «" + TN.nombre + "»? Se borra sin archivar" + (n ? ", y los jugadores dejan de ver sus mesas." : "."))) return;
+    try {
+      const rutas = { [rutaT()]: null };
+      if (n) rutas[BASE + "/pairings"] = null;
+      await escribirT(rutas, false);
+    } catch(e){ tnFallo(e); }
+  });
+  btn("tnArchivar", archivarPagina);
+  btn("tnCerrar", () => {
+    if (!confirm("¿Cerrar el torneo? Ya está archivado; los jugadores siguen viendo la última ronda hasta que empieces otro o borres los emparejamientos.")) return;
+    escribirT({ [rutaT()]: null }, false).catch(tnFallo);
+  });
+}
+
+/* Terminar: el historial, la marca de archivado y «último torneo» en la base,
+   en una sola escritura. Suma a la clasificación del mes igual que con TOM.
+   Sin ID de jugador, el perfil de cada uno lo encuentra por su nombre. */
+async function archivarPagina(){
+  const f = $("tnArchFecha").value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) return $("tnMsg").innerHTML = '<span class="err">Elige la fecha del torneo.</span>';
+  const h = aHistorial(TN), clave = push(R_HIST).key, ahora = Date.now();
+  const rutas = {
+    [BASE_T + "/historial/" + clave]: { nombre: TN.nombre, fecha: f, mes: f.slice(0, 7), rondas: h.rondas,
+      jugadores: h.standings.length, standings: h.standings, partidas: h.partidas, creado: ahora },
+    [rutaT("archivado")]: ahora };
+  Object.keys(TN.jugadores || {}).forEach(id => { if (BASEJ[id]) rutas[rutaJ(id) + "/ultimo"] = ahora; });
+  $("tnArchivar").disabled = true;
+  try { await escribirT(rutas, false); }
+  catch(e){ tnFallo(e); $("tnArchivar").disabled = false; }
+}
+
+function pintarNuevo(){
+  $("tnCuerpo").innerHTML = '<h2 class="h2p">Nuevo torneo</h2>' +
+    '<div class="grid2"><label>Nombre del torneo<input id="tnNombre" maxlength="120" placeholder="Liga de los sábados"></label>' +
+    '<label>Fecha<input type="date" id="tnFecha" value="' + hoyISO() + '"></label>' +
+    '<label>Minutos por ronda<input type="number" id="tnMin" min="0" max="300" placeholder="50"></label>' +
+    '<label>Rondas suizas<input type="number" id="tnR" min="1" max="20" placeholder="Automático"></label>' +
+    '<label>Top cut<select id="tnCorte">' + opcionesCorte(0) + "</select></label></div>" +
+    '<div class="muted" style="margin-top:6px">Rondas automáticas: las del manual según cuántos se inscriban (3 hasta 8 jugadores, 4 hasta 16, 5 hasta 32, 6 hasta 64). ' +
+    "Top cut: después del suizo, los mejores de la tabla juegan eliminación directa hasta la final.</div>" +
+    '<div class="row" style="margin-top:12px"><button id="tnCrear">Crear torneo</button></div>';
+  $("tnCrear").onclick = async () => {
+    const nombre = $("tnNombre").value.trim().replace(/\s+/g, " "), fecha = $("tnFecha").value;
+    if (!nombre) return $("tnMsg").innerHTML = '<span class="err">Ponle nombre al torneo.</span>';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return $("tnMsg").innerHTML = '<span class="err">Elige la fecha.</span>';
+    const r = parseInt($("tnR").value, 10), min = parseInt($("tnMin").value, 10);
+    const t = { nombre, fecha, rondas: r >= 1 && r <= 20 ? r : 0, semilla: 1 + Math.floor(Math.random() * 2147483646), creado: Date.now() };
+    if (min > 0 && min <= 300) t.minutos = min;
+    if (+$("tnCorte").value) t.corte = +$("tnCorte").value;
+    try { await escribirT({ [rutaT()]: t }, false); $("bjBuscar").focus(); } catch(e){ tnFallo(e); }
+  };
+}
+
+/* ------------------------------------------------------------ la base */
+function pintarBaseJ(){
+  const todos = Object.entries(BASEJ).map(([id, j]) => ({ id, ...j }));
+  const texto = $("bjBuscar").value.trim().replace(/\s+/g, " "), q = normNombre(texto);
+  const lista = todos.filter(j => !q || normNombre(j.nombre).includes(q))
+    .sort((a, b) => (b.ultimo || 0) - (a.ultimo || 0) || a.nombre.localeCompare(b.nombre));
+  const exacto = todos.some(j => normNombre(j.nombre) === q), J = (TN && TN.jugadores) || {};
+  $("bjCuenta").textContent = todos.length + (todos.length === 1 ? " en la base" : " en la base");
+  const inscribible = abierto();
+  let h = lista.slice(0, 40).map(j => '<div class="miembro"><div class="txt"><b>' + esc(j.nombre) + "</b><small>" +
+      (j.ultimo ? "Último torneo: " + new Date(j.ultimo).toLocaleDateString("es-CL") : "Sin torneos todavía") + "</small></div>" +
+      (inscribible ? (J[j.id] ? '<span class="chipIns">Inscrito</span>' : '<button class="small" data-inscribir="' + esc(j.id) + '">Inscribir</button>') : "") +
+      '<button class="small sec" data-editar="' + esc(j.id) + '">Editar</button>' +
+      '<button class="small sec" data-borrar="' + esc(j.id) + '">Borrar</button></div>').join("");
+  if (lista.length > 40) h += '<div class="muted" style="margin-top:6px">Y ' + (lista.length - 40) + " más: escribe parte del nombre para encontrarlos.</div>";
+  if (q && !exacto && texto.length >= 2)
+    h += '<div class="miembro"><div class="txt"><b>' + esc(texto) + "</b><small>No está en la base</small></div>" +
+      '<button class="small" id="bjAgregar">' + (inscribible ? "Agregar e inscribir" : "Agregar a la base") + "</button></div>";
+  if (!todos.length && !q) h = '<div class="muted" style="margin-top:6px">La base está vacía. Escribe el nombre de un jugador arriba y agrégalo.</div>';
+  $("bjLista").innerHTML = h;
+  $("bjLista").querySelectorAll("[data-inscribir]").forEach(x => x.onclick = () => inscribir(x.dataset.inscribir));
+  $("bjLista").querySelectorAll("[data-editar]").forEach(x => x.onclick = () => editarJ(x.dataset.editar));
+  $("bjLista").querySelectorAll("[data-borrar]").forEach(x => x.onclick = () => borrarJ(x.dataset.borrar));
+  if ($("bjAgregar")) $("bjAgregar").onclick = () => agregarJ(texto, inscribible);
+}
+$("bjBuscar").oninput = pintarBaseJ;
+$("bjBuscar").onkeydown = e => {
+  if (e.key !== "Enter") return;
+  const texto = e.target.value.trim().replace(/\s+/g, " "), q = normNombre(texto);
+  if (!q) return;
+  const coinciden = Object.entries(BASEJ).filter(([, j]) => normNombre(j.nombre).includes(q));
+  const exacto = coinciden.find(([, j]) => normNombre(j.nombre) === q);
+  if (exacto && abierto()) return inscribir(exacto[0]);
+  if (coinciden.length === 1 && abierto()) return inscribir(coinciden[0][0]);
+  /* Con varios parecidos no se adivina: se elige de la lista. */
+  if (!coinciden.length && texto.length >= 2) return agregarJ(texto, abierto());
+  if (coinciden.length > 1) $("bjMsg").textContent = coinciden.length + " nombres coinciden: toca Inscribir en el que corresponde.";
+};
+
+/* Inscribir: con el torneo ya empezado entra atrasado y pierde lo jugado. */
+async function inscribir(id){
+  if (!abierto() || !BASEJ[id]) return;
+  if ((TN.jugadores || {})[id]) return;
+  const n = rondasDe(TN).length, nombre = BASEJ[id].nombre;
+  if (n && !confirm(nombre + " entra atrasado: juega desde la ronda " + (n + 1) + " y pierde " +
+      (n === 1 ? "la ronda 1." : "las " + n + " rondas ya jugadas.") + (n >= 3 ? "\n\nEl manual recomienda no sumar jugadores después de la ronda 3." : ""))) return;
+  try {
+    await escribirT({ [rutaT("jugadores/" + id)]: { nombre, desde: n + 1, drop: 0 } }, n > 0);
+    $("bjBuscar").value = ""; pintarBaseJ(); $("bjBuscar").focus();
+  } catch(e){ $("bjMsg").innerHTML = '<span class="err">' + esc(mensajeConexion(e)) + "</span>"; }
+}
+async function agregarJ(nombre, tambienInscribir){
+  nombre = nombre.slice(0, 80);
+  if (nombre.length < 2) return;
+  const id = push(ref(db, rutaJ())).key, n = TN ? rondasDe(TN).length : 0;
+  if (tambienInscribir && n && !confirm(nombre + " entra atrasado: juega desde la ronda " + (n + 1) + " y pierde las rondas ya jugadas.")) tambienInscribir = false;
+  const rutas = { [rutaJ(id)]: { nombre, creado: Date.now() } };
+  if (tambienInscribir) rutas[rutaT("jugadores/" + id)] = { nombre, desde: n + 1, drop: 0 };
+  try {
+    await escribirT(rutas, tambienInscribir && n > 0);
+    $("bjBuscar").value = ""; pintarBaseJ(); $("bjBuscar").focus();
+    $("bjMsg").innerHTML = '<span class="ok">' + esc(nombre) + (tambienInscribir ? " agregado e inscrito ✓" : " agregado ✓") + "</span>";
+  } catch(e){ $("bjMsg").innerHTML = '<span class="err">' + esc(mensajeConexion(e)) + "</span>"; }
+}
+/* Corregir el nombre también lo corrige en el torneo abierto, si está inscrito.
+   Lo ya archivado no se toca: ahí queda como jugó. */
+async function editarJ(id){
+  const v = (prompt("Nombre del jugador:", BASEJ[id].nombre) || "").trim().replace(/\s+/g, " ").slice(0, 80);
+  if (v.length < 2 || v === BASEJ[id].nombre) return;
+  const rutas = { [rutaJ(id) + "/nombre"]: v }, enTorneo = abierto() && (TN.jugadores || {})[id];
+  if (enTorneo) rutas[rutaT("jugadores/" + id + "/nombre")] = v;
+  try { await escribirT(rutas, !!enTorneo); } catch(e){ $("bjMsg").innerHTML = '<span class="err">' + esc(mensajeConexion(e)) + "</span>"; }
+}
+async function borrarJ(id){
+  if (!confirm("¿Borrar a " + BASEJ[id].nombre + " de la base? Los torneos donde jugó no cambian.")) return;
+  try { await remove(ref(db, rutaJ(id))); } catch(e){ $("bjMsg").innerHTML = '<span class="err">' + esc(mensajeConexion(e)) + "</span>"; }
+}
+
 
 /* =========================================================
    14. Ruleta de sorteos

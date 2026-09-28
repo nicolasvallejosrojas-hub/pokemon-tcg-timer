@@ -18,7 +18,7 @@
    Si se cambia algo acá, hay que SUBIR EL NÚMERO en las dos, o el navegador
    de alguien que ya visitó el sitio va a mezclar el HTML nuevo con esta hoja
    vieja. Misma regla que agenda.js.
-   Versión actual: v=8
+   Versión actual: v=11
 
    ---------------------------------------------------------
    25-09-2026: pasa a estilo Apple. Letra del sistema (la del iPhone en un
@@ -389,3 +389,11 @@ input::placeholder,textarea::placeholder{color:var(--rotulo);}
 .ins .nueva{position:absolute;top:-6px;left:calc(50% + 12px);background:var(--accion);color:var(--sobre-accion);z-index:1;
   font-size:var(--t1);font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;}
 @media (hover:hover){ .ins:hover .med:not(.no),.ins:hover .par:not(.no){transform:translateY(-2px);} }
+
+/* =========================================================
+   En línea: el punto verde y cuántos hay (presencia.js).
+   ========================================================= */
+.enlinea{display:inline-flex;align-items:center;gap:7px;font-size:var(--t2);color:var(--apagado);white-space:nowrap;
+  font-variant-numeric:tabular-nums;}
+.enlinea::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);}

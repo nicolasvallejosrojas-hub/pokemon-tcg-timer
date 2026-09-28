@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mis Torneos — Cuenta</title>
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* =========================================================
      Cuenta de jugador: entrar, crear cuenta y ajustes
@@ -72,7 +72,13 @@
     color:var(--apagado);}
   .opcional{letter-spacing:0;text-transform:none;color:var(--rotulo);}
   .campo input{width:100%;padding:14px 15px;font-size:var(--t4);}
+  .campo select,.campo textarea{width:100%;padding:12px 14px;font-size:var(--t3);box-sizing:border-box;font-family:inherit;}
+  .campo textarea{min-height:120px;resize:vertical;line-height:1.5;}
+  /* Escríbenos y Eliminar: formularios sueltos dentro de Ajustes. */
+  #btnEliminar{color:var(--negativo);font-weight:600;}
+  .tarjetaForm{background:var(--sup);border-radius:var(--radio);padding:var(--e4);display:flex;flex-direction:column;gap:var(--e3);}
   .pista{font-size:var(--t2);color:var(--apagado);line-height:1.45;}
+  .pista a{color:var(--accion-texto);}
   /* El botón Ver va dentro del campo: en el teléfono, escribir una clave de
      ocho caracteres con símbolos sin poder mirarla es donde más se equivoca
      la gente. */
@@ -304,7 +310,7 @@
         </label>
         <label class="campo"><span>Fecha de nacimiento</span>
           <input type="date" id="crNacimiento">
-          <span class="pista">Define tu división por edad. Solo la ve la tienda.</span>
+          <span class="pista">Define tu división por edad. Es privada: no sale en ninguna parte pública.</span>
         </label>
         <div class="aviso mal oculto" id="err1" role="alert"></div>
         <div class="abajo">
@@ -352,6 +358,8 @@
             <input type="checkbox" role="switch" class="sw" id="crPublico"></label>
         </div>
         <div class="aviso mal oculto" id="err3" role="alert"></div>
+        <p class="pista">Al crear tu cuenta aceptas los <a href="terminos.html">Términos y condiciones</a> y la
+          <a href="privacidad.html">Política de privacidad</a>.</p>
         <div class="abajo">
           <button class="btn primario ancho" type="submit" id="btnCrear">Crear mi cuenta</button>
           <button class="fant" type="button" data-atras>Atrás</button>
@@ -453,23 +461,58 @@
       <div class="aviso oculto" id="msgPriv" role="status"></div>
     </div>
 
+    <div class="grupo" id="grBuzon">
+      <h2>Escríbenos</h2>
+      <form class="tarjetaForm" id="formBuzon" novalidate>
+        <label class="campo"><span>¿Qué nos quieres contar?</span>
+          <select id="bzTipo">
+            <option value="sugerencia">Una sugerencia</option>
+            <option value="error">Algo no funciona</option>
+            <option value="reporte">Reportar a alguien o algo</option>
+            <option value="otro">Otra cosa</option>
+          </select></label>
+        <label class="campo"><span>Tu mensaje</span>
+          <textarea id="bzTexto" maxlength="1500" placeholder="Cuéntanos con detalle: qué pasó, en qué página y en qué tienda."></textarea></label>
+        <label class="campo"><span>Respóndanme a <span class="opcional">— opcional</span></span>
+          <input type="email" id="bzContacto" maxlength="120" autocomplete="email">
+          <span class="pista">Si lo dejas vacío lo leemos igual, pero no podemos contestarte.</span></label>
+        <div class="aviso oculto" id="msgBuzon" role="status"></div>
+        <button class="btn primario ancho" type="submit" id="btnBuzon">Mandar</button>
+      </form>
+    </div>
+
+    <div class="grupo" id="grEliminar">
+      <h2>Eliminar mi cuenta</h2>
+      <div class="tarjetaForm">
+        <p class="pista" style="margin:0">Se borran tu cuenta, tu perfil, los IDs que compartiste y lo que elegiste mostrar.
+          Tus resultados quedan en el historial de cada tienda, con el nombre con que te inscribieron. No se puede deshacer.</p>
+        <label class="campo"><span>Tu contraseña, para confirmar</span>
+          <input type="password" id="elClave" autocomplete="current-password"></label>
+        <div class="aviso mal oculto" id="errEliminar" role="alert"></div>
+        <button class="btn peligro ancho" type="button" id="btnEliminar">Eliminar mi cuenta para siempre</button>
+      </div>
+    </div>
+
     <div class="abajo"><button class="btn ancho" type="button" id="btnSalir">Cerrar sesión</button></div>
   </section>
 
 </div>
 </main>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script type="module">
-import { ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { ref, get, update, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { EmailAuthProvider, reauthenticateWithCredential, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail,
          verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { fechaLegible, ordenar, MES_LARGO } from "./agenda.js?v=4";
-import { BASE, BASE_T, nombreTienda } from "./sala.js?v=3";   // BASE: el timer; BASE_T: su tienda
+import { BASE, BASE_T, nombreTienda } from "./sala.js?v=4";   // BASE: el timer; BASE_T: su tienda
 /* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=6";
+         textoFalta, errorNacimiento, registrar, params } from "./sesion.js?v=7";
+import { estoyEnLinea } from "./presencia.js?v=1";
+estoyEnLinea(db, "cuenta");
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
@@ -488,9 +531,14 @@ const ACCION = OOB && { resetPassword: "nueva", verifyEmail: "confirma" }[Q.get(
 /* Nombres viejos que siguen llegando por enlaces guardados: la portada ya no
    existe (la entrada es «Entra») y el perfil ahora vive en el muro; lo que
    quedó acá son los ajustes. */
-const ALIAS = { "": "ingresar", portada: "ingresar", perfil: "ajustes", privacidad: "ajustes" };
-/* #privacidad (desde el cuadro «Tiendas» del muro) abre los ajustes en esa parte. */
-const A_PRIVACIDAD = location.hash === "#privacidad";
+const ALIAS = { "": "ingresar", portada: "ingresar", perfil: "ajustes", privacidad: "ajustes", sugerencias: "ajustes" };
+/* #privacidad (desde el cuadro «Tiendas» del muro) abre los ajustes en esa parte;
+   #sugerencias (desde el pie de las páginas), en «Escríbenos». */
+const A_PRIVACIDAD = location.hash === "#privacidad", A_SUGERENCIAS = location.hash === "#sugerencias";
+/* De qué página venía quien escribe: ayuda a entender un «algo no funciona». */
+const DESDE = (() => { try { const r = new URL(document.referrer);
+  return r.origin === location.origin && !/cuenta\.html$/.test(r.pathname) ? (r.pathname.split("/").pop() + r.search).slice(0, 200) : "";
+} catch(e){ return ""; } })();
 let usuario = null, perfil = null, vista = "ingresar", paso = 1;
 /* Mientras se crea una cuenta, onAuthStateChanged dispara ANTES de que los
    datos terminen de guardarse. Si en ese momento redirigiera al muro, la
@@ -761,6 +809,8 @@ async function crearCuenta(){
    ------------------------------------------------------------ */
 function pintarAjustes(){
   if (!usuario) return;
+  /* Para que puedan contestarle: su correo, que puede borrar si no quiere. */
+  if (!$("bzContacto").value) $("bzContacto").value = usuario.email || "";
   /* Sesión sin perfil = cuenta huérfana: pasa si el set falló al registrarse
      o si las reglas de la base no estaban publicadas. Hay que decirlo. */
   $("pfIncompleto").classList.toggle("oculto", !!perfil);
@@ -934,6 +984,64 @@ $("ajClave").onclick = async () => {
 
 $("btnSalir").onclick = () => signOut(auth);
 
+/* ------------------------------------------------------------ Escríbenos
+   El buzón lo lee solo la administración (Herramientas → Buzón). Las reglas
+   dejan uno por minuto: buzonUltimo se escribe en la misma escritura. */
+$("formBuzon").onsubmit = async e => {
+  e.preventDefault();
+  if (!usuario) return;
+  const texto = $("bzTexto").value.trim();
+  if (texto.length < 5) return aviso("msgBuzon", "Escribe un poco más, para que entendamos qué pasa.");
+  const msg = { tipo: $("bzTipo").value, texto: texto.slice(0, 1500), uid: usuario.uid, creado: serverTimestamp() };
+  const nombre = ((perfil && perfil.nombre) || usuario.displayName || "").slice(0, 80);
+  const contacto = $("bzContacto").value.trim().slice(0, 120);
+  if (nombre) msg.nombre = nombre;
+  if (contacto) msg.contacto = contacto;
+  if (DESDE) msg.pagina = DESDE;
+  $("btnBuzon").disabled = true;
+  try {
+    await update(ref(db), { ["buzon/" + push(ref(db, "buzon")).key]: msg, ["buzonUltimo/" + usuario.uid]: serverTimestamp() });
+    $("bzTexto").value = "";
+    aviso("msgBuzon", "¡Gracias! Lo recibimos y lo vamos a leer.");
+  } catch(err){
+    aviso("msgBuzon", "No se pudo mandar. Si mandaste otro hace menos de un minuto, espera un poco y vuelve a intentar.");
+  }
+  $("btnBuzon").disabled = false;
+};
+
+/* ------------------------------------------------------------ Eliminar la cuenta
+   Firebase pide un ingreso reciente para borrar una cuenta: por eso la
+   contraseña. Después se borran los datos en una sola escritura y al final el
+   acceso. Quien es dueño de una tienda no puede todavía: la tienda quedaría
+   sin nadie a cargo. Los resultados de los torneos son de cada tienda y quedan. */
+$("btnEliminar").onclick = async () => {
+  if (!usuario) return;
+  const clave = $("elClave").value;
+  if (!clave) return aviso("errEliminar", "Escribe tu contraseña para confirmar.");
+  aviso("errEliminar", "");
+  $("btnEliminar").disabled = true;
+  const listo = msg => { $("btnEliminar").disabled = false; if (msg) aviso("errEliminar", msg); };
+  try { await reauthenticateWithCredential(usuario, EmailAuthProvider.credential(usuario.email, clave)); }
+  catch(err){ return listo(decir(err)); }
+  let org = {};
+  try { org = (await get(ref(db, "organiza/" + usuario.uid))).val() || {}; } catch(err){}
+  const duenas = Object.keys(org).filter(t => org[t] === "dueno");
+  if (duenas.length) return listo("Eres dueño de " + duenas.map(t => NOMBRES_T[t] || t).join(", ") +
+    ". Antes de borrar tu cuenta, escríbenos para dejar la tienda en otras manos o eliminarla.");
+  if (!confirm("¿Eliminar tu cuenta para siempre? No se puede deshacer.")) return listo();
+  const uid = usuario.uid, rutas = {};
+  ["usuarios", "perfilPublico", "altas", "organiza", "solicitudes"].forEach(n => rutas[n + "/" + uid] = null);
+  Object.keys((perfil && perfil.tiendas) || {}).forEach(t => rutas["enlaces/" + t + "/" + uid] = null);
+  Object.keys(org).forEach(t => rutas["tiendas/" + t + "/miembros/" + uid] = null);
+  try {
+    await update(ref(db), rutas);
+    await deleteUser(usuario);
+    try { Object.keys(localStorage).filter(k => k.includes(uid)).forEach(k => localStorage.removeItem(k)); } catch(err){}
+    alert("Tu cuenta fue eliminada.");
+    location.replace("index.html" + params());
+  } catch(err){ listo("No se pudo terminar de borrar. Revisa la conexión y vuelve a intentar."); }
+};
+
 /* ------------------------------------------------------------
    Vitrina: la sala en vivo, para quien llega desde un torneo
    ------------------------------------------------------------
@@ -1025,6 +1133,7 @@ onAuthStateChanged(auth, async u => {
     if (HASH_INICIAL === "ajustes"){
       mostrar("ajustes");
       if (A_PRIVACIDAD) $("grPrivacidad").scrollIntoView({ block: "start" });
+      if (A_SUGERENCIAS){ $("grBuzon").scrollIntoView({ block: "start" }); $("bzTexto").focus({ preventScroll: true }); }
       return;
     }
     location.replace(urlMuro());

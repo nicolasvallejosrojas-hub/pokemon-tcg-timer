@@ -1,7 +1,7 @@
 /* ============================================================
    sala.js — de qué sala habla esta pestaña
    ------------------------------------------------------------
-   Versión actual: v=3   (subir el ?v= al tocar este archivo)
+   Versión actual: v=4   (subir el ?v= al tocar este archivo)
 
    Existe porque estas tres líneas estaban copiadas en admin.html,
    timer-view.html y muro.html, y las copias YA HABÍAN DIVERGIDO: la de

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="description" content="Qué datos guarda Mis Torneos, para qué, quién los ve y cómo los corriges o borras.">
+<title>Política de privacidad — Mis Torneos</title>
+<link rel="stylesheet" href="estilo.css?v=11">
+<style>
+  /* Términos y Privacidad: dos páginas de lectura con el mismo molde. No
+     cargan Firebase: se leen aunque el sitio esté en mantenimiento. Si se toca
+     este bloque, copiarlo igual en terminos.html. */
+  body{min-height:100vh;}
+  .sup{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:var(--e2);
+    min-height:56px;padding:0 max(var(--e4), env(safe-area-inset-right)) 0 max(var(--e4), env(safe-area-inset-left));}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);margin-right:auto;
+    color:var(--texto);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;}
+  .sup nav{display:flex;gap:var(--e1);}
+  .sup nav a{color:var(--apagado);text-decoration:none;font-size:var(--t2);padding:8px 12px;border-radius:999px;}
+  .sup nav a:hover{background:var(--sup-alta);color:var(--texto);}
+  .sup nav a[aria-current="page"]{background:var(--sup);color:var(--texto);font-weight:600;}
+  .doc{max-width:720px;margin:0 auto;padding:var(--e5) var(--e4) var(--e6);box-sizing:border-box;}
+  .doc h1{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;margin:0;}
+  .bajada{font-size:var(--t4);color:var(--apagado);line-height:1.5;margin:var(--e2) 0 0;}
+  .meta{font-size:var(--t2);color:var(--rotulo);margin:var(--e3) 0 0;}
+  .doc a{color:var(--accion-texto);}
+  .resumen{background:var(--sup);border-radius:var(--radio);padding:var(--e4) var(--e5);margin:var(--e5) 0 0;}
+  .doc .resumen h2{font-size:var(--t2);text-transform:uppercase;letter-spacing:.06em;color:var(--rotulo);font-weight:600;margin:0 0 var(--e2);}
+  .resumen ul{margin:0;padding-left:1.1em;line-height:1.6;font-size:var(--t3);}
+  .indice{margin:var(--e5) 0 0;font-size:var(--t3);line-height:1.9;columns:2;column-gap:var(--e5);padding-left:1.4em;}
+  .indice a{color:var(--texto);text-decoration:none;} .indice a:hover{color:var(--accion-texto);text-decoration:underline;}
+  .doc section{margin-top:var(--e6);scroll-margin-top:72px;}
+  .doc h2{font-size:var(--t5);font-weight:700;letter-spacing:-.01em;margin:0 0 var(--e2);}
+  .doc p,.doc li{font-size:var(--t3);line-height:1.65;}
+  .doc p{margin:var(--e2) 0 0;max-width:68ch;}
+  .doc ul{margin:var(--e2) 0 0;padding-left:1.2em;max-width:68ch;}
+  .doc li + li{margin-top:6px;}
+  .tabla-datos{width:100%;border-collapse:collapse;margin-top:var(--e3);font-size:var(--t2);background:var(--sup);border-radius:var(--radio);overflow:hidden;}
+  .tabla-datos th,.tabla-datos td{text-align:left;vertical-align:top;padding:10px 12px;border-top:1px solid var(--divider);line-height:1.5;}
+  .tabla-datos thead th{border-top:none;font-size:var(--t1);text-transform:uppercase;letter-spacing:.06em;color:var(--rotulo);font-weight:600;}
+  .tabla-datos td:first-child{font-weight:600;}
+  .pie-doc{border-top:1px solid var(--divider);margin-top:var(--e6);padding-top:var(--e4);font-size:var(--t2);color:var(--rotulo);
+    display:flex;flex-wrap:wrap;gap:var(--e2) var(--e4);justify-content:space-between;}
+  .pie-doc a{color:var(--apagado);}
+  @media (max-width:600px){
+    .indice{columns:1;}
+    .resumen{padding:var(--e4);}
+    .tabla-datos thead{display:none;}
+    .tabla-datos tr{display:block;border-top:1px solid var(--divider);padding:8px 0;}
+    .tabla-datos td{display:block;border:none;padding:2px 12px;}
+    /* Sin encabezados a la vista, cada celda dice qué es. */
+    .tabla-datos td:nth-child(2)::before{content:"Para qué: ";font-weight:600;color:var(--rotulo);}
+    .tabla-datos td:nth-child(3)::before{content:"Quién lo ve: ";font-weight:600;color:var(--rotulo);}
+  }
+</style>
+</head>
+<body>
+  <header class="sup vidrio">
+    <a class="marca" href="index.html">Mis Torneos</a>
+    <nav aria-label="Documentos">
+      <a href="terminos.html">Términos</a>
+      <a href="privacidad.html" aria-current="page">Privacidad</a>
+    </nav>
+  </header>
+
+  <main class="doc">
+    <h1>Política de privacidad</h1>
+    <p class="bajada">Qué datos guarda Mis Torneos, para qué, quién los ve y cómo los corriges o borras. Va junto
+      con los <a href="terminos.html">Términos y condiciones</a>.</p>
+    <p class="meta">Actualizada el 28 de septiembre de 2026 · Contacto: <a href="mailto:nicolasvallejosrojas@gmail.com">nicolasvallejosrojas@gmail.com</a></p>
+
+    <div class="resumen">
+      <h2>En corto</h2>
+      <ul>
+        <li>Pedimos lo justo: nombre, correo, fecha de nacimiento y, si quieres, tu ID de jugador.</li>
+        <li>Tu correo, tu fecha de nacimiento y tu ID no son públicos. Tu ID lo ven solo las tiendas con las que
+          tú decidas compartirlo.</li>
+        <li>Lo público son los resultados de los torneos, tal como los publica cada tienda.</li>
+        <li>No vendemos datos. No hay publicidad ni herramientas de analítica.</li>
+      </ul>
+    </div>
+
+    <ol class="indice">
+      <li><a href="#responsable">Quién es responsable</a></li>
+      <li><a href="#datos">Qué datos guardamos</a></li>
+      <li><a href="#publico">Qué es público</a></li>
+      <li><a href="#para-que">Para qué los usamos</a></li>
+      <li><a href="#terceros">Con quién se comparten</a></li>
+      <li><a href="#fuera">Datos fuera de Chile</a></li>
+      <li><a href="#dispositivo">En tu dispositivo</a></li>
+      <li><a href="#plazos">Cuánto tiempo se guardan</a></li>
+      <li><a href="#seguridad">Seguridad</a></li>
+      <li><a href="#derechos">Tus derechos</a></li>
+      <li><a href="#menores">Menores de edad</a></li>
+      <li><a href="#cambios">Cambios y contacto</a></li>
+    </ol>
+
+    <section id="responsable">
+      <h2>1. Quién es responsable</h2>
+      <p>Los datos los trata Mis Torneos, a cargo de su administración, a la que puedes escribir a <a href="mailto:nicolasvallejosrojas@gmail.com">nicolasvallejosrojas@gmail.com</a>.
+        Seguimos la Ley N° 19.628 sobre protección de la vida privada y lo que exige la Ley N° 21.719, que
+        la moderniza.</p>
+    </section>
+
+    <section id="datos">
+      <h2>2. Qué datos guardamos</h2>
+      <table class="tabla-datos">
+        <thead><tr><th>Dato</th><th>Para qué</th><th>Quién lo ve</th></tr></thead>
+        <tbody>
+          <tr><td>Correo y contraseña</td><td>Entrar a tu cuenta. La contraseña la guarda cifrada el sistema de
+            inicio de sesión (Firebase, de Google): nadie la puede leer.</td><td>El correo, solo tú. La administración
+            lo puede ver si necesita ayudarte con tu cuenta.</td></tr>
+          <tr><td>Nombre y apellido</td><td>Calzar tus resultados en los torneos y mostrar tu perfil.</td>
+            <td>Los demás lo ven en los resultados cuando la tienda te inscribe con ese nombre.</td></tr>
+          <tr><td>Fecha de nacimiento</td><td>Saber en qué categoría de edad juegas.</td><td>Solo tú.</td></tr>
+          <tr><td>ID de jugador (opcional)</td><td>Que tus resultados lleguen a tu perfil aunque la tienda escriba
+            tu nombre distinto.</td><td>Solo tú y las tiendas con las que decidas compartirlo.</td></tr>
+          <tr><td>«Salir con mi nombre»</td><td>Si lo apagas, en las tiendas con las que compartes tu ID tu fila
+            sale como «Jugador reservado».</td><td>Esas tiendas.</td></tr>
+          <tr><td>Tiendas que sigues, tu favorita y su orden</td><td>Armar tu muro.</td><td>Solo tú.</td></tr>
+          <tr><td>Lo que eliges mostrar</td><td>Tus rachas (si las activas), tu vitrina y las insignias que
+            ocultas.</td><td>Jugadores con cuenta.</td></tr>
+          <tr><td>Fecha y hora de registro</td><td>La insignia de los primeros inscritos. Se guarda sin tu
+            nombre.</td><td>Público.</td></tr>
+          <tr><td>Resultados de torneos</td><td>El nombre con que te inscribió la tienda, tu puesto, tu récord y
+            tus partidas: con eso se calculan la clasificación, las rachas y las insignias.</td><td>Público.</td></tr>
+          <tr><td>Si organizas una tienda</td><td>Tu nombre como organizador y lo que publicas con la tienda.</td>
+            <td>Tu nombre sale en el perfil público de la tienda.</td></tr>
+          <tr><td>Solicitud de tienda</td><td>Nombre de la tienda, comuna, un contacto y tu mensaje, para revisarla
+            y aprobarla.</td><td>Solo tú y la administración.</td></tr>
+          <tr><td>Mensajes que nos mandas</td><td>Lo que escribes en Ajustes → Escríbenos, tu nombre, la página desde
+            donde escribiste y el contacto que dejes, para leerlo, arreglar lo que reportas y responderte.</td>
+            <td>Solo la administración.</td></tr>
+          <tr><td>Que estás en línea</td><td>Mientras tienes una página abierta queda una marca con la hora y el nombre de la
+            página, sin tu nombre ni tu cuenta, para el contador de personas en línea. Se borra al cerrarla.</td>
+            <td>Público, solo como número.</td></tr>
+          <tr><td>Base de jugadores de una tienda</td><td>Los nombres que la tienda registra para inscribir en los
+            torneos que corre la página.</td><td>Solo los organizadores de esa tienda.</td></tr>
+        </tbody>
+      </table>
+      <p>La administración del sitio puede ver estos datos en la base, y solo lo hace para dar soporte, cuidar
+        la seguridad o responder solicitudes como las de la sección 10.</p>
+    </section>
+
+    <section id="publico">
+      <h2>3. Qué es público</h2>
+      <ul>
+        <li>Todo lo que publica una tienda: su perfil (nombre, comuna, dirección, horario, Instagram, banner y
+          logo), sus organizadores, su agenda, las mesas en vivo y el historial de sus torneos, con los nombres,
+          puestos y resultados.</li>
+        <li>De ti: tu nombre en esos resultados, que también se puede buscar en el directorio de jugadores. Tu perfil
+          de jugador (resultados, insignias y lo que elijas mostrar) lo ven los demás jugadores con cuenta.</li>
+        <li>Si compartes tu ID con una tienda y apagas «Salir con mi nombre», en sus torneos apareces como
+          «Jugador reservado».</li>
+      </ul>
+    </section>
+
+    <section id="para-que">
+      <h2>4. Para qué los usamos</h2>
+      <p>Solo para que el sitio funcione: cuentas, torneos, clasificación, perfiles, insignias, agenda y
+        seguridad, es decir, que cada persona pueda hacer solo lo que le corresponde. No vendemos ni arrendamos
+        datos, y no los usamos para publicidad ni para armar perfiles comerciales.</p>
+    </section>
+
+    <section id="terceros">
+      <h2>5. Con quién se comparten</h2>
+      <ul>
+        <li><b>Firebase (Google):</b> guarda la base de datos y maneja el inicio de sesión.</li>
+        <li><b>El alojamiento del sitio (GitHub Pages y Netlify):</b> entrega las páginas y, como todo servidor
+          web, puede registrar la dirección IP de quien visita.</li>
+        <li><b>Google Fonts:</b> desde ahí se descargan las letras del sitio.</li>
+        <li><b>Un servicio de códigos QR (api.qrserver.com):</b> cuando una tienda muestra o imprime el QR de su
+          página. Solo recibe ese enlace, ningún dato tuyo.</li>
+        <li><b>Las tiendas:</b> ven lo que tú decides compartir con ellas (tu ID de jugador) y lo que ellas mismas
+          publican.</li>
+      </ul>
+      <p>Ninguno recibe datos para publicidad. Cada servicio tiene su propia política de privacidad.</p>
+    </section>
+
+    <section id="fuera">
+      <h2>6. Datos fuera de Chile</h2>
+      <p>Esos servicios guardan o procesan datos en servidores fuera de Chile, principalmente en Estados Unidos.
+        Al usar el sitio, tus datos viajan a esos servidores, protegidos con las medidas de seguridad de cada
+        proveedor.</p>
+    </section>
+
+    <section id="dispositivo">
+      <h2>7. En tu dispositivo</h2>
+      <ul>
+        <li>No usamos cookies de publicidad ni de seguimiento, ni herramientas de analítica.</li>
+        <li>Mientras una página está abierta, se cuenta en el contador de personas en línea sin decir quién eres.</li>
+        <li>Tu navegador guarda tu sesión (para no pedirte la contraseña cada vez), algunas preferencias (como las
+          insignias que ya viste), el último estado del reloj para que siga marcando sin señal, y una copia de
+          las páginas para abrirlas sin internet.</li>
+        <li>Lo borras cerrando sesión y limpiando los datos del sitio en tu navegador.</li>
+      </ul>
+    </section>
+
+    <section id="plazos">
+      <h2>8. Cuánto tiempo se guardan</h2>
+      <ul>
+        <li>Tu cuenta y sus datos, mientras la tengas. Cuando la borras (Ajustes → Eliminar mi cuenta) se eliminan tu
+          acceso, tu perfil, los IDs que compartiste y lo que elegiste mostrar.</li>
+        <li>Los mensajes que nos mandas, hasta que la administración los resuelve y los borra.</li>
+        <li>Los resultados de los torneos son también el registro de la tienda y de los demás jugadores, así que se
+          conservan. Si lo pides, tu nombre en ellos se reemplaza por «Jugador reservado».</li>
+        <li>Si se elimina una tienda, se borran del sitio sus datos; la administración descarga antes un respaldo.</li>
+        <li>Una solicitud de tienda se borra al crear la tienda o cuando quien la pidió la retira.</li>
+      </ul>
+    </section>
+
+    <section id="seguridad">
+      <h2>9. Seguridad</h2>
+      <p>Las páginas viajan cifradas (HTTPS). Cada dato tiene reglas en la base que definen quién lo puede leer y
+        escribir: por ejemplo, tu fecha de nacimiento solo la lee tu cuenta, y la base de jugadores de una tienda,
+        solo sus organizadores. Ningún sistema es infalible: si detectas un problema, avísanos.</p>
+    </section>
+
+    <section id="derechos">
+      <h2>10. Tus derechos</h2>
+      <p>Puedes saber qué datos tuyos hay, corregirlos, pedir que se borren, oponerte a un uso y, cuando la ley lo
+        exija, recibirlos en un formato que puedas llevarte.</p>
+      <ul>
+        <li>Muchas cosas las haces tú mismo en <a href="cuenta.html#ajustes">Ajustes</a>: tu nombre, tu fecha de
+          nacimiento, «Salir con mi nombre», compartir o dejar de compartir tu ID, dejar de seguir tiendas, tus
+          rachas, qué insignias se ven y <b>eliminar tu cuenta</b>.</li>
+        <li>Para lo demás (una copia de tus datos, corregir tu ID o reservar tu nombre en los resultados) escríbenos
+          desde <a href="cuenta.html#sugerencias">Ajustes → Escríbenos</a> o a <a href="mailto:nicolasvallejosrojas@gmail.com">nicolasvallejosrojas@gmail.com</a> desde el correo de tu cuenta. Te respondemos dentro de los plazos que
+          fija la ley.</li>
+        <li>Si no quedas conforme con la respuesta, puedes recurrir a la autoridad que corresponda. Con la Ley
+          N° 21.719, esa es la Agencia de Protección de Datos Personales.</li>
+      </ul>
+    </section>
+
+    <section id="menores">
+      <h2>11. Menores de edad</h2>
+      <p>Muchos jugadores son menores. Si tienes menos de 14 años, tu madre, padre o tutor debe crear la cuenta
+        contigo o autorizarla, y puede escribirnos para revisar o borrar tus datos. Pedimos lo mínimo, y de todo
+        eso solo es público tu nombre en los resultados que publica la tienda.</p>
+    </section>
+
+    <section id="cambios">
+      <h2>12. Cambios y contacto</h2>
+      <p>Si esta política cambia, se actualiza acá con su fecha; si el cambio es importante, se avisa en el sitio.
+        Para cualquier consulta sobre tus datos, escribe a <a href="mailto:nicolasvallejosrojas@gmail.com">nicolasvallejosrojas@gmail.com</a>.</p>
+    </section>
+
+    <div class="pie-doc">
+      <span>Mis Torneos © 2026</span>
+      <span><a href="terminos.html">Términos y condiciones</a> · <a href="index.html">Volver al inicio</a></span>
+    </div>
+  </main>
+<script src="config.js?v=8"></script>
+</body>
+</html>

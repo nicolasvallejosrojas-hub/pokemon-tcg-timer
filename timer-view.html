@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Torneo — Timer y emparejamientos</title>
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* Lo compartido vive en estilo.css. Acá queda solo el acomodo de esta
      página: el reloj a pantalla completa, la rejilla de mesas y las tarjetas.
@@ -364,7 +364,7 @@
 
 </main>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -372,7 +372,8 @@ import { vigilar } from "./mantenimiento.js?v=2";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, get, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
-import { SALA, BASE, TIENDA, BASE_T } from "./sala.js?v=3";
+import { SALA, BASE, TIENDA, BASE_T } from "./sala.js?v=4";
+import { estoyEnLinea } from "./presencia.js?v=1";
 
 /* Sin ?sala= no hay qué mostrar (antes abría «principal», que no era de
    nadie): se va al directorio, a elegir la tienda. */
@@ -412,6 +413,7 @@ if (typeof EMULADOR !== "undefined" && EMULADOR){
   connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
 }
 vigilar(db, auth);   // la pantalla de mantenimiento
+estoyEnLinea(db, "timer");
 
 const $ = id => document.getElementById(id);
 
@@ -709,10 +711,12 @@ function pintarCabecera(){
     t.textContent = ""; sub.textContent = ""; ro.style.display = "none"; return;
   }
   const deN = P.rondasTotales ? " de " + P.rondasTotales : "";
+  /* Las del top cut traen su nombre («Semifinal»); las suizas, su número. */
+  const etq = ((P.rounds.find(r => r.number === P.lastRound) || {}).etiqueta) || "Ronda " + P.lastRound + deN;
   t.textContent = P.name || "";
-  sub.textContent = "Ronda " + P.lastRound + deN +
+  sub.textContent = etq +
     (P.roundtime ? " · rondas de " + P.roundtime + " min" : "");
-  ro.textContent = "Ronda " + P.lastRound + deN +
+  ro.textContent = etq +
     (P.phase === "results" ? " · resultados" : " · en curso");
   ro.style.display = "block";
 }
@@ -725,19 +729,20 @@ function renderPair(){
   $("tsub").textContent = (P.roundtime ? "Rondas de "+P.roundtime+" min · " : "") +
     "Actualizado " + new Date(P.updatedAt).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
 
-  const b = $("banner");
+  const b = $("banner"), etqUlt = (P.rounds.find(r => r.number === P.lastRound) || {}).etiqueta;
   if (P.phase === "results"){
     b.style.display = "block";
-    b.textContent = "Resultados de la ronda "+P.lastRound+" publicados. Revisa que el tuyo esté correcto y avisa al juez si hay algún error.";
+    b.textContent = (etqUlt ? etqUlt + ": resultados publicados." : "Resultados de la ronda "+P.lastRound+" publicados.") +
+      " Revisa que el tuyo esté correcto y avisa al juez si hay algún error.";
   } else if (P.phase === "paired"){
     b.style.display = "block";
-    b.textContent = "Ronda "+P.lastRound+" emparejada. Busca tu mesa.";
+    b.textContent = etqUlt ? etqUlt + ": ya están las mesas. Busca la tuya." : "Ronda "+P.lastRound+" emparejada. Busca tu mesa.";
   } else b.style.display = "none";
 
   const rb = $("rounds"); rb.innerHTML = "";
   P.rounds.forEach(r => {
     const btn = document.createElement("button");
-    btn.textContent = "R"+r.number;
+    btn.textContent = r.etiqueta || "R"+r.number;
     btn.className = (!showStand && sel===r.number) ? "on" : "";
     btn.onclick = () => { sel=r.number; showStand=false; renderPair(); };
     rb.appendChild(btn);

@@ -1,0 +1,16 @@
+{
+  "name": "Mis Torneos",
+  "short_name": "Mis Torneos",
+  "description": "Tu mesa en el celular, el reloj de la ronda en la tele y el ranking de tu tienda.",
+  "lang": "es-CL",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF8F4",
+  "theme_color": "#0B7F6C",
+  "icons": [
+    { "src": "icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icono-mascara.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

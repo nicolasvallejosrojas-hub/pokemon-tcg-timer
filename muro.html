@@ -6,7 +6,7 @@
 <title>Mis Torneos — Inicio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* =========================================================
      El muro
@@ -242,6 +242,14 @@
     font-size:12px;flex:none;}
   .tiendaCab b{display:block;font-size:var(--t3);} .tiendaCab small{color:var(--apagado);font-size:var(--t2);}
   .insignias{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:var(--e4) var(--e2);}
+  .insNota{margin:var(--e2) 0 0;font-size:var(--t2);color:var(--apagado);line-height:1.45;}
+  /* Una que oculté: sigue en MI perfil, apagada, para poder volver a mostrarla. */
+  .ins.oculta .med,.ins.oculta .par{opacity:.4;}
+  .ins .etqOculta{position:absolute;top:-6px;left:calc(50% + 12px);background:var(--sup-alta);color:var(--apagado);z-index:1;
+    font-size:var(--t1);font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;}
+  /* Términos y Privacidad, al final: discretos, como en cualquier sitio. */
+  .legal{font-size:var(--t1);color:var(--rotulo);line-height:1.6;margin:var(--e4) 0 0;}
+  .legal a{color:var(--apagado);}
   .vitrina{display:flex;align-items:center;gap:10px;margin-top:var(--e2);flex-wrap:wrap;}
   .vitrina:empty{display:none;}
   .vitrina button{background:none;border:none;padding:0;cursor:pointer;border-radius:50%;}
@@ -332,6 +340,7 @@
     <a class="logo" href="muro.html">Mis&nbsp;Torneos</a>
     <input id="buscar" type="search" placeholder="Buscar un jugador en el historial" aria-label="Buscar un jugador en el historial">
     <div class="yo">
+      <span class="enlinea" id="enLinea" hidden></span>
       <span id="miNombre"></span>
       <button id="btnSalir">Salir</button>
     </div>
@@ -367,6 +376,7 @@
         <li class="oculto" id="liPanel"><a href="admin.html" id="aPanel">Panel del organizador</a></li>
         <li class="oculto" id="liHerr"><a href="herramientas.html" id="aHerr">Herramientas de administrador</a></li>
         <li><a href="cuenta.html#ajustes" id="aCuenta">Ajustes</a></li>
+        <li><a href="cuenta.html#sugerencias">Enviar una sugerencia</a></li>
       </ul>
     </div>
 
@@ -409,7 +419,8 @@
         <div class="cuerpo junto">
           <div class="insCab"><div class="seg" role="tablist" aria-label="Tipo de insignias">
             <button role="tab" aria-selected="true" data-grupo="perm">Permanentes</button>
-            <button role="tab" aria-selected="false" data-grupo="tiendas">De tiendas</button></div></div>
+            <button role="tab" aria-selected="false" data-grupo="tiendas">De tiendas</button></div>
+            <p class="insNota" id="insNota">Toca una que hayas ganado para destacarla en tu vitrina u ocultarla: las ocultas no las ven los demás.</p></div>
           <div id="insPerm"></div>
           <div id="insTiendas" hidden></div>
         </div>
@@ -484,7 +495,8 @@
         <div class="vivo"><span class="punto"></span> Conectando…</div>
       </div>
     </div>
-
+    <p class="legal"><a href="cuenta.html#sugerencias">Sugerencias</a> · <a href="terminos.html">Términos</a> ·
+      <a href="privacidad.html">Privacidad</a> · Mis Torneos © 2026</p>
   </aside>
 
 </div>
@@ -493,7 +505,7 @@
 <dialog class="hojaIns" id="dlgIns" aria-labelledby="dlgTitulo"><div id="dlgCuerpo"></div></dialog>
 <dialog class="celebra" id="dlgNueva" aria-labelledby="celTitulo"><div class="rayos"></div><div id="celCuerpo"></div></dialog>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, get, set, update, serverTimestamp }
@@ -503,8 +515,9 @@ import { getAuth, connectAuthEmulator, signOut, onAuthStateChanged, sendEmailVer
 import { estaVigente, urlGoogle, fechaLegible, cuantoFalta, ordenar } from "./agenda.js?v=4";
 /* SALA es el timer que se está mirando (su reloj y sus mesas); TIENDA, la
    tienda de ese timer: historial, agenda, a quién sigo y mi ID compartido. */
-import { SALA, BASE, TIENDA, BASE_T, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=3";
+import { SALA, BASE, TIENDA, BASE_T, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
 import { nombreMes } from "./clasificacion.js?v=1";
+import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=1";
 import { vigilar } from "./mantenimiento.js?v=2";
 import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga } from "./insignias.js?v=1";
 
@@ -521,6 +534,13 @@ if (typeof EMULADOR !== "undefined" && EMULADOR){
   connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
 }
 vigilar(db, auth);   // la pantalla de mantenimiento
+estoyEnLinea(db, "muro");
+/* Corto en la barra: «12 en línea». */
+contarEnLinea(db, n => { $("enLinea").hidden = !n; if (n) $("enLinea").textContent = n + " en línea"; });
+/* muro.html?sala=X#jugador=<nombre> abre el perfil de ese jugador (lo usa la
+   búsqueda de jugadores del directorio). Se lee antes de que verTab limpie el #. */
+let JUG_PEDIDO = (/^#jugador=(.+)$/.exec(location.hash) || [])[1];
+try { JUG_PEDIDO = JUG_PEDIDO && decodeURIComponent(JUG_PEDIDO); } catch(e){ JUG_PEDIDO = null; }
 
 const qs   = (typeof EMULADOR !== "undefined" && EMULADOR) ? "?emu=1" : "";
 /* El ?emu=1 y la sala viajan en los enlaces: si se pierden, el jugador saltaria
@@ -839,9 +859,9 @@ const forma = (it, s) => it.tipo === "tienda"
   ? parche(it.ico, it.color, it.sigla, { s, ok: it.ok, anillo: it.anillo, evento: it.evento })
   : medalla(it.ico, it.tono, { s, ok: it.ok, anillo: it.anillo });
 function fichaIns(it){
-  return '<button type="button" class="ins' + (it.ok ? "" : " no") + '" data-ins="' + esc(it.key) + '" aria-label="' +
-    esc(it.titulo + (it.ok ? ", ganada. " : ", por ganar. ") + it.texto) + '">' + forma(it, 64) +
-    (it.ok && NUEVAS && NUEVAS.has(it.marca) ? '<span class="nueva">Nueva</span>' : "") +
+  return '<button type="button" class="ins' + (it.ok ? "" : " no") + (it.oculta ? " oculta" : "") + '" data-ins="' + esc(it.key) + '" aria-label="' +
+    esc(it.titulo + (it.ok ? ", ganada" + (it.oculta ? ", oculta a los demás. " : ". ") : ", por ganar. ") + it.texto) + '">' + forma(it, 64) +
+    (it.oculta ? '<span class="etqOculta">Oculta</span>' : it.ok && NUEVAS && NUEVAS.has(it.marca) ? '<span class="nueva">Nueva</span>' : "") +
     "<b>" + esc(it.titulo) + "</b><small>" + esc(it.texto) + "</small>" +
     (it.prog ? '<span class="prog"><i style="width:' + Math.round(Math.min(it.prog.v, it.prog.meta) / it.prog.meta * 100) +
                '%"></i></span><small>' + esc(it.prog.txt) + "</small>" : "") +
@@ -854,6 +874,10 @@ const ganadasPrimero = items => items.slice().sort((a, b) => b.ok - a.ok);
    Solo se muestran las que de verdad tiene: la lista la escribe él, las
    insignias no. */
 let VITRINA = [];
+/* Las que oculté (perfilPublico/<uid>/ocultas): los demás no las ven en mi
+   perfil ni en mi vitrina. Yo sí, apagadas, para poder volver a mostrarlas. */
+let OCULTAS = {};
+const marcarOcultas = items => items.map(i => i.ok && OCULTAS[i.key] ? { ...i, oculta: true } : i);
 function pintarVitrina(cont, claves, porClave, propia){
   const its = (claves || []).map(k => porClave[k]).filter(i => i && i.ok).slice(0, 3);
   cont.innerHTML = its.map(i => '<button type="button" data-ins="' + esc(i.key) + '" aria-label="' + esc(i.titulo) + '">' +
@@ -873,11 +897,16 @@ function pintarInsigniasPropias(){
   const r = INS_MIAS = insigniasDe(esMia, usuario.uid, salas);
   revisarNuevas(r);
   $("hInsignias").textContent = "Insignias · " + r.todas.filter(i => i.ok).length + " ganadas";
-  const ok = r.perm.filter(i => i.ok), por = r.perm.filter(i => !i.ok);
+  const ok = marcarOcultas(r.perm.filter(i => i.ok)), por = r.perm.filter(i => !i.ok);
+  const nOcultas = r.todas.filter(i => i.ok && OCULTAS[i.key]).length;
+  $("insNota").textContent = nOcultas
+    ? (nOcultas === 1 ? "Tienes 1 oculta" : "Tienes " + nOcultas + " ocultas") + ": los demás no la" + (nOcultas === 1 ? "" : "s") +
+      " ven. Toca una para mostrarla de nuevo, destacarla u ocultarla."
+    : "Toca una que hayas ganado para destacarla en tu vitrina u ocultarla: las ocultas no las ven los demás.";
   $("insPerm").innerHTML = (ok.length ? '<div class="insGrupo"><h3>Ganadas</h3>' + grilla(ok) + "</div>" : "") +
     (por.length ? '<div class="insGrupo"><h3>Por ganar</h3>' + grilla(por) + "</div>" : "");
   $("insTiendas").innerHTML = r.grupos.map(g => {
-    const items = ganadasPrimero(g.items), n = items.filter(i => i.ok).length;
+    const items = marcarOcultas(ganadasPrimero(g.items)), n = items.filter(i => i.ok).length;
     return '<div class="insGrupo"><div class="tiendaCab"><span class="logoT" style="background:' + esc(colorTienda(g.color)[1]) +
       '">' + esc(iniciales(g.nombre)) + "</span><div><b>" + esc(g.nombre) + "</b><small>" + n + " de " + items.length +
       " ganadas" + (g.sala === TIENDA ? " · la que estás mirando" : "") + "</small></div></div>" +
@@ -907,8 +936,10 @@ function abrirDetalle(it, propia){
       (it.ok ? fila("Ganada", it.mes ? it.mes.map(nombreMes).join(", ") : fechaLarga(it.fecha)) + fila("Logro", it.texto) : "") +
       fila("Cómo se gana", it.como) + fila(it.ok ? "Siguiente nivel" : "Llevas", it.prog && it.prog.txt) +
       fila("Cuántos", it.rareza) + "</div>" +
-    (propia && it.ok ? '<button class="btn primario" id="dlgVitrina">' +
+    (propia && it.ok && !OCULTAS[it.key] ? '<button class="btn primario" id="dlgVitrina">' +
       (vigentes.includes(it.key) ? "Quitar de mi vitrina" : "Destacar en mi vitrina") + "</button>" : "") +
+    (propia && it.ok ? '<button class="btn" id="dlgOcultar">' +
+      (OCULTAS[it.key] ? "Mostrarla a los demás" : "Ocultarla a los demás") + "</button>" : "") +
     '<button class="btn" id="dlgCerrar">Cerrar</button><div class="msg" id="dlgMsg" role="status"></div>';
   $("dlgCerrar").onclick = () => $("dlgIns").close();
   if ($("dlgVitrina")) $("dlgVitrina").onclick = async () => {
@@ -919,6 +950,18 @@ function abrirDetalle(it, propia){
     try {
       await set(ref(db, "perfilPublico/" + usuario.uid + "/vitrina"), v);
       VITRINA = v; $("dlgIns").close(); pintarInsigniasPropias();
+    } catch(e){ $("dlgMsg").textContent = "No se pudo guardar. Revisa la conexión."; }
+  };
+  /* Ocultarla la saca también de la vitrina, en la misma escritura. */
+  if ($("dlgOcultar")) $("dlgOcultar").onclick = async () => {
+    const ocultar = !OCULTAS[it.key], base = "perfilPublico/" + usuario.uid;
+    const rutas = { [base + "/ocultas/" + it.key]: ocultar || null };
+    if (ocultar && vigentes.includes(it.key)) rutas[base + "/vitrina"] = vigentes.filter(k => k !== it.key);
+    try {
+      await update(ref(db), rutas);
+      if (ocultar) OCULTAS[it.key] = true; else delete OCULTAS[it.key];
+      if (rutas[base + "/vitrina"]) VITRINA = rutas[base + "/vitrina"];
+      $("dlgIns").close(); pintarInsigniasPropias();
     } catch(e){ $("dlgMsg").textContent = "No se pudo guardar. Revisa la conexión."; }
   };
   try { $("dlgIns").showModal(); } catch(e){}
@@ -996,16 +1039,18 @@ function pintarJugador(){
   const pub = uid ? PUBLICAS[uid] : {};
   /* Sus insignias, con las tiendas que se leen acá más las de su vitrina. La
      Beta tester y el Aniversario, solo si la tienda lo marcó con su uid. */
-  const vitrina = Object.values((pub && pub.vitrina) || {});
+  const ocultas = (pub && pub.ocultas) || {};
+  const vitrina = Object.values((pub && pub.vitrina) || {}).filter(k => !ocultas[k]);
   const salas = [...new Set(misSalas().concat(vitrina.filter(k => /^[te]:/.test(k)).map(k => k.split(":")[1])))];
   salas.forEach(cargarTienda);
   if (pub === null || ALTAS === null || !salas.every(cargada)){
     $("jgInsignias").innerHTML = '<div class="vacio">Cargando…</div>';
     $("jgVitrina").innerHTML = "";
   } else {
-    const r = INS_OTRO = insigniasDe(esDe, uid, salas), ganadas = r.todas.filter(i => i.ok);
+    const r = INS_OTRO = insigniasDe(esDe, uid, salas), todas = r.todas.filter(i => i.ok);
+    const ganadas = todas.filter(i => !ocultas[i.key]);
     $("jgInsignias").innerHTML = ganadas.length ? '<div class="insGrupo">' + grilla(ganadas) + "</div>"
-      : '<div class="vacio">' + esc(nom) + " todavía no tiene insignias.</div>";
+      : '<div class="vacio">' + esc(nom) + (todas.length ? " no muestra sus insignias." : " todavía no tiene insignias.") + "</div>";
     pintarVitrina($("jgVitrina"), vitrina, r.porClave, false);
   }
   $("jgRachas").innerHTML = uid && pub === null ? '<div class="vacio">Cargando…</div>'
@@ -1128,7 +1173,8 @@ function pintarVivo(){
   const alTimer = conSala("timer-view.html" + qs);
 
   /* ---- columna derecha: una línea, y mi mesa si estoy jugando ---- */
-  const linea = r ? "Ronda " + r.number + (enCurso ? " · en curso" : " · resultados")
+  const nomR = r ? r.etiqueta || "Ronda " + r.number : "";   // las del top cut traen su nombre
+  const linea = r ? nomR + (enCurso ? " · en curso" : " · resultados")
               : hayTimer ? (corriendo ? "Ronda en curso" : "Timer en pausa")
               : "No hay nada corriendo ahora";
   $("vivoChico").innerHTML =
@@ -1143,7 +1189,7 @@ function pintarVivo(){
   /* ---- pestaña: el encabezado y mi partida ---- */
   $("vivoGrande").innerHTML = r
     ? '<div style="font-weight:700">' + esc(PAIR.name || "Torneo") + "</div>" +
-      '<div style="font-size:var(--t2);color:var(--apagado);margin-top:2px">Ronda ' + r.number +
+      '<div style="font-size:var(--t2);color:var(--apagado);margin-top:2px">' + esc(nomR) +
       (enCurso ? " · en curso" : " · resultados publicados") + "</div>" +
       (mp ? miMesaHtml(mp)
           : '<div class="vivo" style="margin-top:var(--e2)">' +
@@ -1165,7 +1211,7 @@ function pintarVivo(){
   /* ---- la ronda completa, para mirar al resto ---- */
   $("bRonda").classList.toggle("oculto", !r);
   if (r){
-    $("hRonda").textContent = "Ronda " + r.number;
+    $("hRonda").textContent = nomR;
     $("vivoRonda").innerHTML = '<table class="tabla"><tbody>' +
       (r.matches || []).map(m => {
         const mia = yo && (norm(m.p1) === yo || (m.p2 && norm(m.p2) === yo));
@@ -1396,11 +1442,13 @@ onAuthStateChanged(auth, async u => {
     if (!ALTAS[u.uid] && !pidioAlta){ pidioAlta = true; set(ref(db, "altas/" + u.uid), serverTimestamp()).catch(() => {}); }
     repintarInsignias();
   }, () => { ALTAS = {}; repintarInsignias(); });
-  /* Lo que muestro a los demás: si mis rachas son públicas y mi vitrina. */
+  /* Lo que muestro a los demás: si mis rachas son públicas, mi vitrina y las
+     insignias que oculto. */
   get(ref(db, "perfilPublico/" + u.uid)).then(s => {
     const v = s.val() || {};
     $("swRachas").checked = v.rachas === true;
     VITRINA = Object.values(v.vitrina || {});
+    OCULTAS = v.ocultas || {};
     repintarInsignias();
   }, () => {});
 
@@ -1420,6 +1468,7 @@ onAuthStateChanged(auth, async u => {
   onValue(ref(db, BASE_T + "/historial"), s => {
     HIST = s.val() || {};
     pintarFicha(); pintarMuro(); pintarPerfil(); pintarJugador();
+    if (JUG_PEDIDO){ const n = JUG_PEDIDO; JUG_PEDIDO = null; verJugador(n); }
   }, () => { HIST = {}; pintarMuro(); });
 
   onValue(ref(db, BASE + "/timer/state"), s => { ESTADO = s.val(); pintarVivo(); },

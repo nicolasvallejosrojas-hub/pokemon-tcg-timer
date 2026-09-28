@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0B7F6C">
 <meta name="robots" content="noindex">
 <title>Herramientas de administrador — Mis Torneos</title>
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 <style>
   /* Herramientas de quien administra el sitio entero (admins/<uid> = true en
      la consola): el mantenimiento y todas las tiendas. No es el panel del
@@ -56,6 +56,34 @@
     color:#fff;font-weight:700;letter-spacing:-.02em;width:44px;height:44px;font-size:15px;grid-row:span 2;align-self:start;}
   .logoT img{width:100%;height:100%;object-fit:cover;display:block;}
 
+  /* ---------------------------------------------------------- cifras */
+  .cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--e2);margin-top:var(--e5);}
+  .cifra{background:var(--sup);border-radius:var(--radio);padding:var(--e3) var(--e4);}
+  .cifra b{display:block;font-size:var(--d3);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .cifra span{display:block;font-size:var(--t2);color:var(--apagado);margin-top:2px;}
+  .cifra small{display:block;font-size:var(--t1);color:var(--rotulo);margin-top:4px;line-height:1.4;}
+  .cifra.enlinea{display:block;white-space:normal;}
+  .cifra.enlinea::before{display:none;}
+  .cifra .punto{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:middle;}
+
+  /* ---------------------------------------------------------- buzón */
+  .msg{padding:12px 14px;position:relative;}
+  .msg + .msg::before{content:"";position:absolute;top:0;right:0;left:14px;height:1px;background:var(--divider);}
+  .msg .cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:var(--t2);color:var(--apagado);}
+  .msg .cab b{color:var(--texto);font-weight:600;}
+  .msg .tipo{font-size:var(--t1);font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:999px;
+    background:var(--sup-alta);color:var(--apagado);}
+  .msg .tipo.error,.msg .tipo.reporte{background:var(--alerta);color:var(--negativo);}
+  .msg p{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;}
+  .msg.nuevo p{font-weight:500;}
+  .msg.nuevo::after{content:"";position:absolute;left:4px;top:18px;width:6px;height:6px;border-radius:50%;background:var(--accion);}
+  .msg .acc{margin-top:8px;}
+
+  /* ---------------------------------------------------------- cuentas */
+  #cuBuscar{width:100%;box-sizing:border-box;padding:10px 12px;font-size:var(--t3);margin-bottom:var(--e2);}
+  .uid{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:var(--t1);overflow-wrap:anywhere;}
+  @media (max-width:600px){ .cifras{grid-template-columns:repeat(2,1fr);} }
+
   /* ---------------------------------------------------------- borrar */
   dialog.hoja{border:none;border-radius:22px;padding:var(--e4) var(--e5) var(--e5);max-width:480px;width:calc(100% - 32px);
     background:var(--pagina);color:var(--texto);}
@@ -89,6 +117,18 @@
     <p class="bajada" id="bajada">Cargando…</p>
 
     <div id="herr" class="oculto">
+      <div class="cifras">
+        <div class="cifra"><b id="cfLinea">…</b><span><i class="punto"></i>En línea ahora</span><small id="cfLineaDet"></small></div>
+        <div class="cifra"><b id="cfCuentas">…</b><span>Cuentas registradas</span><small id="cfCuentasDet"></small></div>
+        <div class="cifra"><b id="cfTiendas">…</b><span>Tiendas</span><small id="cfTiendasDet"></small></div>
+        <div class="cifra"><b id="cfBuzon">…</b><span>Mensajes sin leer</span><small id="cfBuzonDet"></small></div>
+      </div>
+
+      <h2 class="gtit">Buzón de sugerencias y reportes <span id="bzResumen"></span></h2>
+      <div class="grupo" id="bzLista"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
+      <p class="nota" style="margin:var(--e2) var(--e3) 0">Llegan desde Ajustes → Escríbenos (los enlaces «Sugerencias» del sitio).
+        Si dejaron un correo, «Responder» abre tu correo con la respuesta lista.</p>
+
       <h2 class="gtit">Mantenimiento de todo el sitio</h2>
       <div class="grupo"><div class="mantCaja" id="mant">
         <div><b id="mantEstado">…</b><small id="mantDesc"></small></div>
@@ -96,10 +136,21 @@
         <input id="mantMensaje" maxlength="200" placeholder="Mensaje para los jugadores (opcional)" aria-label="Mensaje de mantenimiento">
       </div></div>
 
+      <h2 class="gtit">Solicitudes de tienda <span id="solResumen"></span></h2>
+      <div class="grupo" id="solLista"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
+      <p class="nota" style="margin:var(--e2) var(--e3) 0">Aprobada, quien la pidió la crea desde su panel y queda de dueño.
+        Rechazada, ve tu nota y puede mandarla de nuevo.</p>
+
       <h2 class="gtit">Todas las tiendas <span id="resumen"></span></h2>
       <div class="grupo" id="lista"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
       <p class="nota" style="margin:var(--e2) var(--e3) 0">Verificada: sale en el directorio y puede subir banner y logo.
         «Panel» entra al panel del organizador de esa tienda.</p>
+
+      <h2 class="gtit">Cuentas <span id="cuResumen"></span></h2>
+      <input type="search" id="cuBuscar" placeholder="Busca una cuenta por nombre" aria-label="Buscar cuentas">
+      <div class="grupo" id="cuLista"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
+      <p class="nota" style="margin:var(--e2) var(--e3) 0">Eliminar borra sus datos del sitio. El acceso (correo y contraseña) vive
+        en Firebase y se borra desde la consola: al eliminar te queda su UID para buscarlo ahí.</p>
     </div>
   </main>
 
@@ -116,12 +167,14 @@
       <button class="btn" id="dbSi" disabled>Descargar respaldo y eliminar</button></div>
   </dialog>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script type="module">
-import { ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { ref, onValue, get, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=6";
-import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=3";
+import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=7";
+import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=4";
+import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=1";
+estoyEnLinea(db, "herramientas");
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
@@ -148,6 +201,8 @@ onAuthStateChanged(auth, async u => {
   $("bajada").textContent = "Solo las ven las cuentas de administrador del sitio.";
   $("herr").classList.remove("oculto");
   escucharMantenimiento();
+  escucharSolicitudes();
+  escucharCifras();
   pintarTiendas();
 });
 
@@ -191,9 +246,12 @@ const LOGOS = {};
 async function pintarTiendas(){
   try { TODAS = (await get(ref(db, "tiendas"))).val() || {}; }
   catch(e){ $("lista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo cargar la lista.</div>'; return; }
+  pintarCuentas();   // quién es dueño de qué, para la lista de cuentas
   const filas = Object.entries(TODAS).map(([id, t]) => ({ id, t, p: t.perfil || {} }))
     .sort((a, b) => ESTADO(a.t) - ESTADO(b.t) || nombreTienda(a.p, a.id).localeCompare(nombreTienda(b.p, b.id)));
   const porRevisar = filas.filter(f => !ESTADO(f.t)).length;
+  $("cfTiendas").textContent = filas.length;
+  $("cfTiendasDet").textContent = filas.filter(f => ESTADO(f.t) === 1).length + " verificadas" + (porRevisar ? " · " + porRevisar + " por revisar" : "");
   $("resumen").textContent = filas.length + (filas.length === 1 ? " tienda" : " tiendas") +
     (porRevisar ? " · " + porRevisar + " por revisar" : "");
   $("lista").innerHTML = filas.map(({ id, t, p }) => {
@@ -229,12 +287,154 @@ async function pintarTiendas(){
   });
 }
 
+/* ------------------------------------------------------------ cifras, buzón y cuentas
+   En línea: presencia.js. Cuentas: usuarios/ (solo quien administra la lee).
+   El buzón: lo que mandan desde Ajustes → Escríbenos. */
+const PAGINAS = { portada: "portada", cuenta: "cuenta", muro: "muro", tiendas: "tiendas", timer: "timers",
+                  panel: "paneles", herramientas: "herramientas" };
+let cifrasEscuchando = false, BZ = {}, CU = {};
+function escucharCifras(){
+  if (cifrasEscuchando) return;
+  cifrasEscuchando = true;
+  contarEnLinea(db, (n, por) => {
+    $("cfLinea").textContent = n == null ? "—" : n;
+    $("cfLineaDet").textContent = n ? Object.entries(por).sort((a, b) => b[1] - a[1])
+      .map(([p, k]) => k + " en " + (PAGINAS[p] || p)).join(" · ") : "";
+  });
+  onValue(ref(db, "usuarios"), s => {
+    CU = s.val() || {};
+    const ids = Object.keys(CU), hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const semana = ids.filter(u => (CU[u].creado || 0) >= hoy.getTime() - 6 * 86400000).length;
+    $("cfCuentas").textContent = ids.length;
+    $("cfCuentasDet").textContent = (semana ? semana + " en los últimos 7 días · " : "") +
+      ids.filter(u => CU[u].playerId).length + " con ID de jugador";
+    pintarCuentas();
+  }, () => { $("cfCuentas").textContent = "—"; $("cuLista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo leer. ¿Publicaste las reglas nuevas?</div>'; });
+  onValue(ref(db, "buzon"), s => { BZ = s.val() || {}; pintarBuzon(); },
+    () => { $("cfBuzon").textContent = "—"; $("bzLista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo leer. ¿Publicaste las reglas nuevas?</div>'; });
+  $("cuBuscar").oninput = pintarCuentas;
+}
+
+const TIPOS = { sugerencia: "Sugerencia", error: "Algo no funciona", reporte: "Reporte", otro: "Otra cosa" };
+const fechaHora = ms => ms ? new Date(ms).toLocaleString("es-CL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+function pintarBuzon(){
+  const filas = Object.entries(BZ).sort(([, a], [, b]) => (!!a.leido - !!b.leido) || (b.creado || 0) - (a.creado || 0));
+  const nuevos = filas.filter(([, m]) => !m.leido).length;
+  $("cfBuzon").textContent = nuevos;
+  $("cfBuzonDet").textContent = filas.length + (filas.length === 1 ? " mensaje en total" : " mensajes en total");
+  $("bzResumen").textContent = nuevos ? nuevos + " sin leer" : "";
+  $("bzLista").innerHTML = filas.map(([id, m]) => {
+    const correo = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m.contacto || "");
+    return '<div class="msg' + (m.leido ? "" : " nuevo") + '"><div class="cab"><span class="tipo ' + esc(m.tipo) + '">' + esc(TIPOS[m.tipo] || m.tipo) +
+      "</span><b>" + esc(m.nombre || "Sin nombre") + "</b><span>" + esc(fechaHora(m.creado)) + "</span>" +
+      (m.pagina ? '<span>desde <a href="' + esc(m.pagina) + '" target="_blank" rel="noopener">' + esc(m.pagina.split("?")[0]) + "</a></span>" : "") + "</div>" +
+      "<p>" + esc(m.texto) + "</p>" +
+      '<div class="acc">' +
+      (correo ? '<a class="btn chico primario" href="mailto:' + esc(m.contacto) + "?subject=" + encodeURIComponent("Re: tu mensaje a Mis Torneos") + '">Responder</a>'
+              : m.contacto ? '<span class="nota" style="margin:0">Contacto: ' + esc(m.contacto) + "</span>" : "") +
+      '<button class="btn chico" data-leido="' + esc(id) + '" data-v="' + (m.leido ? 0 : 1) + '">' + (m.leido ? "Marcar sin leer" : "Marcar leído") + "</button>" +
+      '<button class="btn chico peligro" data-bzborrar="' + esc(id) + '">Borrar</button></div></div>';
+  }).join("") || '<div class="nota" style="padding:var(--e4)">No hay mensajes.</div>';
+  $("bzLista").querySelectorAll("[data-leido]").forEach(b => b.onclick = () =>
+    set(ref(db, "buzon/" + b.dataset.leido + "/leido"), b.dataset.v === "1").catch(() => {}));
+  $("bzLista").querySelectorAll("[data-bzborrar]").forEach(b => b.onclick = () => {
+    if (confirm("¿Borrar este mensaje?")) remove(ref(db, "buzon/" + b.dataset.bzborrar)).catch(() => {});
+  });
+}
+
+/* Las cuentas: se buscan por nombre y se eliminan. Borra lo suyo del sitio
+   en una sola escritura (perfil, lo público, su alta, lo que organiza, su
+   solicitud, sus IDs compartidos y su lugar en las tiendas). Su acceso vive en
+   Firebase Authentication, que desde el navegador no se puede borrar: queda el
+   UID para buscarlo en la consola. */
+const CONSOLA = "https://console.firebase.google.com/project/timer-y-qrs-pokemon/authentication/users";
+function pintarCuentas(){
+  const q = $("cuBuscar").value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const filas = Object.entries(CU).map(([uid, c]) => ({ uid, ...c }))
+    .filter(c => !q || String(c.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q))
+    .sort((a, b) => (b.creado || 0) - (a.creado || 0));
+  $("cuResumen").textContent = q ? filas.length + " de " + Object.keys(CU).length : "";
+  $("cuLista").innerHTML = filas.slice(0, 50).map(c => {
+    const dueno = Object.entries(TODAS).filter(([, t]) => ((t.miembros || {})[c.uid] || {}).rol === "dueno").map(([id, t]) => nombreTienda(t.perfil, id));
+    const datos = [c.creado && "desde el " + new Date(c.creado).toLocaleDateString("es-CL"),
+      c.playerId ? "con ID de jugador" : "sin ID", Object.keys(c.tiendas || {}).length + " tiendas seguidas",
+      dueno.length && "dueño de " + dueno.join(", ")].filter(Boolean).join(" · ");
+    return '<div class="tfila"><span class="logoT" style="--c:var(--sup-alta);color:var(--texto)" aria-hidden="true">' + esc(iniciales(c.nombre)) + "</span>" +
+      "<div><b>" + esc(c.nombre || "Sin nombre") + "</b><small>" + esc(datos) + '</small><small class="uid">' + esc(c.uid) + "</small></div><span></span>" +
+      '<div class="acc"><button class="btn chico peligro" data-cuborrar="' + esc(c.uid) + '">Eliminar cuenta</button></div></div>';
+  }).join("") || '<div class="nota" style="padding:var(--e4)">' + (q ? "Ninguna cuenta con ese nombre." : "Todavía no hay cuentas.") + "</div>";
+  $("cuLista").querySelectorAll("[data-cuborrar]").forEach(b => b.onclick = () => eliminarCuenta(b.dataset.cuborrar));
+}
+async function eliminarCuenta(uid){
+  const c = CU[uid] || {}, nom = c.nombre || uid;
+  const duenas = Object.entries(TODAS).filter(([, t]) => ((t.miembros || {})[uid] || {}).rol === "dueno");
+  const escrito = prompt("Se borran los datos de «" + nom + "» del sitio" +
+    (duenas.length ? ". OJO: es dueño de " + duenas.map(([id, t]) => nombreTienda(t.perfil, id)).join(", ") + " (la tienda sigue, sin ese dueño)" : "") +
+    ".\n\nPara confirmar, escribe su nombre:", "");
+  if (escrito === null) return;
+  if (escrito.trim() !== String(c.nombre || "").trim()) return alert("El nombre no coincide. No se borró nada.");
+  const rutas = {};
+  ["usuarios", "perfilPublico", "altas", "organiza", "solicitudes"].forEach(n => rutas[n + "/" + uid] = null);
+  const tiendas = new Set([...Object.keys(TODAS), ...Object.keys(c.tiendas || {})]);
+  tiendas.forEach(t => rutas["enlaces/" + t + "/" + uid] = null);
+  Object.entries(TODAS).forEach(([t, d]) => { if ((d.miembros || {})[uid]) rutas["tiendas/" + t + "/miembros/" + uid] = null; });
+  try {
+    await update(ref(db), rutas);
+    prompt("Listo: sus datos se borraron. Falta su acceso: en Firebase → Authentication, busca este UID y elimínalo.\n\n" + CONSOLA, uid);
+    pintarTiendas();
+  } catch(e){ alert("No se pudo eliminar (no se borró nada). Revisa la conexión."); }
+}
+
+/* ------------------------------------------------------------ solicitudes
+   Quien quiere una tienda la pide desde el panel. Aprobarla deja que esa
+   cuenta reclame ESE id (lo exigen las reglas); rechazarla le muestra la nota.
+   Las por revisar primero, las más antiguas arriba. */
+let SOL = {}, solEscuchando = false;
+function escucharSolicitudes(){
+  if (solEscuchando) return;
+  solEscuchando = true;
+  onValue(ref(db, "solicitudes"), s => { SOL = s.val() || {}; pintarSolicitudes(); },
+    () => { $("solLista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo cargar. ¿Publicaste las reglas nuevas?</div>'; });
+}
+const ESTADO_SOL = x => x.aprobada ? 1 : x.rechazada ? 2 : 0;
+function pintarSolicitudes(){
+  const filas = Object.entries(SOL).sort(([, a], [, b]) => (ESTADO_SOL(a) > 0) - (ESTADO_SOL(b) > 0) || (a.creada || 0) - (b.creada || 0));
+  const pend = filas.filter(([, x]) => !ESTADO_SOL(x)).length;
+  $("solResumen").textContent = pend ? pend + " por revisar" : "";
+  $("solLista").innerHTML = filas.map(([uid, x]) => {
+    const e = ESTADO_SOL(x);
+    const datos = [x.id, x.comuna, x.quien && "la pide " + x.quien,
+      x.creada && "el " + new Date(x.creada).toLocaleDateString("es-CL")].filter(Boolean).join(" · ");
+    return '<div class="tfila"><span class="logoT" aria-hidden="true">' + esc(iniciales(x.nombre)) + "</span>" +
+      "<div><b>" + esc(x.nombre) + "</b><small>" + esc(datos) + "</small>" +
+      "<small>Contacto: " + esc(x.contacto) + "</small>" +
+      (x.mensaje ? "<small>«" + esc(x.mensaje) + "»</small>" : "") +
+      (x.nota ? "<small>Tu nota: " + esc(x.nota) + "</small>" : "") + "</div>" +
+      '<span class="estado e' + e + '">' + ["Por revisar", "Aprobada", "Rechazada"][e] + "</span>" +
+      '<div class="acc">' +
+      (e !== 1 ? '<button class="btn chico primario" data-aprobar="' + esc(uid) + '">Aprobar</button>' : "") +
+      (e !== 2 ? '<button class="btn chico" data-rechazar="' + esc(uid) + '">Rechazar</button>' : "") + "</div></div>";
+  }).join("") || '<div class="nota" style="padding:var(--e4)">No hay solicitudes.</div>';
+  $("solLista").querySelectorAll("[data-aprobar]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await update(ref(db, "solicitudes/" + b.dataset.aprobar), { aprobada: true, rechazada: null, nota: null }); }
+    catch(e){ b.disabled = false; $("solResumen").textContent = "No se pudo guardar. Revisa la conexión."; }
+  });
+  $("solLista").querySelectorAll("[data-rechazar]").forEach(b => b.onclick = async () => {
+    const nota = prompt("¿Por qué? Lo ve quien la pidió (opcional):", "");
+    if (nota === null) return;
+    b.disabled = true;
+    try { await update(ref(db, "solicitudes/" + b.dataset.rechazar), { rechazada: true, aprobada: null, nota: nota.trim().slice(0, 200) || null }); }
+    catch(e){ b.disabled = false; $("solResumen").textContent = "No se pudo guardar. Revisa la conexión."; }
+  });
+}
+
 /* ------------------------------------------------------------ eliminar
    Todo lo que cuelga del id de la tienda, en una sola escritura: o se borra
    todo o no se borra nada. Lo de cada jugador (a quién sigue, su vitrina)
    queda en su cuenta, que nadie más puede tocar; las páginas ignoran una
    tienda que ya no existe. */
-const NODOS = ["tiendas", "salas", "invitaciones", "enlaces", "fotos"];
+const NODOS = ["tiendas", "salas", "invitaciones", "enlaces", "fotos", "jugadores"];
 let BORRAR = null;
 async function abrirBorrar(id){
   BORRAR = null;
@@ -253,12 +453,14 @@ async function abrirBorrar(id){
   const nt = Object.keys(datos.timers).length + 1;
   const s = datos.salas || {}, n = Object.keys(s.historial || {}).length, ag = Object.keys(s.agenda || {}).length;
   const mm = Object.keys((datos.tiendas || {}).miembros || {}).length, en = Object.keys(datos.enlaces || {}).length;
+  const bj = Object.keys(datos.jugadores || {}).length;
   $("dbQue").innerHTML = [
     n + (n === 1 ? " torneo archivado" : " torneos archivados") + " y su clasificación",
     (nt === 1 ? "Su timer" : "Sus " + nt + " timers") + ", los emparejamientos publicados y el diseño de la pantalla",
     ag + (ag === 1 ? " fecha" : " fechas") + " de la agenda",
     mm + (mm === 1 ? " organizador" : " organizadores") + " y las invitaciones pendientes",
     en + (en === 1 ? " ID de jugador compartido" : " IDs de jugador compartidos"),
+    bj + (bj === 1 ? " jugador en su base" : " jugadores en su base") + " (los de los torneos de la página)",
     "El perfil, la verificación, las insignias de la tienda, el banner y el logo",
   ].map(x => "<li>" + esc(x) + "</li>").join("");
   BORRAR = { id, datos };

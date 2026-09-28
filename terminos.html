@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="description" content="Las reglas para usar Mis Torneos: cuentas, tiendas, resultados y lo que no se puede hacer.">
+<title>Términos y condiciones — Mis Torneos</title>
+<link rel="stylesheet" href="estilo.css?v=11">
+<style>
+  /* Términos y Privacidad: dos páginas de lectura con el mismo molde. No
+     cargan Firebase: se leen aunque el sitio esté en mantenimiento. Si se toca
+     este bloque, copiarlo igual en privacidad.html. */
+  body{min-height:100vh;}
+  .sup{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:var(--e2);
+    min-height:56px;padding:0 max(var(--e4), env(safe-area-inset-right)) 0 max(var(--e4), env(safe-area-inset-left));}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);margin-right:auto;
+    color:var(--texto);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;}
+  .sup nav{display:flex;gap:var(--e1);}
+  .sup nav a{color:var(--apagado);text-decoration:none;font-size:var(--t2);padding:8px 12px;border-radius:999px;}
+  .sup nav a:hover{background:var(--sup-alta);color:var(--texto);}
+  .sup nav a[aria-current="page"]{background:var(--sup);color:var(--texto);font-weight:600;}
+  .doc{max-width:720px;margin:0 auto;padding:var(--e5) var(--e4) var(--e6);box-sizing:border-box;}
+  .doc h1{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;margin:0;}
+  .bajada{font-size:var(--t4);color:var(--apagado);line-height:1.5;margin:var(--e2) 0 0;}
+  .meta{font-size:var(--t2);color:var(--rotulo);margin:var(--e3) 0 0;}
+  .doc a{color:var(--accion-texto);}
+  .resumen{background:var(--sup);border-radius:var(--radio);padding:var(--e4) var(--e5);margin:var(--e5) 0 0;}
+  .doc .resumen h2{font-size:var(--t2);text-transform:uppercase;letter-spacing:.06em;color:var(--rotulo);font-weight:600;margin:0 0 var(--e2);}
+  .resumen ul{margin:0;padding-left:1.1em;line-height:1.6;font-size:var(--t3);}
+  .indice{margin:var(--e5) 0 0;font-size:var(--t3);line-height:1.9;columns:2;column-gap:var(--e5);padding-left:1.4em;}
+  .indice a{color:var(--texto);text-decoration:none;} .indice a:hover{color:var(--accion-texto);text-decoration:underline;}
+  .doc section{margin-top:var(--e6);scroll-margin-top:72px;}
+  .doc h2{font-size:var(--t5);font-weight:700;letter-spacing:-.01em;margin:0 0 var(--e2);}
+  .doc p,.doc li{font-size:var(--t3);line-height:1.65;}
+  .doc p{margin:var(--e2) 0 0;max-width:68ch;}
+  .doc ul{margin:var(--e2) 0 0;padding-left:1.2em;max-width:68ch;}
+  .doc li + li{margin-top:6px;}
+  .tabla-datos{width:100%;border-collapse:collapse;margin-top:var(--e3);font-size:var(--t2);background:var(--sup);border-radius:var(--radio);overflow:hidden;}
+  .tabla-datos th,.tabla-datos td{text-align:left;vertical-align:top;padding:10px 12px;border-top:1px solid var(--divider);line-height:1.5;}
+  .tabla-datos thead th{border-top:none;font-size:var(--t1);text-transform:uppercase;letter-spacing:.06em;color:var(--rotulo);font-weight:600;}
+  .tabla-datos td:first-child{font-weight:600;}
+  .pie-doc{border-top:1px solid var(--divider);margin-top:var(--e6);padding-top:var(--e4);font-size:var(--t2);color:var(--rotulo);
+    display:flex;flex-wrap:wrap;gap:var(--e2) var(--e4);justify-content:space-between;}
+  .pie-doc a{color:var(--apagado);}
+  @media (max-width:600px){
+    .indice{columns:1;}
+    .resumen{padding:var(--e4);}
+    .tabla-datos thead{display:none;}
+    .tabla-datos tr{display:block;border-top:1px solid var(--divider);padding:8px 0;}
+    .tabla-datos td{display:block;border:none;padding:2px 12px;}
+    /* Sin encabezados a la vista, cada celda dice qué es. */
+    .tabla-datos td:nth-child(2)::before{content:"Para qué: ";font-weight:600;color:var(--rotulo);}
+    .tabla-datos td:nth-child(3)::before{content:"Quién lo ve: ";font-weight:600;color:var(--rotulo);}
+  }
+</style>
+</head>
+<body>
+  <header class="sup vidrio">
+    <a class="marca" href="index.html">Mis Torneos</a>
+    <nav aria-label="Documentos">
+      <a href="terminos.html" aria-current="page">Términos</a>
+      <a href="privacidad.html">Privacidad</a>
+    </nav>
+  </header>
+
+  <main class="doc">
+    <h1>Términos y condiciones</h1>
+    <p class="bajada">Las reglas para usar Mis Torneos: qué es, qué se puede hacer y qué no, y qué pasa con lo
+      que se publica. Van junto con la <a href="privacidad.html">Política de privacidad</a>.</p>
+    <p class="meta">Actualizados el 28 de septiembre de 2026 · Contacto:
+      <a href="mailto:nicolasvallejosrojas@gmail.com">nicolasvallejosrojas@gmail.com</a></p>
+
+    <div class="resumen">
+      <h2>En corto</h2>
+      <ul>
+        <li>Mis Torneos es gratuito e independiente: no pertenece a ninguna editorial ni marca de juegos.</li>
+        <li>Los resultados los publica cada tienda. Si ves un error, avísale al juez.</li>
+        <li>Tu cuenta es personal: tu nombre real y tu contraseña, sin compartirla.</li>
+        <li>No vendemos datos ni mostramos publicidad.</li>
+      </ul>
+    </div>
+
+    <ol class="indice">
+      <li><a href="#que-es">Qué es Mis Torneos</a></li>
+      <li><a href="#cuenta">Tu cuenta</a></li>
+      <li><a href="#tiendas">Tiendas y organizadores</a></li>
+      <li><a href="#resultados">Resultados, clasificación e insignias</a></li>
+      <li><a href="#prohibido">Lo que no se puede hacer</a></li>
+      <li><a href="#contenido">Contenido y marcas</a></li>
+      <li><a href="#disponibilidad">Disponibilidad y responsabilidad</a></li>
+      <li><a href="#cambios">Cambios a estos términos</a></li>
+      <li><a href="#ley">Ley aplicable</a></li>
+      <li><a href="#contacto">Contacto</a></li>
+    </ol>
+
+    <section id="que-es">
+      <h2>1. Qué es Mis Torneos</h2>
+      <p>Mis Torneos es un sitio gratuito para los torneos de las tiendas de juegos de cartas: el reloj de la
+        ronda en la pantalla de la tienda, las mesas en el celular de cada jugador, los resultados, la
+        clasificación del mes, la agenda y las insignias. Las tiendas lo usan para organizar sus torneos y los
+        jugadores, para seguirlos.</p>
+      <p>Al usar el sitio, con cuenta o sin ella, aceptas estos términos. Si no estás de acuerdo, no lo uses.</p>
+    </section>
+
+    <section id="cuenta">
+      <h2>2. Tu cuenta</h2>
+      <ul>
+        <li>Es personal: una por persona y con tu nombre real, el mismo con que te inscribe la tienda, porque con
+          él se calzan tus resultados.</li>
+        <li>Cuidas tu contraseña y no la compartes. Si crees que alguien entró a tu cuenta, cámbiala y avísanos.</li>
+        <li>El ID de jugador que guardes tiene que ser el tuyo. Una vez guardado no se cambia desde el sitio; si te
+          equivocaste, escríbenos.</li>
+        <li>Si tienes menos de 14 años, crea tu cuenta junto a tu madre, padre o quien te cuide, o con su permiso.</li>
+        <li>Puedes dejar de usar el sitio cuando quieras y borrar tu cuenta en <a href="cuenta.html#ajustes">Ajustes →
+          Eliminar mi cuenta</a>. Qué se borra y qué queda lo explica la <a href="privacidad.html#plazos">Política de
+          privacidad</a>.</li>
+      </ul>
+    </section>
+
+    <section id="tiendas">
+      <h2>3. Tiendas y organizadores</h2>
+      <ul>
+        <li>Una tienda se pide desde el panel del organizador y la aprueba la administración del sitio.
+          Verificarla, es decir, que salga en el directorio de tiendas, es una decisión aparte.</li>
+        <li>Quien crea la tienda queda de dueño y puede invitar organizadores. Dueño y organizadores responden por
+          todo lo que publican con ella: torneos, resultados, nombres de jugadores, agenda, banner y logo.</li>
+        <li>Publica solo lo que corresponde al torneo: los nombres con que se inscribieron los jugadores y sus
+          resultados. La tienda no es un lugar para datos personales de otros, como teléfonos, direcciones o
+          fotos de personas sin su permiso.</li>
+        <li>La base de jugadores de la tienda (los nombres para inscribir en los torneos que corre la página) es
+          solo para organizar los torneos de esa tienda.</li>
+        <li>Los torneos oficiales se corren en el programa oficial (TOM) y se reportan por sus propios canales.
+          Mis Torneos solo lee el archivo que TOM guarda en el computador de la tienda para mostrarlo; no
+          reemplaza ese reporte ni lo envía a nadie.</li>
+        <li>Podemos rechazar una solicitud, quitar la verificación o eliminar una tienda que no cumpla estos
+          términos. Antes de eliminarla se descarga un respaldo de sus datos.</li>
+      </ul>
+    </section>
+
+    <section id="resultados">
+      <h2>4. Resultados, clasificación e insignias</h2>
+      <ul>
+        <li>Los emparejamientos, los resultados y las tablas se muestran tal como los publica cada tienda. La
+          clasificación del mes, las rachas y las insignias se calculan solas a partir de esos resultados.</li>
+        <li>Si encuentras un error, avísale al juez o a la tienda: son quienes lo pueden corregir. La
+          administración del sitio no cambia resultados por su cuenta.</li>
+        <li>Las insignias no se regalan, no se compran y no se pueden escribir a mano: salen de los torneos.</li>
+      </ul>
+    </section>
+
+    <section id="prohibido">
+      <h2>5. Lo que no se puede hacer</h2>
+      <ul>
+        <li>Suplantar a otra persona o a una tienda, o crear cuentas para inflar resultados.</li>
+        <li>Alterar resultados, intentar entrar a paneles o datos para los que no tienes permiso, o aprovechar un
+          error del sitio en vez de reportarlo.</li>
+        <li>Descargar datos del sitio de forma masiva o automatizada, o usarlos fuera de Mis Torneos sin permiso.</li>
+        <li>Subir imágenes o textos ofensivos, o que no tengas derecho a usar.</li>
+        <li>Usar el sitio para molestar, acosar o discriminar a otros jugadores, o llenar el buzón de mensajes sin
+          sentido.</li>
+      </ul>
+      <p>Si pasa, podemos borrar el contenido, quitar permisos o cerrar la cuenta.</p>
+    </section>
+
+    <section id="contenido">
+      <h2>6. Contenido y marcas</h2>
+      <ul>
+        <li>El diseño, el código y las herramientas de Mis Torneos son de sus creadores.</li>
+        <li>El logo, el banner y los textos de cada tienda son de esa tienda, que declara tener derecho a usarlos.
+          Al subirlos, autoriza a que se muestren en el sitio.</li>
+        <li>Mis Torneos es un proyecto independiente. No está afiliado, patrocinado ni aprobado por las
+          editoriales ni por los dueños de las marcas de los juegos que se juegan en las tiendas. Esos nombres,
+          marcas y programas, como TOM, pertenecen a sus titulares.</li>
+      </ul>
+    </section>
+
+    <section id="disponibilidad">
+      <h2>7. Disponibilidad y responsabilidad</h2>
+      <ul>
+        <li>El sitio es gratuito y se entrega tal como está. Hacemos lo posible por que funcione, pero puede tener
+          errores, caerse o cerrar por mantenimiento; en ese caso se avisa en pantalla.</li>
+        <li>Si se corta internet en la tienda, la pantalla del timer sigue marcando con lo último que recibió,
+          pero lo que se anote se guarda recién cuando vuelve la conexión.</li>
+        <li>No respondemos por las decisiones de cada tienda sobre sus torneos (inscripciones, premios o
+          sanciones), ni por pérdidas causadas por el mal uso de una cuenta.</li>
+        <li>Podemos cambiar, agregar o quitar funciones del sitio.</li>
+      </ul>
+    </section>
+
+    <section id="cambios">
+      <h2>8. Cambios a estos términos</h2>
+      <p>Si cambian, se actualiza esta página con su fecha. Si el cambio es importante, se avisa en el sitio.
+        Seguir usándolo después significa que aceptas la versión nueva.</p>
+    </section>
+
+    <section id="ley">
+      <h2>9. Ley aplicable</h2>
+      <p>Estos términos se rigen por las leyes de Chile. Si hay un problema, conversémoslo primero por correo; si
+        no se resuelve, se verá ante los tribunales competentes de Chile.</p>
+    </section>
+
+    <section id="contacto">
+      <h2>10. Contacto</h2>
+      <p>Para sugerencias, reportes o cualquier problema, usa <a href="cuenta.html#sugerencias">Ajustes → Escríbenos</a>.
+        Para dudas, reclamos o solicitudes sobre tus datos, también puedes escribir a
+        <a href="mailto:nicolasvallejosrojas@gmail.com">nicolasvallejosrojas@gmail.com</a>.</p>
+    </section>
+
+    <div class="pie-doc">
+      <span>Mis Torneos © 2026</span>
+      <span><a href="privacidad.html">Política de privacidad</a> · <a href="index.html">Volver al inicio</a></span>
+    </div>
+  </main>
+<script src="config.js?v=8"></script>
+</body>
+</html>
