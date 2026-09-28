@@ -21,3 +21,6 @@
 /herramientas*
   X-Frame-Options: DENY
   Content-Security-Policy: frame-ancestors 'none'
+/estadisticas*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'

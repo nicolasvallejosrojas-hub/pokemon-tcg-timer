@@ -539,7 +539,7 @@ import { BASE, BASE_T, nombreTienda, slug } from "./sala.js?v=4";   // BASE: el 
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
          textoFalta, errorNacimiento, registrar, params } from "./sesion.js?v=8";
-import { estoyEnLinea } from "./presencia.js?v=2";
+import { estoyEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "cuenta");
 
 const $ = id => document.getElementById(id);

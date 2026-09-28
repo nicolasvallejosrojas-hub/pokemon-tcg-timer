@@ -206,7 +206,6 @@
   <main>
     <section class="hero ancho">
       <h1>ByePass te conecta con tu tienda y con la gente que juega contigo.</h1>
-      <p class="enlinea" id="enLinea" hidden></p>
 
       <div class="mapa" aria-hidden="true">
         <svg viewBox="0 0 560 330" id="mapa">
@@ -372,9 +371,8 @@ import { signInWithEmailAndPassword, onAuthStateChanged }
 import { MES_LARGO } from "./agenda.js?v=4";
 import { db, auth, params, enEmulador, urlMuro, urlCuenta, urlPanel, decir, CORREO_OK, revisarClave, claveOk,
          textoFalta, errorNacimiento, registrar } from "./sesion.js?v=8";
-import { estoyEnLinea, contarEnLinea, textoEnLinea } from "./presencia.js?v=2";
+import { estoyEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "portada");
-contarEnLinea(db, n => { $("enLinea").hidden = !n; if (n) $("enLinea").textContent = textoEnLinea(n); });
 
 const $ = id => document.getElementById(id);
 function aviso(id, msg){ $(id).textContent = msg; $(id).classList.toggle("oculto", !msg); }

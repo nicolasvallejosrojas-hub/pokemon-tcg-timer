@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="robots" content="noindex">
+<title>Estadísticas — ByePass</title>
+<link rel="stylesheet" href="estilo.css?v=11">
+<style>
+  /* Cómo se usa ByePass, para quien administra el sitio (admins/<uid> = true).
+     Lo protegen las reglas: stats/, usuarios/ y solicitudes/ solo los lee
+     administración; la página solo esconde. Todo se calcula acá al abrirla,
+     con una lectura de cada cosa (el historial, con la caché de historial.js). */
+  body{min-height:100vh;}
+  .oculto{display:none !important;}
+  .ancho{width:100%;max-width:1000px;margin:0 auto;padding:var(--e4) var(--e4) var(--e6);box-sizing:border-box;}
+  h1,h2{margin:0;}
+  a{color:var(--accion-texto);}
+  .btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+
+  .sup{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:var(--e2);
+    min-height:56px;padding:0 max(var(--e4), env(safe-area-inset-right)) 0 max(var(--e4), env(safe-area-inset-left));}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);margin-right:auto;
+    color:var(--texto);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;}
+  .sup .btn{min-height:36px;padding:0 14px;font-size:var(--t2);background:transparent;}
+
+  .grande{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;}
+  .bajada{color:var(--apagado);font-size:var(--t3);margin:var(--e2) 0 0;line-height:1.5;}
+  .gtit{font-size:var(--t2);text-transform:uppercase;letter-spacing:.02em;color:var(--apagado);
+    margin:var(--e5) var(--e3) 7px;font-weight:400;display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 var(--e2);}
+  .grupo{background:var(--sup);border-radius:var(--radio);overflow:hidden;}
+  .nota{font-size:var(--t2);color:var(--apagado);line-height:1.5;margin:var(--e2) 0 0;}
+
+  /* ---------------------------------------------------------- controles */
+  .controles{display:flex;flex-wrap:wrap;align-items:center;gap:var(--e2);margin-top:var(--e4);}
+  .seg{display:inline-flex;background:var(--sup);border-radius:999px;padding:3px;}
+  .seg button{border:0;background:transparent;border-radius:999px;padding:0 14px;min-height:36px;font:inherit;font-size:var(--t2);
+    color:var(--apagado);cursor:pointer;font-variant-numeric:tabular-nums;}
+  .seg button[aria-pressed="true"]{background:var(--pagina);color:var(--texto);font-weight:600;box-shadow:0 1px 2px rgba(16,35,30,.14);}
+  .controles .btn{min-height:40px;padding:0 14px;font-size:var(--t2);}
+  .controles .hueco{flex:1;}
+  #leido{font-size:var(--t2);color:var(--rotulo);}
+
+  /* ---------------------------------------------------------- cifras */
+  .cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--e2);margin-top:var(--e4);}
+  .cifra{background:var(--sup);border-radius:var(--radio);padding:var(--e3) var(--e4);}
+  .cifra b{display:block;font-size:var(--d3);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .cifra span{display:block;font-size:var(--t2);color:var(--apagado);margin-top:2px;}
+  .cifra small{display:block;font-size:var(--t2);color:var(--rotulo);margin-top:4px;line-height:1.4;}
+  .cifra .punto{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:middle;}
+
+  /* ---------------------------------------------------------- gráficos */
+  .graf{padding:var(--e3) var(--e4) var(--e3);}
+  .graf svg{display:block;width:100%;height:auto;}
+  .ley{display:flex;flex-wrap:wrap;gap:4px var(--e3);font-size:var(--t2);color:var(--apagado);margin-top:8px;font-variant-numeric:tabular-nums;}
+  .ley i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
+  .b0{fill:color-mix(in srgb, var(--franja) 30%, transparent);} .b1{fill:var(--franja);}
+  .ley .b0{background:color-mix(in srgb, var(--franja) 30%, transparent);} .ley .b1{background:var(--franja);}
+  .ejes text{font-size:12px;fill:var(--rotulo);font-variant-numeric:tabular-nums;}
+  .ejes line{stroke:var(--divider);stroke-width:1;}
+  .vacio{padding:var(--e5) var(--e4);text-align:center;color:var(--apagado);font-size:var(--t2);}
+
+  /* ---------------------------------------------------------- tablas */
+  .desliza{overflow-x:auto;}
+  table.t{width:100%;border-collapse:collapse;font-size:var(--t2);}
+  table.t th{text-align:left;font-weight:600;color:var(--apagado);font-size:var(--t1);text-transform:uppercase;letter-spacing:.03em;
+    padding:10px 14px;border-bottom:1px solid var(--divider);white-space:nowrap;}
+  table.t td{padding:10px 14px;border-bottom:1px solid var(--divider);font-variant-numeric:tabular-nums;vertical-align:top;}
+  table.t tr:last-child td{border-bottom:0;}
+  table.t .n{text-align:right;}
+  table.t td small{display:block;color:var(--apagado);font-size:var(--t2);margin-top:1px;}
+  table.t td b{font-weight:600;}
+
+  /* ---------------------------------------------------------- barras horizontales */
+  .fila{display:grid;grid-template-columns:minmax(110px,190px) 1fr 64px;gap:12px;align-items:center;padding:9px 14px;font-size:var(--t2);}
+  .fila + .fila{border-top:1px solid var(--divider);}
+  .fila .bar{height:10px;border-radius:5px;background:var(--sup-alta);overflow:hidden;}
+  .fila .bar span{display:block;height:100%;background:var(--franja);border-radius:5px;}
+  .fila b{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--e3);}
+
+  @media (max-width:760px){
+    .cifras{grid-template-columns:repeat(2,1fr);}
+    .dos{grid-template-columns:1fr;}
+    .fila{grid-template-columns:96px 1fr 52px;}
+    .controles .hueco{display:none;}
+  }
+</style>
+</head>
+<body>
+  <header class="sup vidrio">
+    <a class="marca" href="index.html" data-link="inicio">ByePass</a>
+    <a class="btn" href="herramientas.html" data-link="herramientas">Herramientas</a>
+    <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
+  </header>
+
+  <main class="ancho">
+    <h1 class="grande">Estadísticas</h1>
+    <p class="bajada" id="bajada">Cargando…</p>
+
+    <div id="est" class="oculto">
+      <div class="controles">
+        <div class="seg" role="group" aria-label="Período">
+          <button data-dias="7">7 días</button><button data-dias="30" aria-pressed="true">30 días</button>
+          <button data-dias="90">90 días</button><button data-dias="0">Todo</button>
+        </div>
+        <span class="hueco"></span>
+        <span id="leido"></span>
+        <button class="btn" id="actualizar">Actualizar</button>
+        <button class="btn" id="csv">Descargar CSV</button>
+      </div>
+
+      <div class="cifras">
+        <div class="cifra"><b id="cCuentas">…</b><span>Cuentas</span><small id="cCuentasD"></small></div>
+        <div class="cifra"><b id="cTiendas">…</b><span>Tiendas</span><small id="cTiendasD"></small></div>
+        <div class="cifra"><b id="cTorneos">…</b><span>Torneos archivados</span><small id="cTorneosD"></small></div>
+        <div class="cifra"><b id="cJugadores">…</b><span>Jugadores en torneos</span><small id="cJugadoresD"></small></div>
+        <div class="cifra"><b id="cVisitas">…</b><span>Visitas</span><small id="cVisitasD"></small></div>
+        <div class="cifra"><b id="cLinea">…</b><span><i class="punto"></i>En línea ahora</span><small id="cLineaD"></small></div>
+        <div class="cifra"><b id="cPartidas">…</b><span>Partidas jugadas</span><small id="cPartidasD"></small></div>
+        <div class="cifra"><b id="cSolicitudes">…</b><span>Solicitudes por revisar</span><small id="cSolicitudesD"></small></div>
+      </div>
+
+      <h2 class="gtit">Visitas <span id="tVisitas"></span></h2>
+      <div class="grupo graf"><div id="gVisitas"></div>
+        <div class="ley"><span><i class="b0"></i>Visitas</span><span><i class="b1"></i>Visitantes únicos del día</span></div></div>
+
+      <div class="dos">
+        <div>
+          <h2 class="gtit">Cuentas nuevas <span id="tCuentas"></span></h2>
+          <div class="grupo graf"><div id="gCuentas"></div></div>
+        </div>
+        <div>
+          <h2 class="gtit">Jugadores en torneos <span id="tAsistencia"></span></h2>
+          <div class="grupo graf"><div id="gAsistencia"></div></div>
+        </div>
+      </div>
+
+      <div class="dos">
+        <div>
+          <h2 class="gtit">Visitas por página</h2>
+          <div class="grupo desliza" id="lPaginas"></div>
+        </div>
+        <div>
+          <h2 class="gtit">Cuentas</h2>
+          <div class="grupo" id="lCuentas"></div>
+        </div>
+      </div>
+
+      <h2 class="gtit">Tiendas <span id="tTiendas"></span></h2>
+      <div class="grupo desliza" id="lTiendas"></div>
+
+      <p class="nota" id="notas"></p>
+    </div>
+  </main>
+
+<script src="config.js?v=8"></script>
+<script type="module">
+import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { db, auth, enEmulador, urlCuenta } from "./sesion.js?v=8";
+import { nombreTienda } from "./sala.js?v=4";
+import { contarEnLinea } from "./presencia.js?v=4";
+import { historialUnaVez } from "./historial.js?v=1";
+import { barras } from "./graficos.js?v=1";
+
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const EMU = enEmulador() ? "emu=1&" : "";
+const DEST = { inicio: "index.html" + (EMU ? "?emu=1" : ""), tiendas: "tienda.html" + (EMU ? "?emu=1" : ""),
+               herramientas: "herramientas.html" + (EMU ? "?emu=1" : "") };
+document.querySelectorAll("[data-link]").forEach(a => a.href = DEST[a.dataset.link]);
+const aTienda = id => "tienda.html?" + EMU + "sala=" + encodeURIComponent(id);
+
+onAuthStateChanged(auth, async u => {
+  $("est").classList.add("oculto");
+  if (!u){ $("bajada").innerHTML = 'Entra con tu cuenta de administrador. <a href="' + urlCuenta("ingresar") + '">Entrar</a>'; return; }
+  let admin = false;
+  try { admin = (await get(ref(db, "admins/" + u.uid))).val() === true; } catch(e){}
+  if (!admin){ $("bajada").textContent = "Esta página es solo para quien administra el sitio."; return; }
+  $("bajada").textContent = "Cómo se usa ByePass: cuentas, tiendas, torneos y visitas.";
+  $("est").classList.remove("oculto");
+  contarEnLinea(db, (n, por) => {
+    $("cLinea").textContent = n == null ? "—" : n;
+    $("cLineaD").textContent = n ? Object.entries(por).sort((a, b) => b[1] - a[1]).map(([p, k]) => k + " en " + (PAGINA[p] || p)).join(" · ") : "";
+  });
+  cargar();
+});
+
+/* ------------------------------------------------------------ fechas
+   Todo en días locales, como YYYY-MM-DD: así se ordenan como texto. */
+const diaDe = ms => { const d = new Date(ms);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const hoy = () => diaDe(Date.now());
+const sumarDias = (dia, n) => { const d = new Date(dia + "T12:00:00"); d.setDate(d.getDate() + n); return diaDe(d.getTime()); };
+function diasEntre(desde, hasta){ const r = []; for (let d = desde; d <= hasta; d = sumarDias(d, 1)) r.push(d); return r; }
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const corta = dia => +dia.slice(8) + " " + MESES[+dia.slice(5, 7) - 1];
+/* El lunes de la semana de un día: agrupar por semana cuando el período es largo. */
+const lunes = dia => { const d = new Date(dia + "T12:00:00"); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return diaDe(d.getTime()); };
+const PAGINA = { portada: "portada", cuenta: "cuenta", muro: "muro", tiendas: "tiendas", timer: "timers",
+                 panel: "paneles", herramientas: "herramientas", widget: "widgets" };
+const NOMBRE_PAGINA = { portada: "Portada", cuenta: "Cuenta", muro: "Muro", tiendas: "Tiendas y perfiles", timer: "Timer y mesas (QR)",
+                        panel: "Panel del organizador", herramientas: "Herramientas", widget: "Widget en webs de tiendas" };
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+const fmtN = n => Math.round(n).toLocaleString("es-CL");
+const pct = (a, b) => b ? Math.round(100 * a / b) + "%" : "—";
+
+/* ------------------------------------------------------------ lectura */
+let D = null, DIAS = 30;
+async function cargar(){
+  $("leido").textContent = "Leyendo…";
+  const leer = r => get(ref(db, r)).then(s => s.val() || {}, () => null);
+  const [usuarios, altas, tiendas, solicitudes, stats] = await Promise.all(["usuarios", "altas", "tiendas", "solicitudes", "stats"].map(leer));
+  const hist = {};
+  await Promise.all(Object.keys(tiendas || {}).map(id => historialUnaVez(db, id).then(h => hist[id] = h || {})));
+  D = { usuarios: usuarios || {}, altas: altas || {}, tiendas: tiendas || {}, solicitudes: solicitudes || {}, stats: stats || {}, hist,
+        sinLeer: [["usuarios", usuarios], ["solicitudes", solicitudes], ["stats", stats]].filter(([, v]) => v === null).map(([k]) => k) };
+  $("leido").textContent = "Al " + new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+  pintar();
+}
+
+/* Todos los torneos de todas las tiendas, con lo que hace falta contar. */
+function torneos(){
+  const r = [];
+  for (const [id, h] of Object.entries(D.hist)) for (const t of Object.values(h || {})){
+    if (!t || !/^\d{4}-\d{2}-\d{2}$/.test(t.fecha || "")) continue;
+    const nombres = Object.values(t.standings || {}).filter(f => f && f.name && !f.reservado).map(f => norm(f.name));
+    r.push({ tienda: id, fecha: t.fecha, juego: t.juego || "", jugadores: t.jugadores || Object.keys(t.standings || {}).length,
+             nombres, partidas: Object.keys(t.partidas || {}).length });
+  }
+  return r;
+}
+/* Cuándo se creó cada cuenta: usuarios/<uid>/creado, y si falta, su alta. */
+const creadas = () => Object.keys(D.usuarios).map(u => D.usuarios[u].creado || D.altas[u]).filter(x => typeof x === "number");
+
+/* ------------------------------------------------------------ pintar */
+function rango(){
+  const h = hoy();
+  if (DIAS) return { desde: sumarDias(h, -(DIAS - 1)), hasta: h };
+  const fechas = [...creadas().map(diaDe), ...torneos().map(t => t.fecha), ...Object.keys((D.stats && D.stats.visitas) || {})].filter(Boolean).sort();
+  return { desde: fechas[0] || h, hasta: h };
+}
+function pintar(){
+  if (!D) return;
+  const { desde, hasta } = rango(), en = f => f >= desde && f <= hasta;
+  const dias = diasEntre(desde, hasta), semanal = dias.length > 120;
+  const txtPeriodo = DIAS ? "últimos " + DIAS + " días" : "desde el " + corta(desde) + " de " + desde.slice(0, 4);
+  const T = torneos(), Tp = T.filter(t => en(t.fecha));
+  const vis = (D.stats && D.stats.visitas) || {};
+
+  /* cifras */
+  const cu = creadas(), cuP = cu.filter(ms => en(diaDe(ms))).length, nCu = Object.keys(D.usuarios).length;
+  $("cCuentas").textContent = fmtN(nCu);
+  $("cCuentasD").textContent = "+" + fmtN(cuP) + " en " + (DIAS ? "los " + txtPeriodo : "total") + " · " +
+    pct(Object.values(D.usuarios).filter(x => x.playerId).length, nCu) + " con ID de jugador";
+  const ids = Object.keys(D.tiendas), activas = new Set(Tp.map(t => t.tienda));
+  $("cTiendas").textContent = fmtN(ids.length);
+  $("cTiendasD").textContent = ids.filter(i => D.tiendas[i].verificada).length + " verificadas · " + activas.size + " con torneos en el período";
+  $("cTorneos").textContent = fmtN(T.length);
+  $("cTorneosD").textContent = fmtN(Tp.length) + " en el período · " + (Tp.length ? (Tp.reduce((a, t) => a + t.jugadores, 0) / Tp.length).toFixed(1).replace(".", ",") + " jugadores en promedio" : "sin torneos");
+  const todos = new Set(T.flatMap(t => t.nombres)), delP = new Set(Tp.flatMap(t => t.nombres));
+  $("cJugadores").textContent = fmtN(todos.size);
+  $("cJugadoresD").textContent = fmtN(delP.size) + " distintos en el período · contados por nombre, con o sin cuenta";
+  let v = 0, uu = 0; for (const d of dias){ for (const x of Object.values(vis[d] || {})){ v += x.v || 0; uu += x.u || 0; } }
+  $("cVisitas").textContent = fmtN(v);
+  $("cVisitasD").textContent = fmtN(uu) + " visitantes únicos (sumados por día y página)";
+  $("cPartidas").textContent = fmtN(Tp.reduce((a, t) => a + t.partidas, 0));
+  $("cPartidasD").textContent = "en el período · " + fmtN(T.reduce((a, t) => a + t.partidas, 0)) + " en total";
+  const sol = Object.values(D.solicitudes);
+  $("cSolicitudes").textContent = fmtN(sol.filter(s => !s.aprobada && !s.rechazada).length);
+  $("cSolicitudesD").textContent = sol.filter(s => s.aprobada).length + " aprobadas · " + sol.filter(s => s.rechazada).length + " rechazadas";
+
+  /* gráficos: por día, o por semana si el período es largo */
+  const cubeta = d => semanal ? lunes(d) : d, claves = [...new Set(dias.map(cubeta))];
+  const etq = k => (semanal ? "sem. " : "") + corta(k);
+  const serie = () => Object.fromEntries(claves.map(k => [k, { x: k, a: 0, b: 0, t: 0 }]));
+  const sv = serie(); for (const d of dias){ for (const x of Object.values(vis[d] || {})){ sv[cubeta(d)].a += x.v || 0; sv[cubeta(d)].b += x.u || 0; } }
+  barras($("gVisitas"), Object.values(sv), { etq, desc: d => etq(d.x) + ": " + fmtN(d.a) + " visitas, " + fmtN(d.b) + " únicas" });
+  $("tVisitas").textContent = semanal ? "por semana" : "por día";
+  const sc = serie(); cu.forEach(ms => { const d = diaDe(ms); if (en(d)) sc[cubeta(d)].b++; });
+  barras($("gCuentas"), Object.values(sc), { etq, desc: d => etq(d.x) + ": " + fmtN(d.b) + (d.b === 1 ? " cuenta nueva" : " cuentas nuevas") });
+  $("tCuentas").textContent = semanal ? "por semana" : "por día";
+  const sa = serie(); Tp.forEach(t => { sa[cubeta(t.fecha)].b += t.jugadores; sa[cubeta(t.fecha)].t++; });
+  barras($("gAsistencia"), Object.values(sa), { etq, desc: d => etq(d.x) + ": " + fmtN(d.b) + " jugadores en " + d.t + (d.t === 1 ? " torneo" : " torneos") });
+  $("tAsistencia").textContent = semanal ? "por semana" : "por día";
+
+  /* visitas por página */
+  const pp = {}; for (const d of dias) for (const [p, x] of Object.entries(vis[d] || {})){ pp[p] ??= { v: 0, u: 0 }; pp[p].v += x.v || 0; pp[p].u += x.u || 0; }
+  const filasP = Object.entries(pp).sort((a, b) => b[1].v - a[1].v);
+  $("lPaginas").innerHTML = filasP.length ? '<table class="t"><tr><th>Página</th><th class="n">Visitas</th><th class="n">Únicas</th></tr>' +
+    filasP.map(([p, x]) => "<tr><td>" + esc(NOMBRE_PAGINA[p] || p) + '</td><td class="n">' + fmtN(x.v) + '</td><td class="n">' + fmtN(x.u) + "</td></tr>").join("") + "</table>"
+    : '<div class="vacio">Sin visitas contadas en el período.</div>';
+
+  /* cuentas: cómo son (solo cifras juntas, nunca de una persona) */
+  const U = Object.values(D.usuarios), n = U.length || 1;
+  const edad = x => { if (!/^\d{4}-\d{2}-\d{2}$/.test(x.nacimiento || "")) return null;
+    const b = new Date(x.nacimiento + "T12:00:00"), a = new Date(); let e = a.getFullYear() - b.getFullYear();
+    if (a < new Date(a.getFullYear(), b.getMonth(), b.getDate())) e--; return e; };
+  const TRAMOS = [["Menos de 13", 0, 12], ["13 a 17", 13, 17], ["18 a 24", 18, 24], ["25 a 34", 25, 34], ["35 o más", 35, 200]];
+  const edades = U.map(edad).filter(e => e != null);
+  const filasC = [["Con ID de jugador", U.filter(x => x.playerId).length], ["Perfil público", U.filter(x => x.publico).length],
+                  ["Siguen alguna tienda", U.filter(x => x.tiendas && Object.keys(x.tiendas).length).length]]
+    .map(([k, c]) => fila(k, c, n, pct(c, U.length)));
+  const filasE = TRAMOS.map(([k, a, b]) => { const c = edades.filter(e => e >= a && e <= b).length; return fila(k, c, edades.length || 1, pct(c, edades.length)); });
+  $("lCuentas").innerHTML = filasC.join("") + '<div class="fila" style="color:var(--apagado)"><span>Edad</span><span></span><span></span></div>' + filasE.join("");
+
+  /* tiendas */
+  const segu = {}; U.forEach(x => Object.keys(x.tiendas || {}).forEach(s => segu[s] = (segu[s] || 0) + 1));
+  const visT = (D.stats && D.stats.tiendas) || {};
+  const filasT = ids.map(id => {
+    const tt = T.filter(t => t.tienda === id), tp = tt.filter(t => en(t.fecha));
+    let vv = 0; for (const d of dias) for (const x of Object.values((visT[id] || {})[d] || {})) vv += x.v || 0;
+    const ult = tt.map(t => t.fecha).sort().pop();
+    return { id, p: D.tiendas[id].perfil || {}, ver: !!D.tiendas[id].verificada, tp: tp.length, tt: tt.length,
+             jug: new Set(tt.flatMap(t => t.nombres)).size, ult, seg: segu[id] || 0, vv };
+  }).sort((a, b) => b.tp - a.tp || b.vv - a.vv || b.tt - a.tt);
+  $("tTiendas").textContent = ids.length + (ids.length === 1 ? " tienda" : " tiendas");
+  $("lTiendas").innerHTML = filasT.length ? '<table class="t"><tr><th>Tienda</th><th class="n">Seguidores</th><th class="n">Torneos</th>' +
+    '<th class="n">Jugadores</th><th>Último torneo</th><th class="n">Visitas</th></tr>' + filasT.map(f =>
+      '<tr><td><b><a href="' + aTienda(f.id) + '">' + esc(nombreTienda(f.p, f.id)) + "</a></b><small>" + esc(f.p.comuna || "") +
+      (f.ver ? " · verificada" : "") + '</small></td><td class="n">' + fmtN(f.seg) + '</td><td class="n">' + fmtN(f.tp) +
+      "<small>" + fmtN(f.tt) + ' en total</small></td><td class="n">' + fmtN(f.jug) + "</td><td>" + (f.ult ? corta(f.ult) + " " + f.ult.slice(0, 4) : "—") +
+      '</td><td class="n">' + fmtN(f.vv) + "</td></tr>").join("") + "</table>"
+    : '<div class="vacio">Todavía no hay tiendas.</div>';
+
+  $("notas").innerHTML = "Visitas: cada vez que se abre una página se suma una; «únicas» cuenta un navegador una vez por día y página. " +
+    "No se guarda quién visita. Las visitas se cuentan desde que se publicó este contador." +
+    (D.sinLeer.length ? ' <b>No se pudo leer: ' + D.sinLeer.join(", ") + ". ¿Publicaste las reglas nuevas?</b>" : "");
+  CSV = { dias, vis, cu, T };
+}
+
+function fila(k, c, total, txt){
+  return '<div class="fila"><span>' + esc(k) + '</span><span class="bar"><span style="width:' + Math.round(100 * c / total) + '%"></span></span><b>' + txt + "</b></div>";
+}
+
+
+/* ------------------------------------------------------------ controles */
+document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+  DIAS = +b.dataset.dias;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  pintar();
+});
+$("actualizar").onclick = cargar;
+let redibujo = null;
+addEventListener("resize", () => { clearTimeout(redibujo); redibujo = setTimeout(pintar, 150); });
+
+/* El respaldo: una fila por día del período, para planillas o postulaciones. */
+let CSV = null;
+$("csv").onclick = () => {
+  if (!CSV) return;
+  const { dias, vis, cu, T } = CSV;
+  const filas = [["fecha", "visitas", "visitantes_unicos", "cuentas_nuevas", "torneos", "jugadores_en_torneos", "partidas"]];
+  for (const d of dias){
+    let v = 0, u = 0; for (const x of Object.values(vis[d] || {})){ v += x.v || 0; u += x.u || 0; }
+    const td = T.filter(t => t.fecha === d);
+    filas.push([d, v, u, cu.filter(ms => diaDe(ms) === d).length, td.length, td.reduce((a, t) => a + t.jugadores, 0), td.reduce((a, t) => a + t.partidas, 0)]);
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + filas.map(f => f.join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  a.download = "byepass-estadisticas-" + dias[0] + "-a-" + dias[dias.length - 1] + ".csv";
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
+</script>
+</body>
+</html>

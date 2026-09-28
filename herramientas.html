@@ -108,6 +108,7 @@
 <body>
   <header class="sup vidrio">
     <a class="marca" href="index.html" data-link="inicio">ByePass</a>
+    <a class="btn" href="estadisticas.html" data-link="estadisticas">Estadísticas</a>
     <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
     <a class="btn" href="muro.html" data-link="muro">Mi muro</a>
   </header>
@@ -123,6 +124,7 @@
         <div class="cifra"><b id="cfTiendas">…</b><span>Tiendas</span><small id="cfTiendasDet"></small></div>
         <div class="cifra"><b id="cfBuzon">…</b><span>Mensajes sin leer</span><small id="cfBuzonDet"></small></div>
       </div>
+      <p class="nota"><a href="estadisticas.html" data-link="estadisticas">Ver las estadísticas completas</a>: visitas, cuentas, torneos y tiendas en el tiempo.</p>
 
       <h2 class="gtit">Buzón de sugerencias y reportes <span id="bzResumen"></span></h2>
       <div class="grupo" id="bzLista"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
@@ -173,7 +175,7 @@ import { ref, onValue, get, set, update, remove } from "https://www.gstatic.com/
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=8";
 import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=4";
-import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=2";
+import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "herramientas");
 
 const $ = id => document.getElementById(id);
@@ -183,7 +185,8 @@ const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
 const EMU = enEmulador() ? "emu=1&" : "";
 const aTienda = id => "tienda.html?" + EMU + "sala=" + encodeURIComponent(id);
 const aPanel  = id => "admin.html?" + EMU + "sala=" + encodeURIComponent(id);
-const DEST = { inicio: "index.html" + (EMU ? "?emu=1" : ""), tiendas: "tienda.html" + (EMU ? "?emu=1" : ""), muro: urlMuro() };
+const DEST = { inicio: "index.html" + (EMU ? "?emu=1" : ""), tiendas: "tienda.html" + (EMU ? "?emu=1" : ""), muro: urlMuro(),
+               estadisticas: "estadisticas.html" + (EMU ? "?emu=1" : "") };
 document.querySelectorAll("[data-link]").forEach(a => a.href = DEST[a.dataset.link]);
 
 onAuthStateChanged(auth, async u => {

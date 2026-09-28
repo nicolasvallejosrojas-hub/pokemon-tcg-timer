@@ -340,7 +340,6 @@
     <a class="logo" href="muro.html">ByePass</a>
     <input id="buscar" type="search" placeholder="Buscar un jugador en el historial" aria-label="Buscar un jugador en el historial">
     <div class="yo">
-      <span class="enlinea" id="enLinea" hidden></span>
       <span id="miNombre"></span>
       <button id="btnSalir">Salir</button>
     </div>
@@ -518,7 +517,7 @@ import { estaVigente, urlGoogle, fechaLegible, cuantoFalta, ordenar } from "./ag
    tienda de ese timer: historial, agenda, a quién sigo y mi ID compartido. */
 import { SALA, BASE, TIENDA, BASE_T, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
 import { nombreMes } from "./clasificacion.js?v=1";
-import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=2";
+import { estoyEnLinea } from "./presencia.js?v=4";
 import { leerHistorial } from "./historial.js?v=1";
 import { vigilar } from "./mantenimiento.js?v=3";
 import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga } from "./insignias.js?v=1";
@@ -536,9 +535,7 @@ if (typeof EMULADOR !== "undefined" && EMULADOR){
   connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
 }
 vigilar(db, auth);   // la pantalla de mantenimiento
-estoyEnLinea(db, "muro");
-/* Corto en la barra: «12 en línea». */
-contarEnLinea(db, n => { $("enLinea").hidden = !n; if (n) $("enLinea").textContent = n + " en línea"; });
+estoyEnLinea(db, "muro", TIENDA);
 /* muro.html?sala=X#jugador=<nombre> abre el perfil de ese jugador (lo usa la
    búsqueda de jugadores del directorio). Se lee antes de que verTab limpie el #. */
 let JUG_PEDIDO = (/^#jugador=(.+)$/.exec(location.hash) || [])[1];
@@ -1350,7 +1347,7 @@ function pintarProximo(){
     return;
   }
   $("proximo").innerHTML =
-    "<div style=\"font-weight:700\">" + esc(ev.titulo) + "</div>" +
+    "<div style=\"font-weight:700\">" + (ev.juego ? '<span style="color:var(--franja)">' + esc(ev.juego) + "</span> · " : "") + esc(ev.titulo) + "</div>" +
     '<div style="font-size:var(--t2);color:var(--apagado);margin-top:2px">' +
     esc(nombreTienda(TD[ev.sala] && TD[ev.sala].tienda && TD[ev.sala].tienda.perfil, ev.sala)) + "<br>" +
     esc(fechaLegible(ev.fecha)) + (ev.hora ? " · " + esc(ev.hora) : "") +

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="robots" content="noindex">
+<title>Torneos — ByePass</title>
+<link rel="stylesheet" href="estilo.css?v=11">
+<style>
+  /* La agenda y el ranking del mes de UNA tienda, para meter en su propia web
+     con un <iframe> (el código lo da el panel, pestaña Tienda).
+       widget.html?sala=<tienda>              agenda y ranking
+       widget.html?sala=<tienda>&ver=agenda   solo la agenda (o ver=ranking)
+     Lee una vez, cuenta la visita como «widget» y suelta la conexión: una web
+     ajena no debe dejar abierta una conexión a Firebase por cada visitante.
+     Sin sesión ni pantalla de mantenimiento: todo lo que muestra es público. */
+  body{margin:0;background:var(--pagina);color:var(--texto);}
+  .w{padding:16px;max-width:520px;margin:0 auto;box-sizing:border-box;}
+  .cab{display:flex;align-items:center;gap:12px;}
+  .logoT{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--c, var(--franja));
+    color:#fff;font-weight:700;font-size:15px;letter-spacing:-.02em;}
+  .cab b{display:block;font-size:var(--t4);font-weight:700;letter-spacing:-.01em;line-height:1.25;overflow-wrap:anywhere;}
+  .cab small{display:block;font-size:var(--t2);color:var(--apagado);margin-top:1px;}
+  .tit{font-size:var(--t1);text-transform:uppercase;letter-spacing:.06em;color:var(--apagado);margin:18px 4px 8px;font-weight:600;}
+  .grupo{background:var(--sup);border-radius:var(--radio);overflow:hidden;}
+  .fila{display:flex;align-items:center;gap:12px;padding:10px 14px;min-height:48px;color:inherit;text-decoration:none;}
+  .fila + .fila{border-top:1px solid var(--divider);}
+  a.fila:hover{background:color-mix(in srgb, var(--texto) 4%, transparent);}
+  .fecha{flex:none;width:40px;text-align:center;}
+  .fecha .d{font-size:var(--t5);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+  .fecha .m{font-size:var(--t1);letter-spacing:.08em;text-transform:uppercase;color:var(--accion-texto);font-weight:700;margin-top:3px;}
+  .txt{flex:1;min-width:0;}
+  .txt b{display:block;font-weight:600;line-height:1.3;overflow-wrap:anywhere;}
+  .txt small{display:block;font-size:var(--t2);color:var(--apagado);line-height:1.4;margin-top:1px;}
+  .chipJuego{display:inline-block;font-size:var(--t2);font-weight:600;line-height:1.35;padding:1px 9px;border-radius:999px;
+    background:color-mix(in srgb, var(--franja) 14%, transparent);color:var(--franja);vertical-align:1px;margin-right:6px;white-space:nowrap;}
+  .pos{flex:none;width:26px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;color:var(--apagado);}
+  .pos.p1{color:var(--accion-texto);}
+  .pts{flex:none;font-weight:700;font-variant-numeric:tabular-nums;}
+  .pts small{font-weight:400;color:var(--apagado);font-size:var(--t2);margin-left:3px;}
+  .vacio{padding:16px 14px;color:var(--apagado);font-size:var(--t2);}
+  .pie{display:flex;justify-content:center;margin-top:14px;font-size:var(--t2);}
+  .pie a{color:var(--apagado);text-decoration:none;display:inline-flex;align-items:baseline;gap:6px;min-height:32px;align-items:center;}
+  .pie a:hover{color:var(--texto);}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t4);color:var(--texto);}
+  .marca span{color:var(--accion-texto);}
+</style>
+</head>
+<body>
+<main class="w" aria-live="polite">
+  <div class="cab"><span class="logoT" id="logo" aria-hidden="true"></span><div><b id="nombre">Cargando…</b><small id="sub"></small></div></div>
+  <section id="secAgenda"><h2 class="tit">Próximos torneos</h2><div class="grupo" id="agenda"></div></section>
+  <section id="secRanking"><h2 class="tit" id="titRanking">Ranking del mes</h2><div class="grupo" id="ranking"></div></section>
+  <div class="pie"><a id="pie" target="_blank" rel="noopener">Ver todo en <span class="marca">Bye<span>Pass</span></span></a></div>
+</main>
+
+<script src="config.js?v=8"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, connectDatabaseEmulator, ref, get, goOffline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { TIENDA, nombreTienda, iniciales } from "./sala.js?v=4";
+import { estaVigente, urlGoogle, ordenar } from "./agenda.js?v=4";
+import { clasificar, mesesDe, nombreMes, PUNTOS_DEF } from "./clasificacion.js?v=1";
+import { historialUnaVez } from "./historial.js?v=1";
+import { contarVisita } from "./presencia.js?v=4";
+
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const db = getDatabase(initializeApp(FIREBASE_CONFIG));
+const EMU = typeof EMULADOR !== "undefined" && EMULADOR;
+if (EMU) connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
+const ver = new URLSearchParams(location.search).get("ver");
+$("secAgenda").hidden = ver === "ranking";
+$("secRanking").hidden = ver === "agenda";
+$("pie").href = "tienda.html?" + (EMU ? "emu=1&" : "") + "sala=" + encodeURIComponent(TIENDA);
+const MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+async function cargar(){
+  if (!TIENDA || TIENDA === "principal"){ $("nombre").textContent = "Falta la tienda en el enlace."; return; }
+  const leer = r => get(ref(db, r)).then(s => s.val(), () => null);
+  const [tienda, agenda, config, hist] = await Promise.all([leer("tiendas/" + TIENDA), leer("salas/" + TIENDA + "/agenda"),
+    leer("salas/" + TIENDA + "/config"), historialUnaVez(db, TIENDA)]);
+  const perfil = tienda && tienda.perfil;
+  if (!perfil){ $("nombre").textContent = "Esta tienda no está en ByePass."; $("secAgenda").hidden = $("secRanking").hidden = true; return; }
+  const nom = nombreTienda(perfil, TIENDA);
+  document.title = "Torneos de " + nom + " — ByePass";
+  $("nombre").textContent = nom;
+  $("sub").textContent = [perfil.comuna, "Torneos y ranking"].filter(Boolean).join(" · ");
+  $("logo").textContent = iniciales(nom);
+  if (perfil.color) $("logo").style.setProperty("--c", perfil.color);
+
+  const prox = ordenar(Object.entries(agenda || {}).map(([id, e]) => ({ id, ...e })).filter(e => e && e.titulo && e.fecha && estaVigente(e))).slice(0, 4);
+  $("agenda").innerHTML = prox.length ? prox.map(e => {
+    const [, m, d] = e.fecha.split("-");
+    return '<a class="fila" href="' + esc(urlGoogle(e)) + '" target="_blank" rel="noopener" title="Agregar a mi calendario">' +
+      '<div class="fecha"><div class="d">' + (+d) + '</div><div class="m">' + MES[+m - 1] + "</div></div>" +
+      '<div class="txt"><b>' + (e.juego ? '<span class="chipJuego">' + esc(e.juego) + "</span>" : "") + esc(e.titulo) + "</b><small>" +
+      esc([e.hora ? e.hora + " h" : "Todo el día", e.lugar || ""].filter(Boolean).join(" · ")) + "</small></div></a>"; }).join("")
+    : '<div class="vacio">No hay fechas anunciadas.</div>';
+
+  /* El ranking del mes en curso; si este mes no hubo torneos, el último que tuvo. */
+  const torneos = Object.values(hist || {});
+  const cfg = config && Array.isArray(config.puntos) ? { puntos: config.puntos, resto: config.resto ?? 1 } : PUNTOS_DEF;
+  const mes = mesesDe(torneos)[0];
+  if (!mes){ $("ranking").innerHTML = '<div class="vacio">Todavía no hay torneos archivados.</div>'; }
+  else {
+    $("titRanking").textContent = "Ranking de " + nombreMes(mes);
+    $("ranking").innerHTML = clasificar(torneos, mes, cfg).slice(0, 8).map((f, i) =>
+      '<div class="fila"><span class="pos' + (i === 0 ? " p1" : "") + '">' + (i + 1) + '</span><div class="txt"><b>' +
+      esc(f.reservado ? "Jugador reservado" : f.name) + "</b><small>" + f.torneos + (f.torneos === 1 ? " torneo" : " torneos") +
+      '</small></div><span class="pts">' + f.pts + "<small>pts</small></span></div>").join("");
+  }
+  await contarVisita(db, "widget", TIENDA);
+}
+cargar().catch(() => { $("nombre").textContent = "No se pudo cargar. Prueba de nuevo más tarde."; })
+  .finally(() => { try { goOffline(db); } catch(e){} });
+</script>
+</body>
+</html>

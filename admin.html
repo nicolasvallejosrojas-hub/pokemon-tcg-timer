@@ -388,6 +388,41 @@
   .evFecha .m{font-size:var(--t1);letter-spacing:.1em;color:var(--apagado);font-weight:600;text-transform:uppercase;margin-top:3px;}
   .evMid{flex:1;min-width:0;}
   .evTit{font-size:var(--t4);font-weight:600;line-height:1.3;}
+  /* El juego del evento o del torneo, como etiqueta chica antes del título. */
+  /* Tiempo extra por mesa, debajo del lienzo del timer. */
+  #extraMesa{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--divider);}
+  #extraMesa b{font-size:var(--t3);font-weight:600;margin-right:4px;}
+  #extraMesa input{width:5.5em;}
+  .exChip{display:inline-flex;align-items:center;gap:4px;font-size:var(--t2);padding:3px 4px 3px 11px;border-radius:999px;
+    background:color-mix(in srgb, var(--franja) 14%, transparent);font-variant-numeric:tabular-nums;}
+  .exChip button{min-height:28px;min-width:28px;padding:0;border-radius:50%;background:transparent;font-size:16px;line-height:1;}
+  /* Estadísticas de la tienda: cifras, gráficos (graficos.js) y barras. */
+  .etCifras{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
+  .etCifra{background:var(--pagina);border-radius:var(--radio);padding:10px 12px;}
+  .etCifra b{display:block;font-size:var(--d3);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .etCifra span{display:block;font-size:var(--t2);color:var(--apagado);margin-top:2px;}
+  .etCifra small{display:block;font-size:var(--t2);color:var(--rotulo);margin-top:4px;line-height:1.4;}
+  .etTit{font-size:var(--t3);font-weight:600;margin-bottom:8px;}
+  .etGraf svg{display:block;width:100%;height:auto;}
+  .etGraf .b0{fill:color-mix(in srgb, var(--franja) 30%, transparent);} .etGraf .b1{fill:var(--franja);}
+  .etGraf .ejes text{font-size:12px;fill:var(--rotulo);font-variant-numeric:tabular-nums;}
+  .etGraf .ejes line{stroke:var(--divider);}
+  .etGraf .vacio{padding:20px 0;text-align:center;color:var(--apagado);font-size:var(--t2);}
+  .etLey{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:var(--t2);color:var(--apagado);margin-top:6px;}
+  .etLey i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
+  .etLey .b0{background:color-mix(in srgb, var(--franja) 30%, transparent);} .etLey .b1{background:var(--franja);}
+  .etFila{display:grid;grid-template-columns:minmax(90px,170px) 1fr 52px;gap:10px;align-items:center;padding:7px 0;font-size:var(--t2);}
+  .etFila + .etFila{border-top:1px solid var(--divider);}
+  .etFila small{display:block;color:var(--apagado);}
+  .etFila b{text-align:right;font-variant-numeric:tabular-nums;}
+  .etBar{height:10px;border-radius:5px;background:var(--pagina);overflow:hidden;}
+  .etBar span{display:block;height:100%;background:var(--franja);border-radius:5px;}
+  .etNum{text-align:right;font-variant-numeric:tabular-nums;}
+  .etDos{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;max-width:872px;align-items:start;}
+  #sinRed{max-width:840px;margin-bottom:14px;}
+  @media (max-width:700px){ .etCifras{grid-template-columns:repeat(2,1fr);} .etDos{grid-template-columns:1fr;} }
+  .chipJuego{display:inline-block;font-size:var(--t2);font-weight:600;line-height:1.35;padding:1px 9px;border-radius:999px;
+    background:color-mix(in srgb, var(--franja) 14%, transparent);color:var(--franja);vertical-align:2px;margin-right:6px;white-space:nowrap;}
   .evMeta{font-size:var(--t2);color:var(--apagado);margin-top:3px;line-height:1.5;}
   .evAcc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
   #evForm.editando{box-shadow:inset 0 0 0 1px var(--accion);border-radius:var(--radio);padding:10px;margin:-10px;}
@@ -465,9 +500,12 @@
   <button id="tabS">Sorteo</button>
   <button id="tabC">Calendario</button>
   <button id="tabO">Tienda</button>
+  <button id="tabE">Estadísticas</button>
 </nav>
 
 <main>
+<!-- Sin señal: el panel sigue (Firebase guarda lo escrito y lo manda al volver), pero cerrar la pestaña lo perdería. -->
+<div id="sinRed" class="aviso" role="status" hidden></div>
 
 <!-- ============================================================
      TIMER
@@ -527,6 +565,17 @@
     <span id="syncMsg" class="muted" style="flex:1"></span>
     <span class="muted">Clic derecho sobre el lienzo para agregar cajitas.</span>
   </div>
+  <div id="extraMesa">
+    <b>Tiempo extra por mesa</b>
+    <label style="margin:0">Mesa <input type="number" id="exMesa" min="1" max="999" inputmode="numeric"></label>
+    <select id="exMin" aria-label="Minutos extra">
+      <option value="1">+1 min</option><option value="2">+2 min</option><option value="3" selected>+3 min</option>
+      <option value="5">+5 min</option><option value="10">+10 min</option>
+    </select>
+    <button class="tbtn" id="exAgregar">Sumar</button>
+    <span id="exLista" style="display:contents"></span>
+  </div>
+  <div class="muted" style="margin-top:4px">Para una consulta larga al juez: la tele y los celulares muestran cuánto le queda a esa mesa. Reiniciar el reloj lo borra.</div>
 </div>
 
 <!-- ============================================================
@@ -758,6 +807,8 @@
     Reci&eacute;n entonces suma a la clasificaci&oacute;n mensual. TOM no avisa cu&aacute;l es la &uacute;ltima ronda, as&iacute; que el bot&oacute;n es manual.</div>
   <div class="row" style="align-items:center">
     <label style="white-space:nowrap">Fecha del torneo <input type="date" id="archDate" style="width:auto"></label>
+    <label style="white-space:nowrap">Juego <input id="archJuego" list="archJuegos" maxlength="40" placeholder="Opcional" style="width:12em"></label>
+    <datalist id="archJuegos"></datalist>
     <button id="archiveBtn" disabled>Archivar torneo</button>
   </div>
   <div id="archMsg" class="muted" style="margin-top:6px"></div>
@@ -781,6 +832,18 @@
   <div id="bjLista" style="margin-top:6px"></div>
   <div id="bjMsg" class="muted" style="margin-top:6px"></div>
 </div>
+</div>
+
+<div class="card" id="premiosCard">
+  <div style="font-size:var(--t3);margin-bottom:6px">Reparto de premios</div>
+  <div class="muted" style="margin-bottom:10px">Cuántos sobres (o lo que repartas) le tocan a cada puesto, con la tabla publicada.</div>
+  <div class="row" style="align-items:flex-end">
+    <label style="margin:0">Para repartir <input type="number" id="prTotal" min="1" max="9999" placeholder="24" inputmode="numeric" style="width:7em"></label>
+    <label style="margin:0">Entre los <select id="prCuantos"></select></label>
+    <label style="margin:0">Reparto <select id="prModo"><option value="escalon">Más para los primeros</option><option value="parejo">Parejo</option></select></label>
+    <button class="sec small" id="prCopiar" disabled>Copiar</button>
+  </div>
+  <div id="prTabla" class="muted" style="margin-top:10px"></div>
 </div>
 
 <div class="card">
@@ -880,6 +943,10 @@
     </div>
     <label>T&iacute;tulo
       <input id="evTit" style="width:100%;margin-top:4px" placeholder="Torneo mensual Primer Bloque" maxlength="80">
+    </label>
+    <label>Juego <span class="muted">(opcional &mdash; los jugadores filtran la agenda por juego)</span>
+      <input id="evJuego" list="evJuegos" style="width:100%;margin-top:4px" placeholder="El nombre del juego, igual cada vez" maxlength="40">
+      <datalist id="evJuegos"></datalist>
     </label>
 
     <div class="row" style="margin-top:10px;align-items:flex-end">
@@ -1004,6 +1071,50 @@
       <div class="row" style="margin-top:12px"><button id="ieCrear">Crear insignia</button><span id="ieMsg" class="muted"></span></div>
     </div>
   </div>
+
+  <div class="card" id="widgetCard">
+    <h2 class="h2p">Tu agenda y ranking en tu web</h2>
+    <div class="muted" style="margin-bottom:10px">Pega este código en la página de tu tienda (en Wix, WordPress o Shopify: un bloque
+      «HTML» o «Insertar código»). Se actualiza solo con cada fecha y cada torneo que archives.</div>
+    <div class="row" style="align-items:center">
+      <label style="margin:0">Mostrar <select id="wgVer">
+        <option value="">Agenda y ranking</option><option value="agenda">Solo la agenda</option><option value="ranking">Solo el ranking</option>
+      </select></label>
+      <a id="wgPrev" class="btn small sec" target="_blank" rel="noopener">Ver cómo queda</a>
+    </div>
+    <textarea id="wgCodigo" readonly rows="3" style="width:100%;margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:var(--t2)"
+              aria-label="Código para pegar en tu web"></textarea>
+    <div class="row" style="margin-top:6px"><button id="wgCopiar" class="small">Copiar código</button><span id="wgMsg" class="muted"></span></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ESTADÍSTICAS de la tienda: torneos, jugadores y visitas
+     ============================================================ -->
+<div class="panel hide" id="panelE">
+  <div class="card">
+    <div class="row" style="align-items:center"><h2 class="h2p" style="margin:0;flex:1">Estadísticas de la tienda</h2>
+      <button class="small sec" id="etActualizar">Actualizar</button></div>
+    <div class="muted" style="margin-top:4px">Salen de tus torneos archivados y de las visitas a las páginas de tu tienda:
+      su perfil, el timer con las mesas, su muro y el widget en tu web. Las visitas se cuentan sin saber quién visita.</div>
+    <div class="etCifras">
+      <div class="etCifra"><b id="etTorneos">…</b><span>Torneos archivados</span><small id="etTorneosD"></small></div>
+      <div class="etCifra"><b id="etJug">…</b><span>Jugadores distintos</span><small id="etJugD"></small></div>
+      <div class="etCifra"><b id="etProm">…</b><span>Jugadores por torneo</span><small id="etPromD"></small></div>
+      <div class="etCifra"><b id="etVis">…</b><span>Visitas en 30 días</span><small id="etVisD"></small></div>
+    </div>
+  </div>
+  <div class="card"><div class="etTit">Jugadores por torneo <span class="muted">— los últimos 20</span></div><div class="etGraf" id="etGAsis"></div></div>
+  <div class="card"><div class="etTit">Jugadores por mes</div><div class="etGraf" id="etGMes"></div>
+    <div class="etLey"><span><i class="b0"></i>Jugaron ese mes</span><span><i class="b1"></i>Ya habían venido antes</span></div></div>
+  <div class="card"><div class="etTit">Visitas de los últimos 30 días</div><div class="etGraf" id="etGVis"></div>
+    <div class="etLey"><span><i class="b0"></i>Visitas</span><span><i class="b1"></i>Visitantes únicos del día</span></div>
+    <div id="etPaginas" style="margin-top:10px"></div></div>
+  <div class="etDos">
+    <div class="card"><div class="etTit">Qué días vienen más</div><div id="etDias"></div></div>
+    <div class="card"><div class="etTit">Los que más vienen</div><div id="etTop"></div></div>
+  </div>
+  <div class="card" id="etJuegosCard" hidden><div class="etTit">Torneos por juego</div><div id="etJuegos"></div></div>
 </div>
 
 <!-- ============ QR (común a todas las pestañas) ============ -->
@@ -1032,7 +1143,8 @@ import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, or
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=4";
 import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
 import { vigilar } from "./mantenimiento.js?v=3";
-import { estoyEnLinea } from "./presencia.js?v=2";
+import { estoyEnLinea } from "./presencia.js?v=4";
+import { barras } from "./graficos.js?v=1";
 import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=1";
 import { rondasDe, resumen, tabla, emparejar, rondasSugeridas, aPairings, aHistorial,
          delCorte, emparejarCorte, clasificacion, tamanoCorte, corteTerminado, nombreCorte, CORTES,
@@ -1595,7 +1707,7 @@ $("ieCrear").onclick = async () => {
 
 /* Una entrada por pestaña: agregar una más es agregar una línea acá y el
    botón en el HTML, no seis toggles repartidos. */
-const PESTANAS = { t:"panelT", p:"panelP", s:"panelS", c:"panelC", o:"panelO" };
+const PESTANAS = { t:"panelT", p:"panelP", s:"panelS", c:"panelC", o:"panelO", e:"panelE" };
 function switchTab(t){
   for (const [k, panel] of Object.entries(PESTANAS)){
     $(panel).classList.toggle("hide", k !== t);
@@ -1603,6 +1715,8 @@ function switchTab(t){
   }
   if (t === "s") pintarRuleta();
   if (t === "c") renderAgenda();
+  if (t === "e") pintarEstTienda();
+  if (t === "o") pintarWidget();
 }
 Object.keys(PESTANAS).forEach(k => $("tab" + k.toUpperCase()).onclick = () => switchTab(k));
 
@@ -1897,7 +2011,28 @@ function startPause(){
 function reset(){
   st.paused = true; st.remaining = st.resetSec; st.endTime = null; alarmFired = false;
   publishState(); renderClock();
+  if (Object.keys(EXTRAS).length) remove(R_EXTRAS).catch(() => {});   // el tiempo extra era de la ronda que terminó
 }
+
+/* Tiempo extra por mesa: minutos que se suman solo a una mesa (una consulta
+   larga al juez). Vive en timer/extras/<mesa> = minutos; timer-view lo muestra
+   debajo del reloj. Sumar dos veces a la misma mesa acumula, hasta 60. */
+const R_EXTRAS = ref(db, BASE + "/timer/extras");
+let EXTRAS = {};
+onValue(R_EXTRAS, s => { EXTRAS = s.val() || {}; pintarExtras(); }, () => {});
+function pintarExtras(){
+  $("exLista").innerHTML = Object.keys(EXTRAS).sort((a, b) => a - b).map(m =>
+    '<span class="exChip">Mesa ' + esc(m) + " · +" + EXTRAS[m] + ' min<button class="sec" data-m="' + esc(m) +
+    '" aria-label="Quitar el tiempo extra de la mesa ' + esc(m) + '" title="Quitar">×</button></span>').join("");
+  $("exLista").querySelectorAll("button").forEach(b => b.onclick = () => remove(ref(db, BASE + "/timer/extras/" + b.dataset.m)).catch(() => {}));
+}
+$("exAgregar").onclick = () => {
+  const m = parseInt($("exMesa").value, 10);
+  if (!(m >= 1 && m <= 999)) return $("exMesa").focus();
+  set(ref(db, BASE + "/timer/extras/" + m), Math.min(60, (EXTRAS[m] || 0) + +$("exMin").value))
+    .then(() => { $("exMesa").value = ""; }, e => { $("syncMsg").innerHTML = '<span class="err">No se pudo sumar: ' + esc(e.code || e.message) + "</span>"; });
+};
+$("exMesa").onkeydown = e => { if (e.key === "Enter") $("exAgregar").click(); };
 function setPreset(m){ st.presetMin = m; st.resetSec = m*60; reset(); renderPresets(); }
 
 $("toggleBtn").onclick = startPause;
@@ -2819,9 +2954,52 @@ setInterval(() => { if (vigHandle) pintarVig(); }, 1000);
    El dato ya existe: lo escribe la pestaña Emparejamientos al publicar. Acá
    solo se lee, y si no hay nada publicado la línea desaparece sola.
    ========================================================= */
+/* ------------------------------------------------------------ reparto de premios
+   Con la tabla publicada (sirve igual con TOM y con el torneo de la página).
+   «Más para los primeros»: el 1º pesa k, el 2º k-1… y el último 1. Lo que no
+   alcanza a repartirse entero va a los decimales más altos, que por cómo son
+   los pesos siempre son los mejores puestos: nadie recibe más que alguien que
+   le ganó. Se recuerda lo elegido en este computador. */
+function repartir(total, k, modo){
+  const pesos = Array.from({ length: k }, (_, i) => modo === "parejo" ? 1 : k - i), suma = pesos.reduce((a, b) => a + b, 0);
+  const crudo = pesos.map(w => total * w / suma), base = crudo.map(Math.floor);
+  let falta = total - base.reduce((a, b) => a + b, 0);
+  crudo.map((c, i) => [c - base[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => { if (falta > 0){ base[i]++; falta--; } });
+  return base;
+}
+function posicionesPublicadas(){
+  return Object.values((PUB && PUB.standings) || {}).filter(f => f && f.name).sort((a, b) => (+a.place || 999) - (+b.place || 999));
+}
+let PR_TXT = "";
+function pintarPremios(){
+  const pos = posicionesPublicadas(), n = pos.length || 16;
+  const antes = $("prCuantos").value || (() => { try { return localStorage.getItem(LS("premiosCuantos")) || ""; } catch(e){ return ""; } })();
+  const opciones = [...new Set([1, 2, 3, 4, 6, 8, 12, 16, 24, 32].filter(k => k <= n).concat(pos.length ? [pos.length] : []))].sort((a, b) => a - b);
+  $("prCuantos").innerHTML = opciones.map(k => '<option value="' + k + '">' + (pos.length && k === pos.length ? "todos (" + k + ")" : k + " primeros") + "</option>").join("");
+  $("prCuantos").value = opciones.includes(+antes) ? antes : String(opciones.filter(k => k <= Math.max(1, Math.ceil(n / 4))).pop() || opciones[0]);
+  const total = parseInt($("prTotal").value, 10), k = +$("prCuantos").value, modo = $("prModo").value;
+  $("prCopiar").disabled = true; PR_TXT = "";
+  if (!(total > 0)){ $("prTabla").textContent = pos.length ? "Escribe cuánto hay para repartir." :
+    "Todavía no hay posiciones publicadas: el reparto sale por puesto igual. Escribe cuánto hay para repartir."; return; }
+  const r = repartir(total, k, modo);
+  const filas = r.map((c, i) => ({ puesto: pos[i] ? pos[i].place : i + 1, nombre: pos[i] ? pos[i].name : "", c }));
+  $("prTabla").className = "";
+  $("prTabla").innerHTML = '<table><tr><th>#</th><th>Jugador</th><th style="text-align:right">Le toca</th></tr>' +
+    filas.map(f => "<tr><td>" + esc(f.puesto) + "º</td><td>" + esc(f.nombre || "—") + '</td><td style="text-align:right;font-variant-numeric:tabular-nums"><b>' + f.c + "</b></td></tr>").join("") + "</table>";
+  PR_TXT = "Premios" + (PUB && PUB.name ? " — " + PUB.name : "") + "\n" + filas.map(f => f.puesto + "º " + (f.nombre ? f.nombre + ": " : "") + f.c).join("\n");
+  $("prCopiar").disabled = false;
+}
+["prTotal", "prCuantos", "prModo"].forEach(id => $(id).addEventListener("input", () => {
+  if (id === "prCuantos") try { localStorage.setItem(LS("premiosCuantos"), $("prCuantos").value); } catch(e){}
+  pintarPremios();
+}));
+$("prCopiar").onclick = () => navigator.clipboard.writeText(PR_TXT).then(() => { $("prCopiar").textContent = "Copiado ✓"; setTimeout(() => $("prCopiar").textContent = "Copiar", 1800); },
+  () => prompt("Copia el reparto:", PR_TXT));
+
 onValue(ref(db, BASE + "/pairings"), snap => {
   const p = snap.val();
   PUB = p;   // la base de publicarPairings
+  pintarPremios();
   if (!p || !p.rounds || !p.rounds.length){
     $("ttitle").textContent = "Timer de torneo";
     $("tsubt").textContent = "";
@@ -2908,6 +3086,7 @@ async function archivarTorneo(){
     mes: f.slice(0,7),
     rondas: parsed.lastRound,
     jugadores: parsed.standings.length,
+    ...($("archJuego").value.trim() ? { juego: $("archJuego").value.trim().replace(/\s+/g, " ") } : {}),
     /* La fila lleva el uid solo si ese jugador compartio su ID con la sala.
        Es lo que despues deja que su perfil reconozca el torneo sin depender de
        que el nombre este escrito igual que en el .tdf. El ID no viaja: el uid
@@ -2943,7 +3122,7 @@ $("archiveBtn").onclick = archivarTorneo;
 
 onValue(R_HIST, snap => {
   const v = snap.val() || {};
-  HIST_P = v; pintarInsPanel();
+  HIST_P = v; pintarInsPanel(); pintarJuegos();
   const items = Object.entries(v).sort((a,b) => (b[1].creado||0) - (a[1].creado||0));
   if (!items.length){ $("histList").textContent = "Aún no hay torneos archivados."; return; }
   $("histList").innerHTML = "";
@@ -2951,7 +3130,7 @@ onValue(R_HIST, snap => {
     const row = document.createElement("div");
     row.className = "row";
     row.style.cssText = "align-items:center;padding:6px 0;border-bottom:1px solid var(--divider)";
-    row.innerHTML = '<span style="flex:1">' + esc(t.nombre) + ' &middot; ' + esc(t.fecha) +
+    row.innerHTML = '<span style="flex:1">' + (t.juego ? '<span class="chipJuego">' + esc(t.juego) + "</span>" : "") + esc(t.nombre) + ' &middot; ' + esc(t.fecha) +
                     ' &middot; ' + t.jugadores + ' jugadores</span>';
     const b = document.createElement("button");
     b.className = "small sec"; b.textContent = "Borrar";
@@ -3201,7 +3380,8 @@ async function archivarPagina(){
   const h = aHistorial(TN), clave = push(R_HIST).key, ahora = Date.now();
   const rutas = {
     [BASE_T + "/historial/" + clave]: { nombre: TN.nombre, fecha: f, mes: f.slice(0, 7), rondas: h.rondas,
-      jugadores: h.standings.length, standings: h.standings, partidas: h.partidas, creado: ahora },
+      jugadores: h.standings.length, standings: h.standings, partidas: h.partidas, creado: ahora,
+      ...(TN.juego ? { juego: TN.juego } : {}) },
     [rutaT("archivado")]: ahora };
   Object.keys(TN.jugadores || {}).forEach(id => { if (BASEJ[id]) rutas[rutaJ(id) + "/ultimo"] = ahora; });
   $("tnArchivar").disabled = true;
@@ -3215,7 +3395,8 @@ function pintarNuevo(){
     '<label>Fecha<input type="date" id="tnFecha" value="' + hoyISO() + '"></label>' +
     '<label>Minutos por ronda<input type="number" id="tnMin" min="0" max="300" placeholder="50"></label>' +
     '<label>Rondas suizas<input type="number" id="tnR" min="1" max="20" placeholder="Automático"></label>' +
-    '<label>Top cut<select id="tnCorte">' + opcionesCorte(0) + "</select></label></div>" +
+    '<label>Top cut<select id="tnCorte">' + opcionesCorte(0) + "</select></label>" +
+    '<label>Juego <span class="muted">(opcional)</span><input id="tnJuego" list="tnJuegos" maxlength="40" placeholder="El juego del torneo"><datalist id="tnJuegos"></datalist></label></div>' +
     '<div class="muted" style="margin-top:6px">Rondas automáticas: las del manual según cuántos se inscriban (3 hasta 8 jugadores, 4 hasta 16, 5 hasta 32, 6 hasta 64). ' +
     "Top cut: después del suizo, los mejores de la tabla juegan eliminación directa hasta la final.</div>" +
     '<div class="row" style="margin-top:12px"><button id="tnCrear">Crear torneo</button></div>';
@@ -3227,8 +3408,11 @@ function pintarNuevo(){
     const t = { nombre, fecha, rondas: r >= 1 && r <= 20 ? r : 0, semilla: 1 + Math.floor(Math.random() * 2147483646), creado: Date.now() };
     if (min > 0 && min <= 300) t.minutos = min;
     if (+$("tnCorte").value) t.corte = +$("tnCorte").value;
+    const juego = $("tnJuego").value.trim().replace(/\s+/g, " ");
+    if (juego) t.juego = juego;
     try { await escribirT({ [rutaT()]: t }, false); $("bjBuscar").focus(); } catch(e){ tnFallo(e); }
   };
+  pintarJuegos();
 }
 
 /* ------------------------------------------------------------ la base */
@@ -3560,6 +3744,7 @@ $("evPlantilla").onchange = () => {
   $("evPlBorrar").hidden = !p;
   if (!p) return;
   $("evTit").value = p.titulo || "";
+  $("evJuego").value = p.juego || "";
   $("evTodoDia").checked = !p.hora;
   $("evHora").value = p.hora || "";
   if (p.duracion) $("evDur").value = p.duracion;
@@ -3573,7 +3758,7 @@ $("evPlGuardar").onclick = async () => {
   const titulo = $("evTit").value.trim(), todoDia = $("evTodoDia").checked;
   if (!titulo){ $("evMsg").innerHTML = '<span class="err">Escribe al menos el título para guardarlo como plantilla.</span>'; return; }
   const p = { titulo, hora: todoDia ? "" : ($("evHora").value || ""), duracion: todoDia ? 0 : +$("evDur").value,
-              lugar: $("evLugar").value.trim(), detalle: $("evDet").value.trim() };
+              lugar: $("evLugar").value.trim(), detalle: $("evDet").value.trim(), juego: $("evJuego").value.trim() };
   const igual = Object.keys(PLANTILLAS).find(id => PLANTILLAS[id].titulo.toLowerCase() === titulo.toLowerCase());
   try {
     const r = igual ? ref(db, BASE_T + "/plantillas/" + igual) : push(R_PLANT);
@@ -3610,6 +3795,7 @@ function leerForm(){
     duracion: todoDia ? 0 : +$("evDur").value,
     lugar:    $("evLugar").value.trim(),
     detalle:  $("evDet").value.trim(),
+    juego:    $("evJuego").value.trim().replace(/\s+/g, " ") || null,   // null: al editar, borrar el juego lo quita
     inicioMs: aEpoch(fecha, hora),
     updatedAt: Date.now()
   }};
@@ -3617,7 +3803,7 @@ function leerForm(){
 
 function limpiarForm(){
   editandoId = null;
-  $("evTit").value = ""; $("evLugar").value = ""; $("evDet").value = "";
+  $("evTit").value = ""; $("evJuego").value = ""; $("evLugar").value = ""; $("evDet").value = "";
   $("evTodoDia").checked = false; modoTodoDia();
   $("evGuardar").textContent = "Agregar fecha";
   $("evCancelar").style.display = "none";
@@ -3645,6 +3831,7 @@ $("evGuardar").onclick = async () => {
 function editar(ev){
   editandoId = ev.id;
   $("evTit").value   = ev.titulo || "";
+  $("evJuego").value = ev.juego || "";
   $("evFecha").value = ev.fecha || "";
   $("evTodoDia").checked = !ev.hora;
   $("evHora").value  = ev.hora || "";
@@ -3727,7 +3914,7 @@ function filaEvento(ev, pasado){
   row.className = "evRow" + (pasado ? " pasado" : "");
   row.innerHTML =
     '<div class="evFecha"><div class="d">' + (+d) + '</div><div class="m">' + MES_CORTO[+m-1] + '</div></div>' +
-    '<div class="evMid"><div class="evTit">' + esc(ev.titulo) + '</div><div class="evMeta">' +
+    '<div class="evMid"><div class="evTit">' + (ev.juego ? '<span class="chipJuego">' + esc(ev.juego) + "</span>" : "") + esc(ev.titulo) + '</div><div class="evMeta">' +
       esc(fechaLegible(ev.fecha)) + (ev.hora ? " · " + esc(ev.hora) + " h" : " · todo el día") +
       (pasado ? "" : " · " + esc(cuantoFalta(ev))) +
       (ev.lugar ? "<br>" + esc(ev.lugar) : "") +
@@ -3750,8 +3937,21 @@ function filaEvento(ev, pasado){
   return row;
 }
 
+/* Los juegos que la tienda ya usó, para que el mismo juego no aparezca
+   escrito de tres formas y el filtro de los jugadores funcione. */
+function juegosUsados(){
+  const n = {};
+  [...AGENDA, ...Object.values(HIST_P || {})].forEach(x => { const j = (x && x.juego || "").trim(); if (j) n[j] = (n[j] || 0) + 1; });
+  return Object.keys(n).sort((a, b) => n[b] - n[a] || a.localeCompare(b));
+}
+function pintarJuegos(){
+  const ops = juegosUsados().map(j => '<option value="' + esc(j) + '">').join("");
+  ["evJuegos", "tnJuegos", "archJuegos"].forEach(id => { if ($(id)) $(id).innerHTML = ops; });
+}
+
 function renderAgenda(){
   renderMes();
+  pintarJuegos();
   const ahora = Date.now();
   const futuros = AGENDA.filter(e => estaVigente(e, ahora));
   const pasados = AGENDA.filter(e => !estaVigente(e, ahora)).reverse();
@@ -3960,6 +4160,127 @@ function palPintarControles(){
   palPintarControles();
   palAplicar(false);
 })();
+
+/* =========================================================
+   Estadísticas de la tienda (pestaña Estadísticas)
+   Salen del historial que el panel ya escucha (HIST_P) y de las visitas que
+   cuenta presencia.js en stats/tiendas/<tienda> (las reglas dejan leerlas a
+   quien organiza). Se calcula al abrir la pestaña; «Actualizar» relee visitas.
+   ========================================================= */
+const ET_MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const etCorta = f => +f.slice(8) + " " + ET_MES[+f.slice(5, 7) - 1];
+const etDia = ms => { const d = new Date(ms); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const etSumar = (f, n) => { const d = new Date(f + "T12:00:00"); d.setDate(d.getDate() + n); return etDia(d.getTime()); };
+const etN = n => Math.round(n).toLocaleString("es-CL");
+const etDec = n => n.toFixed(1).replace(".", ",");
+let VIS_T = null;
+async function pintarEstTienda(recargar){
+  if (VIS_T === null || recargar){
+    try { VIS_T = (await get(ref(db, "stats/tiendas/" + TIENDA))).val() || {}; } catch(e){ VIS_T = {}; }
+  }
+  const T = Object.values(HIST_P || {}).filter(t => t && /^\d{4}-\d{2}-\d{2}$/.test(t.fecha || ""))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.creado || 0) - (b.creado || 0));
+  const quienes = t => Object.values(t.standings || {}).filter(f => f && f.name && !f.reservado);
+  const cuantos = t => t.jugadores || Object.keys(t.standings || {}).length;
+  const hoy = hoyISO(), hace30 = etSumar(hoy, -29), mesHoy = hoy.slice(0, 7);
+  /* La primera vez de cada jugador en la tienda, cuántas veces vino y cómo
+     se escribe su nombre en su último torneo. Se cuenta por nombre, como el ranking. */
+  const primera = {}, veces = {}, nombre = {};
+  T.forEach(t => quienes(t).forEach(f => { const k = normNombre(f.name); primera[k] ??= t.fecha; veces[k] = (veces[k] || 0) + 1; nombre[k] = f.name; }));
+  const ks = Object.keys(primera);
+  $("etTorneos").textContent = etN(T.length);
+  $("etTorneosD").textContent = T.filter(t => t.fecha >= hace30).length + " en los últimos 30 días";
+  $("etJug").textContent = etN(ks.length);
+  const nuevos = ks.filter(k => primera[k].slice(0, 7) === mesHoy).length;
+  $("etJugD").textContent = nuevos + (nuevos === 1 ? " nuevo" : " nuevos") + " este mes";
+  const ult = T.slice(-10), ant = T.slice(-20, -10), prom = a => a.reduce((x, t) => x + cuantos(t), 0) / a.length;
+  $("etProm").textContent = ult.length ? etDec(prom(ult)) : "—";
+  $("etPromD").textContent = ult.length ? "en los últimos " + ult.length + (ant.length ? " · antes " + etDec(prom(ant)) : "") : "sin torneos todavía";
+  const dias = Array.from({ length: 30 }, (_, i) => etSumar(hoy, i - 29)), porPag = {};
+  let v = 0, u = 0;
+  const serieV = dias.map(d => { const x = { x: d, a: 0, b: 0 };
+    for (const [pg, c] of Object.entries(VIS_T[d] || {})){ x.a += c.v || 0; x.b += c.u || 0; porPag[pg] ??= { v: 0, u: 0 }; porPag[pg].v += c.v || 0; porPag[pg].u += c.u || 0; }
+    v += x.a; u += x.b; return x; });
+  $("etVis").textContent = etN(v);
+  $("etVisD").textContent = etN(u) + " visitantes únicos";
+  barras($("etGAsis"), T.slice(-20).map(t => ({ x: t.fecha, b: cuantos(t), n: t.nombre })),
+    { etq: etCorta, desc: d => (d.n ? d.n + " · " : "") + etCorta(d.x) + ": " + d.b + " jugadores" });
+  const meses = Array.from({ length: 6 }, (_, i) => { const d = new Date(hoy.slice(0, 7) + "-01T12:00:00"); d.setMonth(d.getMonth() - (5 - i)); return etDia(d.getTime()).slice(0, 7); });
+  barras($("etGMes"), meses.map(m => {
+      const s = new Set(T.filter(t => t.fecha.slice(0, 7) === m).flatMap(t => quienes(t).map(f => normNombre(f.name))));
+      return { x: m, a: s.size, b: [...s].filter(k => primera[k].slice(0, 7) < m).length }; }),
+    { etq: m => ET_MES[+m.slice(5) - 1] + " " + m.slice(2, 4), desc: d => ET_MES[+d.x.slice(5) - 1] + ": " + d.a + " jugaron, " + d.b + " ya habían venido" });
+  barras($("etGVis"), serieV, { etq: etCorta, desc: d => etCorta(d.x) + ": " + d.a + " visitas, " + d.b + " únicas" });
+  const PAG = { tiendas: "Perfil de la tienda", timer: "Timer y mesas (QR)", muro: "Muro de la tienda", widget: "Widget en tu web" };
+  const filasP = Object.entries(porPag).sort((a, b) => b[1].v - a[1].v);
+  $("etPaginas").innerHTML = filasP.length ? '<table><tr><th>Página</th><th class="etNum">Visitas</th><th class="etNum">Únicas</th></tr>' +
+    filasP.map(([pg, c]) => "<tr><td>" + esc(PAG[pg] || pg) + '</td><td class="etNum">' + etN(c.v) + '</td><td class="etNum">' + etN(c.u) + "</td></tr>").join("") + "</table>" : "";
+  const DS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"], pd = {};
+  T.forEach(t => { const w = new Date(t.fecha + "T12:00:00").getDay(); pd[w] ??= { n: 0, j: 0 }; pd[w].n++; pd[w].j += cuantos(t); });
+  const maxP = Math.max(1, ...Object.values(pd).map(x => x.j / x.n));
+  $("etDias").innerHTML = Object.keys(pd).length ? [1, 2, 3, 4, 5, 6, 0].filter(w => pd[w]).map(w =>
+      etFila(DS[w], pd[w].j / pd[w].n / maxP, etDec(pd[w].j / pd[w].n), pd[w].n + (pd[w].n === 1 ? " torneo" : " torneos") + " · jugadores en promedio")).join("")
+    : '<div class="muted">Sin torneos todavía.</div>';
+  const top = ks.sort((a, b) => veces[b] - veces[a] || nombre[a].localeCompare(nombre[b])).slice(0, 10), maxV = top.length ? veces[top[0]] : 1;
+  $("etTop").innerHTML = top.length ? top.map(k => etFila(nombre[k], veces[k] / maxV, veces[k], "")).join("") : '<div class="muted">Sin torneos todavía.</div>';
+  const pj = {}; T.forEach(t => { if (t.juego) pj[t.juego] = (pj[t.juego] || 0) + 1; });
+  $("etJuegosCard").hidden = !Object.keys(pj).length;
+  const maxJ = Math.max(1, ...Object.values(pj));
+  $("etJuegos").innerHTML = Object.entries(pj).sort((a, b) => b[1] - a[1]).map(([j, c]) => etFila(j, c / maxJ, c, "")).join("");
+}
+function etFila(k, frac, valor, nota){
+  return '<div class="etFila"><span>' + esc(k) + (nota ? "<small>" + esc(nota) + "</small>" : "") + '</span><span class="etBar"><span style="width:' +
+    Math.max(2, Math.round(frac * 100)) + '%"></span></span><b>' + esc(valor) + "</b></div>";
+}
+$("etActualizar").onclick = () => pintarEstTienda(true);
+let etRedibujo = null;
+addEventListener("resize", () => {
+  if ($("panelE").classList.contains("hide")) return;
+  clearTimeout(etRedibujo); etRedibujo = setTimeout(() => pintarEstTienda(), 150);
+});
+
+/* =========================================================
+   Widget: la agenda y el ranking de la tienda en su propia web
+   (widget.html, que cuenta sus visitas como «widget»)
+   ========================================================= */
+function pintarWidget(){
+  const carpeta = location.pathname.replace(/admin\/?$/, "").replace(/[^/]*$/, "");
+  const ver = $("wgVer").value;
+  const url = location.origin + carpeta + "widget.html?sala=" + encodeURIComponent(TIENDA) + (ver ? "&ver=" + ver : "");
+  const nombre = nombreTienda(TIENDA_P && TIENDA_P.perfil, TIENDA).replace(/["<>]/g, "");
+  $("wgCodigo").value = '<iframe src="' + url + '" title="Torneos de ' + nombre + ' en ByePass" width="100%" height="' + (ver ? 440 : 640) +
+    '" style="border:0;max-width:520px" loading="lazy"></iframe>';
+  $("wgPrev").href = url + (typeof EMULADOR !== "undefined" && EMULADOR ? "&emu=1" : "");
+}
+$("wgVer").onchange = pintarWidget;
+$("wgCopiar").onclick = () => navigator.clipboard.writeText($("wgCodigo").value).then(
+  () => { $("wgMsg").textContent = "Copiado ✓"; setTimeout(() => $("wgMsg").textContent = "", 2000); },
+  () => { $("wgCodigo").select(); $("wgMsg").textContent = "Cópialo con Ctrl+C."; });
+
+/* =========================================================
+   Sin señal. Firebase guarda lo que se escribe sin conexión y lo manda solo
+   al volver, así que el panel sigue funcionando (el reloj corre por su hora
+   de término; los resultados quedan anotados). Lo único que lo pierde es
+   cerrar o recargar la pestaña: se avisa arriba y el navegador pregunta.
+   ========================================================= */
+let conectadoAlgunaVez = false, sinRed = false;
+onValue(ref(db, ".info/connected"), s => {
+  const ok = s.val() === true;
+  if (ok) conectadoAlgunaVez = true;
+  if (!conectadoAlgunaVez) return;   // recién abierto y conectando: no es un corte
+  const antes = sinRed, a = $("sinRed");
+  sinRed = !ok;
+  if (sinRed){
+    a.className = "aviso"; a.hidden = false;
+    a.innerHTML = "<b>Sin conexión.</b> Puedes seguir usando el panel: lo que hagas se envía solo cuando vuelva la señal. " +
+      "No cierres ni recargues esta pestaña hasta entonces.";
+  } else if (antes){
+    a.className = "aviso accion"; a.hidden = false;
+    a.textContent = "Volvió la conexión: lo pendiente ya se está enviando.";
+    setTimeout(() => { if (!sinRed) a.hidden = true; }, 5000);
+  }
+});
+window.addEventListener("beforeunload", e => { if (!sinRed) return; e.preventDefault(); e.returnValue = ""; });
 
 </script>
 </body>

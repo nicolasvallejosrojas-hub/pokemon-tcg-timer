@@ -26,6 +26,13 @@
   .sup .btn{min-height:36px;padding:0 14px;font-size:var(--t2);background:transparent;}
 
   .grande{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;}
+  /* El juego de un evento o torneo, y el filtro de la agenda por juego. */
+  .chipJuego{display:inline-block;font-size:var(--t2);font-weight:600;line-height:1.35;padding:1px 9px;border-radius:999px;
+    background:color-mix(in srgb, var(--franja) 14%, transparent);color:var(--franja);vertical-align:1px;margin-right:6px;white-space:nowrap;}
+  .filtroJuego{display:flex;flex-wrap:wrap;gap:6px;margin:0 var(--e3) var(--e2);}
+  .filtroJuego button{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--divider);background:transparent;
+    font:inherit;font-size:var(--t2);color:var(--apagado);cursor:pointer;}
+  .filtroJuego button[aria-pressed="true"]{background:var(--texto);border-color:var(--texto);color:var(--pagina);font-weight:600;}
   .gtit{font-size:var(--t2);text-transform:uppercase;letter-spacing:.02em;color:var(--apagado);
     margin:var(--e4) var(--e3) 7px;font-weight:400;display:flex;justify-content:space-between;gap:var(--e2);}
   .gtit a,.gtit button{color:var(--accion-texto);text-transform:none;letter-spacing:0;text-decoration:none;
@@ -156,7 +163,6 @@
 <body>
   <header class="sup vidrio">
     <a class="marca" href="index.html" data-link="inicio">ByePass</a>
-    <span class="enlinea" id="enLinea" hidden></span>
     <a class="btn" href="tienda.html" data-link="tiendas">Tiendas</a>
     <a class="btn" href="cuenta.html" id="aCuenta">Entrar</a>
   </header>
@@ -232,6 +238,7 @@
         </section>
         <section data-sec="agenda" class="oculto">
           <h2 class="gtit">Próximas fechas</h2>
+          <div class="filtroJuego" id="agFiltro" role="group" aria-label="Filtrar por juego" hidden></div>
           <div class="grupo" id="agendaTodo"></div>
         </section>
         <section data-sec="info" class="oculto" id="infoTab"></section>
@@ -280,7 +287,7 @@ import { slug, tiendaDe, salaDeTimer, MAX_TIMERS, nombreTienda, iniciales } from
 import { ordenar, estaVigente, fechaLegible, cuantoFalta, urlGoogle, MES_LARGO } from "./agenda.js?v=4";
 import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF } from "./clasificacion.js?v=1";
 import { norm as normNombre } from "./insignias.js?v=1";
-import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=2";
+import { estoyEnLinea } from "./presencia.js?v=4";
 import { leerHistorial, historialUnaVez } from "./historial.js?v=1";
 
 const $ = id => document.getElementById(id);
@@ -293,8 +300,7 @@ const ID = tiendaDe(slug(new URLSearchParams(location.search).get("sala"), 28));
    base real. */
 const EMU = enEmulador() ? "emu=1&" : "";
 const aTienda = id => "tienda.html?" + EMU + "sala=" + encodeURIComponent(id);
-estoyEnLinea(db, "tiendas");
-contarEnLinea(db, n => { $("enLinea").hidden = !n; if (n) $("enLinea").textContent = n + " en línea"; });
+estoyEnLinea(db, "tiendas", ID);   // en el directorio (sin ?sala) ID queda vacío: cuenta solo la visita general
 const aTimer  = (id, h) => "timer-view.html?" + EMU + "sala=" + encodeURIComponent(id) + (h ? "#" + h : "");
 const DEST = { inicio: "index.html" + (EMU ? "?" + EMU.slice(0, -1) : ""), tiendas: "tienda.html" + (EMU ? "?" + EMU.slice(0, -1) : ""),
                panel: urlPanel(), pedir: urlCuenta("tienda") };
@@ -729,7 +735,7 @@ function pintarTorneos(){
   const ts = [...(HIST || [])].sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
   const fila = t => {
     const g = (t.standings || [])[0];
-    return '<div class="fila">' + fechaBadge(t.fecha) + '<div class="txt"><b>' + esc(t.nombre || "Torneo") + "</b><small>" +
+    return '<div class="fila">' + fechaBadge(t.fecha) + '<div class="txt"><b>' + chipJuego(t.juego) + esc(t.nombre || "Torneo") + "</b><small>" +
       [t.jugadores ? t.jugadores + " jugadores" : "", g ? "ganó " + (g.reservado ? "Jugador reservado" : g.name) : ""]
         .filter(Boolean).map(esc).join(" · ") + "</small></div></div>";
   };
@@ -737,10 +743,25 @@ function pintarTorneos(){
   $("torneosCorta").innerHTML = ts.length ? ts.slice(0, 3).map(fila).join("") : v;
   $("torneosTodo").innerHTML = ts.length ? ts.map(fila).join("") : v;
 }
+const chipJuego = j => j ? '<span class="chipJuego">' + esc(j) + "</span>" : "";
+/* Con eventos de más de un juego, se puede filtrar; lo elegido se recuerda por tienda. */
+let JUEGO_SEL = "";
+try { JUEGO_SEL = localStorage.getItem("juego-" + ID) || ""; } catch(e){}
 function pintarAgenda(){
-  const prox = AG.filter(e => estaVigente(e, ahora()));
+  const todos = AG.filter(e => estaVigente(e, ahora()));
+  const juegos = [...new Set(todos.map(e => (e.juego || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  if (!juegos.includes(JUEGO_SEL)) JUEGO_SEL = "";
+  $("agFiltro").hidden = juegos.length < 2;
+  $("agFiltro").innerHTML = ["", ...juegos].map(j => '<button type="button" data-juego="' + esc(j) + '" aria-pressed="' + (j === JUEGO_SEL) + '">' +
+    esc(j || "Todos") + "</button>").join("");
+  $("agFiltro").querySelectorAll("button").forEach(b => b.onclick = () => {
+    JUEGO_SEL = b.dataset.juego;
+    try { localStorage.setItem("juego-" + ID, JUEGO_SEL); } catch(e){}
+    pintarAgenda();
+  });
+  const prox = JUEGO_SEL ? todos.filter(e => (e.juego || "").trim() === JUEGO_SEL) : todos;
   $("agendaTodo").innerHTML = prox.length ? prox.map(e =>
-    '<a class="fila" href="' + urlGoogle(e) + '" target="_blank" rel="noopener">' + fechaBadge(e.fecha) + '<div class="txt"><b>' + esc(e.titulo) +
+    '<a class="fila" href="' + urlGoogle(e) + '" target="_blank" rel="noopener">' + fechaBadge(e.fecha) + '<div class="txt"><b>' + chipJuego(e.juego) + esc(e.titulo) +
     "</b><small>" + esc([fechaLegible(e.fecha) + (e.hora ? ", " + e.hora : ""), e.lugar || ""].filter(Boolean).join(" · ")) +
     '</small></div><span class="der">' + esc(cuantoFalta(e, ahora())) + "</span></a>").join("")
     : '<div class="vacio">No hay fechas anunciadas.</div>';

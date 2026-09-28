@@ -75,6 +75,16 @@
     text-shadow:0 1px 3px rgba(0,0,0,.85);}
   #names{display:none;}
   #clock{font-size:var(--d1);}
+  /* Tiempo extra por mesa (timer/extras): debajo del reloj. Antes del cero dice
+     cuánto se sumó; después, cuánto le queda a esa mesa. Toma el color del texto
+     de la pantalla, así sirve con cualquier fondo que elija la tienda. */
+  #extras{display:flex;flex-wrap:wrap;justify-content:center;gap:1vh 1.2vw;max-width:92vw;}
+  #extras[hidden]{display:none;}
+  .extra{font-size:clamp(var(--t2),2.6vh,var(--t5));padding:.3em .8em;border-radius:999px;white-space:nowrap;
+    background:color-mix(in srgb, currentColor 13%, transparent);font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 3px rgba(0,0,0,.6);}
+  .extra b{font-weight:700;margin-left:.35em;}
+  .extra.fin{opacity:.55;}
   /* Visible solo para lectores de pantalla */
   .solo-lectores{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
     overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
@@ -227,6 +237,7 @@
             margin-top:2px;}
   .evBody{flex:1;min-width:0;}
   .evTit{font-size:var(--t4);font-weight:600;line-height:1.3;}
+  .evJuego{font-weight:600;opacity:.72;margin-right:8px;}   /* el juego del evento, antes del título */
   .evCuando{font-size:var(--t2);color:var(--apagado);margin-top:4px;line-height:1.5;}
   .evFalta{display:inline-block;font-size:var(--t1);letter-spacing:.08em;font-weight:700;
     color:var(--sobre-accion);background:var(--accion);border-radius:var(--radio-marca);padding:3px 8px;
@@ -291,6 +302,7 @@
   <div id="relojGrupo" aria-hidden="true">
     <div id="pronda"></div>
     <div id="clock" class="reloj">--:--</div>
+    <div id="extras" hidden></div>
   </div>
   <div id="tstatus" role="status" aria-live="polite">Conectando…</div>
   <p id="avisoReloj" class="solo-lectores" role="status" aria-live="polite"></p>
@@ -373,7 +385,7 @@ import { getDatabase, connectDatabaseEmulator, ref, onValue, get } from "https:/
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
 import { SALA, BASE, TIENDA, BASE_T } from "./sala.js?v=4";
-import { estoyEnLinea } from "./presencia.js?v=2";
+import { estoyEnLinea } from "./presencia.js?v=4";
 
 /* Sin ?sala= no hay qué mostrar (antes abría «principal», que no era de
    nadie): se va al directorio, a elegir la tienda. */
@@ -413,7 +425,7 @@ if (typeof EMULADOR !== "undefined" && EMULADOR){
   connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
 }
 vigilar(db, auth);   // la pantalla de mantenimiento
-estoyEnLinea(db, "timer");
+estoyEnLinea(db, "timer", TIENDA);
 
 const $ = id => document.getElementById(id);
 
@@ -515,10 +527,23 @@ function fmt(sec){
   return (n?"-":"") + String(Math.floor(a/60)).padStart(2,"0") + ":" + String(a%60).padStart(2,"0");
 }
 
+/* Tiempo extra por mesa: minutos que el juez le sumó a una mesa sola. */
+let EXTRAS = {}, extrasTxt = "";
+onValue(ref(db, BASE + "/timer/extras"), s => { EXTRAS = s.val() || {}; dibujarReloj(); }, () => {});
+function dibujarExtras(sec){
+  const ms = Object.keys(EXTRAS).filter(m => EXTRAS[m] > 0).sort((a, b) => a - b);
+  const h = ms.map(m => { const resto = sec + EXTRAS[m] * 60;
+    return '<span class="extra' + (sec <= 0 && resto <= 0 ? " fin" : "") + '">Mesa ' + esc(m) + "<b>" +
+      (sec > 0 ? "+" + EXTRAS[m] + " min" : resto > 0 ? fmt(resto) : "tiempo") + "</b></span>"; }).join("");
+  if (h === extrasTxt) return;   // se llama 4 veces por segundo: tocar el DOM solo si cambió
+  extrasTxt = h; $("extras").innerHTML = h; $("extras").hidden = !h;
+}
+
 function dibujarReloj(){
   if (!S) return;
   const sec = (S.paused || !S.endTime) ? Math.round(S.remaining ?? 0)
                                        : Math.round((S.endTime - ahora())/1000);
+  dibujarExtras(sec);
   const c = $("clock");
   c.textContent = fmt(sec);
   c.style.color = sec < 0 ? (alDia(S.negativeColor)||"#FF7A6B") : (alDia(S.timerColor)||"#F3FFFB");
@@ -1067,7 +1092,7 @@ function tarjeta(ev, esProximo){
   card.innerHTML =
     '<div class="evCal"><div class="d">' + (+d) + '</div><div class="m">' + MES_CORTO[+m-1] + '</div></div>' +
     '<div class="evBody">' +
-      '<div class="evTit">' + esc(ev.titulo) + '</div>' +
+      '<div class="evTit">' + (ev.juego ? '<span class="evJuego">' + esc(ev.juego) + "</span>" : "") + esc(ev.titulo) + '</div>' +
       '<div class="evCuando">' + esc(fechaLegible(ev.fecha)) +
         (ev.hora ? " · " + esc(ev.hora) + " h" : " · todo el día") +
         (ev.lugar ? "<br>" + esc(ev.lugar) : "") + "</div>" +
