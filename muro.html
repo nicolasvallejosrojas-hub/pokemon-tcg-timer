@@ -374,6 +374,7 @@
         <li><a href="timer-view.html" id="aTimer">Ver el timer</a></li>
         <li><a href="tienda.html" id="aTiendas">Tiendas</a></li>
         <li class="oculto" id="liPanel"><a href="admin.html" id="aPanel">Panel del organizador</a></li>
+        <li class="oculto" id="liPedir"><a href="cuenta.html#tienda" id="aPedir">Pedir una tienda</a></li>
         <li class="oculto" id="liHerr"><a href="herramientas.html" id="aHerr">Herramientas de administrador</a></li>
         <li><a href="cuenta.html#ajustes" id="aCuenta">Ajustes</a></li>
         <li><a href="cuenta.html#sugerencias">Enviar una sugerencia</a></li>
@@ -553,6 +554,7 @@ const aTienda = x => "tienda.html" + (qs ? qs + "&" : "?") + "sala=" + encodeURI
 $("aCuenta").href = conSala("cuenta.html" + qs) + "#ajustes";
 $("aAjustes").href = conSala("cuenta.html" + qs) + "#ajustes";
 $("aPanel").href = "admin.html" + qs;
+$("aPedir").href = "cuenta.html" + qs + "#tienda";
 $("aHerr").href = "herramientas.html" + qs;
 
 let usuario = null, perfil = null, HIST = null, ESTADO = null, PAIR = null, filtro = "";
@@ -1430,6 +1432,8 @@ onAuthStateChanged(auth, async u => {
   get(ref(db, "organiza/" + u.uid)).then(s => {
     ORGANIZA = s.val() || {};
     $("liPanel").classList.toggle("oculto", !s.exists());
+    /* Quien no organiza ninguna, la pide desde su cuenta. */
+    $("liPedir").classList.toggle("oculto", s.exists());
     repintarInsignias();
   }, () => {});
   get(ref(db, "admins/" + u.uid)).then(s => $("liHerr").classList.toggle("oculto", s.val() !== true), () => {});

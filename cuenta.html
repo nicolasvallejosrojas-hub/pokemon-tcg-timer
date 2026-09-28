@@ -145,6 +145,8 @@
 
   /* --- ajustes --- */
   .grupo{display:flex;flex-direction:column;gap:var(--e2);}
+  /* Al saltar a una parte (#tienda, #sugerencias…), que la barra de arriba no tape su título. */
+  .grupo{scroll-margin-top:72px;}
   .grupo h2{font-size:var(--t1);letter-spacing:.1em;text-transform:uppercase;
     color:var(--apagado);font-weight:500;margin:0;}
   .filas{display:flex;flex-direction:column;border-radius:var(--radio);overflow:hidden;}
@@ -160,6 +162,8 @@
   .filaj .v small{display:block;font-size:var(--t2);color:var(--rotulo);}
   .filaj svg{flex:none;color:var(--rotulo);}
   label.filaj{cursor:pointer;}
+  a.filaj{text-decoration:none;}
+  a.filaj:hover{background:var(--sup-alta);}
   /* Va DESPUÉS de .filaj: ese border:none, que limpia el borde de los
      botones, se comía el divisor entre filas. */
   .filas > * + *{border-top:1px solid var(--divider);}
@@ -461,6 +465,30 @@
       <div class="aviso oculto" id="msgPriv" role="status"></div>
     </div>
 
+    <div class="grupo" id="grTienda">
+      <h2>Tu tienda</h2>
+      <div class="filas oculto" id="tdMias"></div>
+      <div class="tarjetaForm">
+        <p class="pista" style="margin:0" id="tdTxt">¿Organizas torneos en una tienda? Pide su cuenta. Cuando la aprobemos,
+          la creas acá, quedas de dueño y se abre el panel del organizador.</p>
+        <div class="aviso oculto" id="tdEstado" role="status"></div>
+        <form class="tarjetaForm oculto" id="formTienda" novalidate style="padding:0">
+          <label class="campo"><span>Nombre de la tienda</span>
+            <input type="text" id="tdNombre" maxlength="60" autocomplete="organization"></label>
+          <label class="campo tdPedir"><span>Comuna</span>
+            <input type="text" id="tdComuna" maxlength="60"></label>
+          <label class="campo tdPedir"><span>Instagram, WhatsApp o correo</span>
+            <input type="text" id="tdContacto" maxlength="120">
+            <span class="pista">Para contactarte y verificar que la tienda es tuya.</span></label>
+          <label class="campo tdPedir"><span>Algo más que debamos saber <span class="opcional">— opcional</span></span>
+            <input type="text" id="tdMensaje" maxlength="500" placeholder="Qué juegan, qué días, dónde queda…"></label>
+          <p class="pista tdPedir" style="margin:0">Al pedir una tienda aceptas los <a href="terminos.html#tiendas">Términos y condiciones</a>.</p>
+          <div class="aviso mal oculto" id="errTienda" role="alert"></div>
+          <button class="btn primario ancho" type="submit" id="btnTienda">Enviar solicitud</button>
+        </form>
+      </div>
+    </div>
+
     <div class="grupo" id="grBuzon">
       <h2>Escríbenos</h2>
       <form class="tarjetaForm" id="formBuzon" novalidate>
@@ -501,12 +529,12 @@
 
 <script src="config.js?v=8"></script>
 <script type="module">
-import { ref, get, update, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { ref, get, set, remove, update, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { EmailAuthProvider, reauthenticateWithCredential, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail,
          verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { fechaLegible, ordenar, MES_LARGO } from "./agenda.js?v=4";
-import { BASE, BASE_T, nombreTienda } from "./sala.js?v=4";   // BASE: el timer; BASE_T: su tienda
+import { BASE, BASE_T, nombreTienda, slug } from "./sala.js?v=4";   // BASE: el timer; BASE_T: su tienda
 /* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
@@ -531,10 +559,11 @@ const ACCION = OOB && { resetPassword: "nueva", verifyEmail: "confirma" }[Q.get(
 /* Nombres viejos que siguen llegando por enlaces guardados: la portada ya no
    existe (la entrada es «Entra») y el perfil ahora vive en el muro; lo que
    quedó acá son los ajustes. */
-const ALIAS = { "": "ingresar", portada: "ingresar", perfil: "ajustes", privacidad: "ajustes", sugerencias: "ajustes" };
+const ALIAS = { "": "ingresar", portada: "ingresar", perfil: "ajustes", privacidad: "ajustes", sugerencias: "ajustes", tienda: "ajustes" };
 /* #privacidad (desde el cuadro «Tiendas» del muro) abre los ajustes en esa parte;
    #sugerencias (desde el pie de las páginas), en «Escríbenos». */
-const A_PRIVACIDAD = location.hash === "#privacidad", A_SUGERENCIAS = location.hash === "#sugerencias";
+const A_PRIVACIDAD = location.hash === "#privacidad", A_SUGERENCIAS = location.hash === "#sugerencias",
+      A_TIENDA = location.hash === "#tienda";   // #tienda: desde la portada, el directorio o el panel
 /* De qué página venía quien escribe: ayuda a entender un «algo no funciona». */
 const DESDE = (() => { try { const r = new URL(document.referrer);
   return r.origin === location.origin && !/cuenta\.html$/.test(r.pathname) ? (r.pathname.split("/").pop() + r.search).slice(0, 200) : "";
@@ -1009,6 +1038,118 @@ $("formBuzon").onsubmit = async e => {
   $("btnBuzon").disabled = false;
 };
 
+/* ------------------------------------------------------------ Tu tienda
+   Pedir la cuenta de una tienda (antes vivía en el panel). Se pide acá, quien
+   administra la aprueba en Herramientas y recién entonces se crea desde acá:
+   las reglas no dejan reclamar la sala sin la solicitud aprobada con ese id.
+   Creada, quedas de dueño y se abre el panel. Quien administra la crea
+   directo, sin pedirla. */
+const panelDe = id => { const q = new URLSearchParams(params().slice(1)); q.set("sala", id); return "admin.html?" + q; };
+let dejarSolicitud = null;
+async function pintarTienda(){
+  const u = usuario;
+  if (!u) return;
+  const [admin, mias] = await Promise.all([
+    get(ref(db, "admins/" + u.uid)).then(s => s.val() === true, () => false),
+    get(ref(db, "organiza/" + u.uid)).then(s => s.val() || {}, () => ({}))]);
+  /* Las tiendas que ya organiza: cada una abre su panel. */
+  const ids = Object.keys(mias);
+  if (ids.length){
+    const perfiles = await Promise.all(ids.map(id => get(ref(db, "tiendas/" + id + "/perfil")).then(s => s.val(), () => null)));
+    $("tdMias").innerHTML = ids.map((id, i) => '<a class="filaj" href="' + esc(panelDe(id)) + '"><span class="k">' +
+      esc(nombreTienda(perfiles[i], id)) + "<small>" + (mias[id] === "dueno" ? "Dueño" : "Organizador") +
+      " · abrir el panel del organizador</small></span></a>").join("");
+    $("tdMias").classList.remove("oculto");
+    $("tdTxt").textContent = "¿Organizas en otra tienda más? Pide su cuenta abajo.";
+  }
+  document.querySelectorAll(".tdPedir").forEach(e => e.classList.toggle("oculto", admin));
+  if (admin){
+    $("tdTxt").textContent = "Como administras, creas tiendas sin pedirlas y quedas de dueño.";
+    $("btnTienda").textContent = "Crear la tienda";
+    $("formTienda").classList.remove("oculto");
+  }
+  $("formTienda").onsubmit = async e => {
+    e.preventDefault();
+    const nombre = $("tdNombre").value.trim().replace(/\s+/g, " "), id = slug(nombre);
+    const comuna = $("tdComuna").value.trim(), contacto = $("tdContacto").value.trim(), mensaje = $("tdMensaje").value.trim();
+    aviso("errTienda", "");
+    $("btnTienda").disabled = true;
+    try {
+      const falla = await revisarTienda(nombre, id);
+      if (falla) return aviso("errTienda", falla);
+      if (admin) return await crearTienda(u, { id, nombre, comuna }, false);
+      if (contacto.length < 3) return aviso("errTienda", "Deja un Instagram, WhatsApp o correo para contactarte.");
+      const sol = { id, nombre, quien: ((perfil && perfil.nombre) || u.displayName || "").slice(0, 80), contacto, creada: Date.now() };
+      if (comuna) sol.comuna = comuna;
+      if (mensaje) sol.mensaje = mensaje;
+      await set(ref(db, "solicitudes/" + u.uid), sol);
+    } catch(err){ aviso("errTienda", admin ? "No se pudo crear. Revisa la conexión y vuelve a intentar." : "No se pudo enviar. Revisa la conexión y vuelve a intentar."); }
+    finally { $("btnTienda").disabled = false; }
+  };
+  if (admin) return;
+  /* La solicitud propia, en vivo: si la aprueban con la página abierta, el
+     botón para crearla aparece solo. */
+  if (dejarSolicitud) dejarSolicitud();
+  dejarSolicitud = onValue(ref(db, "solicitudes/" + u.uid), s => {
+    const sol = s.val(), est = $("tdEstado");
+    est.classList.toggle("oculto", !sol);
+    $("formTienda").classList.toggle("oculto", !!sol && !sol.rechazada);
+    if (!sol){ $("btnTienda").textContent = "Enviar solicitud"; return; }
+    const nom = "«" + esc(sol.nombre) + "»";
+    if (sol.aprobada){
+      est.className = "aviso accion";
+      est.innerHTML = "<b>Aprobamos " + nom + ".</b> Créala ahora: quedas de dueño y se abre el panel del organizador." +
+        '<div style="margin-top:12px"><button class="btn primario ancho" type="button" id="tdCrear">Crear ' + nom + "</button></div>";
+      $("tdCrear").onclick = async () => {
+        $("tdCrear").disabled = true;
+        try { await crearTienda(u, sol, true); }
+        catch(err){ $("tdCrear").disabled = false; aviso("errTienda", "No se pudo crear. Revisa la conexión y vuelve a intentar."); }
+      };
+    } else if (sol.rechazada){
+      est.className = "aviso";
+      est.innerHTML = "<b>No aprobamos " + nom + ".</b>" + (sol.nota ? " " + esc(sol.nota) : "") + " Puedes corregirla y mandarla de nuevo.";
+      $("btnTienda").textContent = "Mandar de nuevo";
+      /* Se rellena una vez, sin pisar lo que se esté corrigiendo. */
+      if (!$("tdNombre").value){
+        $("tdNombre").value = sol.nombre; $("tdComuna").value = sol.comuna || "";
+        $("tdContacto").value = sol.contacto; $("tdMensaje").value = sol.mensaje || "";
+      }
+    } else {
+      est.className = "aviso";
+      est.innerHTML = "<b>Tu solicitud de " + nom + " está en revisión.</b> Te contactamos por " + esc(sol.contacto) + "." +
+        '<div style="margin-top:12px"><button class="btn chico" type="button" id="tdRetirar">Retirar la solicitud</button></div>';
+      $("tdRetirar").onclick = async () => {
+        if (!confirm("¿Retirar la solicitud de «" + sol.nombre + "»?")) return;
+        try { await remove(ref(db, "solicitudes/" + u.uid)); }
+        catch(err){ aviso("errTienda", "No se pudo retirar. Revisa la conexión."); }
+      };
+    }
+  }, () => $("formTienda").classList.remove("oculto"));
+}
+/* «principal» y los nombres con forma de timer (…-t2) están reservados. */
+async function revisarTienda(nombre, id){
+  if (nombre.length < 2 || !id) return "Escribe el nombre de la tienda.";
+  if (id === "principal" || /-t[0-9]+$/.test(id)) return "Ese nombre está reservado. Prueba con otro.";
+  const [own, t] = await Promise.all([get(ref(db, "salas/" + id + "/owner")), get(ref(db, "tiendas/" + id))]);
+  if (own.exists() || t.exists()) return "Ya hay una tienda con ese nombre. Prueba agregándole la comuna: «" + nombre + " Temuco».";
+  return "";
+}
+/* Crear la tienda es reclamar su sala, escribir su perfil y quedar de dueño,
+   todo en una escritura. Con una solicitud aprobada, se gasta en la misma. */
+async function crearTienda(u, { id, nombre, comuna }, gastar){
+  const perfilT = { nombre, creada: Date.now() };
+  if (comuna) perfilT.comuna = comuna;
+  const quien = ((perfil && perfil.nombre) || u.displayName || "").slice(0, 80);
+  const rutas = {
+    ["salas/" + id + "/owner"]: u.uid,
+    ["tiendas/" + id + "/perfil"]: perfilT,
+    ["tiendas/" + id + "/miembros/" + u.uid]: { rol: "dueno", nombre: quien, desde: Date.now() },
+    ["organiza/" + u.uid + "/" + id]: "dueno" };
+  if (gastar) rutas["solicitudes/" + u.uid] = null;
+  await update(ref(db), rutas);
+  location.href = panelDe(id);
+}
+
 /* ------------------------------------------------------------ Eliminar la cuenta
    Firebase pide un ingreso reciente para borrar una cuenta: por eso la
    contraseña. Después se borran los datos en una sola escritura y al final el
@@ -1134,6 +1275,8 @@ onAuthStateChanged(auth, async u => {
       mostrar("ajustes");
       if (A_PRIVACIDAD) $("grPrivacidad").scrollIntoView({ block: "start" });
       if (A_SUGERENCIAS){ $("grBuzon").scrollIntoView({ block: "start" }); $("bzTexto").focus({ preventScroll: true }); }
+      if (A_TIENDA) $("grTienda").scrollIntoView({ block: "start" });
+      pintarTienda();
       return;
     }
     location.replace(urlMuro());

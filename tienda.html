@@ -173,7 +173,7 @@
       <h2 class="gtit">Tiendas verificadas</h2>
       <div class="grupo" id="dirLista"><div class="vacio">Cargando…</div></div>
       <p class="nota" style="margin:var(--e4) var(--e1) 0">¿Organizas torneos en una tienda?
-        <a href="admin.html" data-link="panel">Pide su cuenta desde el panel</a>. Aparece acá cuando la aprobemos.</p>
+        <a href="cuenta.html#tienda" data-link="pedir">Pide su cuenta</a>. Aparece acá cuando la aprobemos.</p>
     </div>
     <div id="dirJugadores" hidden>
       <h2 class="gtit" id="jugTit">Jugadores</h2>
@@ -296,7 +296,7 @@ estoyEnLinea(db, "tiendas");
 contarEnLinea(db, n => { $("enLinea").hidden = !n; if (n) $("enLinea").textContent = n + " en línea"; });
 const aTimer  = (id, h) => "timer-view.html?" + EMU + "sala=" + encodeURIComponent(id) + (h ? "#" + h : "");
 const DEST = { inicio: "index.html" + (EMU ? "?" + EMU.slice(0, -1) : ""), tiendas: "tienda.html" + (EMU ? "?" + EMU.slice(0, -1) : ""),
-               panel: urlPanel() };
+               panel: urlPanel(), pedir: urlCuenta("tienda") };
 document.querySelectorAll("[data-link]").forEach(a => a.href = DEST[a.dataset.link]);
 
 const ICO = {

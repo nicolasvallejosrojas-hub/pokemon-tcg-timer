@@ -262,7 +262,7 @@
               <a href="terminos.html">Términos y condiciones</a> y la <a href="privacidad.html">Política de privacidad</a>.</p>
           </div>
         </form>
-        <p class="org">¿Organizas torneos en tu tienda? <a href="admin.html" data-link="panel">Entra al panel</a>.</p>
+        <p class="org">¿Organizas torneos en tu tienda? <a href="cuenta.html#tienda" data-link="pedir">Pide su cuenta</a>.</p>
       </div>
     </section>
 
@@ -387,7 +387,7 @@ get(ref(db, "altas")).then(s => {
   if (Object.keys(s.val() || {}).length < 50) $("betaAviso").classList.remove("oculto");
 }, () => {});
 
-const DESTINO = { ingresar: urlCuenta("ingresar"), olvide: urlCuenta("olvide"), panel: urlPanel(),
+const DESTINO = { ingresar: urlCuenta("ingresar"), olvide: urlCuenta("olvide"), panel: urlPanel(), pedir: urlCuenta("tienda"),
                   torneo: "timer-view.html" + params(), tiendas: "tienda.html" + (enEmulador() ? "?emu=1" : "") };
 document.querySelectorAll("[data-link]").forEach(a => a.href = DESTINO[a.dataset.link]);
 

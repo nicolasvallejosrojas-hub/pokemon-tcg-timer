@@ -413,33 +413,23 @@
   <div class="muted" style="margin-top:8px"><a href="cuenta.html#olvide" id="aOlvide">¿Olvidaste tu contraseña?</a></div>
   <div class="muted" style="margin-top:8px">¿No tienes cuenta? <a href="cuenta.html#crear" id="aCrearCuenta">Créala en Mi cuenta</a>
     y vuelve a abrir el enlace que te mandaron.</div>
+  <div class="muted" style="margin-top:8px">¿Tu tienda todavía no está en Mis Torneos? <a href="cuenta.html#tienda" id="aPedirTienda">Pide su cuenta</a>:
+    el panel se abre cuando la aprobamos.</div>
 </div>
 
 <!-- ============ Elegir tienda ============
      Una cuenta por persona, y la persona organiza una o varias tiendas.
      Lo que se publica queda en la tienda elegida. -->
 <div class="card" id="elegirCard" style="display:none">
-  <h2 class="h2p">¿Para qué tienda organizas hoy?</h2>
-  <div class="muted">Todo lo que publiques —timer, mesas, resultados— queda en la tienda que elijas.</div>
+  <h2 class="h2p" id="elegirTit">¿Para qué tienda organizas hoy?</h2>
+  <div class="muted" id="elegirSub">Todo lo que publiques —timer, mesas, resultados— queda en la tienda que elijas.</div>
   <div id="elegirAviso" class="aviso accion" style="margin-top:10px" hidden></div>
   <div id="elegirLista"></div>
-  <div class="crear">
-    <div style="font-weight:600;font-size:var(--t3)" id="crearTit">Pedir una tienda</div>
-    <div class="muted" id="crearTxt" style="margin:2px 0 8px">Cuéntanos cuál es y cómo te contactamos. Cuando la aprobemos,
-      la creas desde acá y quedas de dueño.</div>
-    <div id="pedirEstado" class="aviso" style="margin-bottom:10px" hidden></div>
-    <div id="crearForm" hidden>
-      <div class="grid2">
-        <label>Nombre de la tienda<input id="nuevaNombre" maxlength="60" autocomplete="organization"></label>
-        <label class="soloPedir">Comuna<input id="nuevaComuna" maxlength="60"></label>
-        <label class="soloPedir">Instagram, WhatsApp o correo<input id="nuevaContacto" maxlength="120"></label>
-        <label class="soloPedir">Algo más que debamos saber (opcional)<input id="nuevaMensaje" maxlength="500"></label>
-      </div>
-      <div class="row" style="margin-top:10px"><button id="nuevaBtn">Enviar solicitud</button>
-        <span class="muted soloPedir">Al pedir una tienda aceptas los <a href="terminos.html#tiendas" target="_blank" rel="noopener">Términos
-          y condiciones</a>.</span></div>
-    </div>
-    <div id="nuevaMsg" class="muted" style="margin-top:6px" role="status"></div>
+  <!-- Pedir una tienda se hace en Tu cuenta (desde el 28-09-2026): acá solo se
+       lleva a la solicitud, o se dice en qué va la que ya se mandó. -->
+  <div class="crear" id="pedirBloque" hidden>
+    <div id="pedirTxt" class="muted"></div>
+    <div class="row" style="margin-top:10px"><button id="pedirIr"></button></div>
   </div>
   <div class="row" style="margin-top:12px"><button class="small sec herr" hidden>Herramientas de administrador</button>
     <span style="flex:1"></span><button class="small sec" id="logoutBtn2">Salir</button></div>
@@ -1189,106 +1179,39 @@ async function mostrarSelector(u, aviso){
     (f.rol === "dueno" ? "Dueño" : "Organizador") + " · " +
     (f.t.verificada ? "verificada" : f.t.verificada === false ? "no verificada" : "pendiente de verificación") +
     "</small></span></button>").join("")
-    : '<div class="muted" style="margin-top:10px">Todavía no organizas ninguna tienda. Pide la tuya abajo, o abre el enlace de invitación que te mandó el dueño de una.</div>';
+    : '<div class="muted" style="margin-top:10px">El panel del organizador es para quienes organizan torneos en una tienda. ' +
+      "Se abre cuando aprobamos la cuenta de tu tienda, o cuando el dueño de una te invita con su enlace.</div>";
   $("elegirLista").querySelectorAll(".tfila").forEach(b => b.onclick = () => irA(b.dataset.id));
+  $("elegirTit").textContent = filas.length ? "¿Para qué tienda organizas hoy?" : "Todavía no organizas ninguna tienda";
+  $("elegirSub").hidden = !filas.length;
 
-  pintarPedir(u);
+  pintarPedir(u, filas.length);
 }
 
 /* ------------------------------------------------------------
-   Pedir una tienda. Desde el 27-09-2026 no se crea sola: se pide, quien
-   administra la aprueba en Herramientas, y recién ahí se crea desde acá (las
-   reglas no dejan reclamar la sala sin la solicitud aprobada con ese id).
-   Quien administra la crea directo, sin pedirla.
+   Pedir una tienda. Desde el 28-09-2026 se pide en Tu cuenta → Ajustes → «Tu
+   tienda», no acá: el panel es para quienes ya organizan. Esta tarjeta solo
+   lleva allá, o dice en qué va la solicitud que ya se mandó. Quien administra
+   también crea las suyas allá, sin pedirlas.
    ------------------------------------------------------------ */
-let dejarSol = null;
-async function pintarPedir(u){
-  const admin = await soyAdmin(u), msg = t => $("nuevaMsg").textContent = t;
-  document.querySelectorAll(".soloPedir").forEach(l => l.hidden = admin);
-  if (admin){
-    $("crearTit").textContent = "Crear una tienda";
-    $("crearTxt").textContent = "Como administras, la creas sin pedirla. Quedas de dueño.";
-    $("nuevaBtn").textContent = "Crear";
-    $("crearForm").hidden = false;
-  }
-  /* «principal» y los nombres con forma de timer (…-t2) están reservados. */
-  const revisar = async (nombre, id) => {
-    if (nombre.length < 2 || !id) return "Escribe el nombre de la tienda.";
-    if (id === "principal" || /-t[0-9]+$/.test(id)) return "Ese nombre está reservado. Prueba con otro.";
-    const [own, t] = await Promise.all([get(ref(db, "salas/" + id + "/owner")), get(ref(db, "tiendas/" + id))]);
-    if (own.exists() || t.exists()) return "Ya hay una tienda con ese nombre. Prueba agregándole la comuna: «" + nombre + " Temuco».";
-    return "";
-  };
-  $("nuevaBtn").onclick = async () => {
-    const nombre = $("nuevaNombre").value.trim().replace(/\s+/g, " "), id = slug(nombre);
-    const comuna = $("nuevaComuna").value.trim(), contacto = $("nuevaContacto").value.trim(), mensaje = $("nuevaMensaje").value.trim();
-    try {
-      const falla = await revisar(nombre, id);
-      if (falla) return msg(falla);
-      if (admin) return await crearTienda(u, { id, nombre }, false);
-      if (contacto.length < 3) return msg("Deja un Instagram, WhatsApp o correo para contactarte.");
-      const sol = { id, nombre, quien: await miNombre(u), contacto, creada: Date.now() };
-      if (comuna) sol.comuna = comuna;
-      if (mensaje) sol.mensaje = mensaje;
-      await set(ref(db, "solicitudes/" + u.uid), sol);
-      msg("");
-    } catch(e){ msg(admin ? "No se pudo crear. Revisa la conexión y vuelve a intentar." : "No se pudo enviar. Revisa la conexión y vuelve a intentar."); }
-  };
-  if (admin) return;
-  /* La solicitud propia, en vivo: si la aprueban con la página abierta, el
-     botón para crearla aparece solo. */
-  if (dejarSol) dejarSol();
-  dejarSol = onValue(ref(db, "solicitudes/" + u.uid), s => {
-    const sol = s.val(), est = $("pedirEstado");
-    est.hidden = !sol;
-    $("crearForm").hidden = !!sol && !sol.rechazada;
-    if (!sol){ $("nuevaBtn").textContent = "Enviar solicitud"; return; }
-    const nom = "«" + esc(sol.nombre) + "»";
-    if (sol.aprobada){
-      est.className = "aviso accion";
-      est.innerHTML = "<b>Aprobamos " + nom + ".</b> Créala ahora y quedas de dueño." +
-        '<div class="row" style="margin-top:10px"><button id="solCrear">Crear ' + nom + "</button></div>";
-      $("solCrear").onclick = async () => {
-        $("solCrear").disabled = true;
-        try { await crearTienda(u, sol, true); }
-        catch(e){ $("solCrear").disabled = false; msg("No se pudo crear. Revisa la conexión y vuelve a intentar."); }
-      };
-    } else if (sol.rechazada){
-      est.className = "aviso";
-      est.innerHTML = "<b>No aprobamos " + nom + ".</b>" + (sol.nota ? " " + esc(sol.nota) : "") +
-        " Puedes corregirla y mandarla de nuevo.";
-      $("nuevaBtn").textContent = "Mandar de nuevo";
-      /* Se rellena una vez, sin pisar lo que se esté corrigiendo. */
-      if (!$("nuevaNombre").value){
-        $("nuevaNombre").value = sol.nombre; $("nuevaComuna").value = sol.comuna || "";
-        $("nuevaContacto").value = sol.contacto; $("nuevaMensaje").value = sol.mensaje || "";
-      }
-    } else {
-      est.className = "aviso";
-      est.innerHTML = "<b>Tu solicitud de " + nom + " está en revisión.</b> Te contactamos por " + esc(sol.contacto) + "." +
-        '<div class="row" style="margin-top:10px"><button class="sec small" id="solRetirar" style="background:var(--sup)">Retirar la solicitud</button></div>';
-      $("solRetirar").onclick = async () => {
-        if (!confirm("¿Retirar la solicitud de «" + sol.nombre + "»?")) return;
-        try { await remove(ref(db, "solicitudes/" + u.uid)); }
-        catch(e){ msg("No se pudo retirar. Revisa la conexión."); }
-      };
-    }
-  }, () => { $("crearForm").hidden = false; });
-}
-
-/* Crear la tienda es reclamar su sala, escribir su perfil y quedar de dueño,
-   todo en una escritura. Con una solicitud aprobada, se gasta en la misma. */
-async function crearTienda(u, { id, nombre, comuna }, gastar){
-  const perfil = { nombre, creada: Date.now() };
-  if (comuna) perfil.comuna = comuna;
-  const rutas = {
-    ["salas/" + id + "/owner"]: u.uid,
-    ["tiendas/" + id + "/perfil"]: perfil,
-    ["tiendas/" + id + "/miembros/" + u.uid]: { rol: "dueno", nombre: await miNombre(u), desde: Date.now() },
-    ["organiza/" + u.uid + "/" + id]: "dueno" };
-  if (gastar) rutas["solicitudes/" + u.uid] = null;
-  await update(ref(db), rutas);
-  irA(id);
+async function pintarPedir(u, cuantas){
+  const admin = await soyAdmin(u);
+  let sol = null;
+  try { sol = (await get(ref(db, "solicitudes/" + u.uid))).val(); } catch(e){}
+  const nom = sol ? "«" + esc(sol.nombre) + "»" : "";
+  let txt, boton;
+  if (admin){ txt = "Como administras, creas tiendas sin pedirlas, en Tu cuenta."; boton = "Crear una tienda"; }
+  else if (sol && sol.aprobada){ txt = "<b>Aprobamos " + nom + ".</b> Créala en Tu cuenta y vuelves acá como dueño."; boton = "Crear " + nom; }
+  else if (sol && sol.rechazada){ txt = "<b>No aprobamos " + nom + ".</b>" + (sol.nota ? " " + esc(sol.nota) : "") +
+    " Puedes corregirla y mandarla de nuevo."; boton = "Corregir la solicitud"; }
+  else if (sol){ txt = "Tu solicitud de " + nom + " está en revisión. Cuando la aprobemos, la creas en Tu cuenta."; boton = "Ver mi solicitud"; }
+  else if (cuantas){ txt = "¿Organizas en otra tienda más? Pide su cuenta."; boton = "Pedir otra tienda"; }
+  else { txt = "¿Tu tienda todavía no está? Pide su cuenta: cuando la aprobemos, la creas y entras acá como dueño."; boton = "Pedir la cuenta de mi tienda"; }
+  $("pedirTxt").innerHTML = txt;
+  $("pedirIr").innerHTML = boton;
+  $("pedirIr").className = cuantas && !sol ? "sec small" : "";
+  $("pedirIr").onclick = () => { location.href = "cuenta.html" + (conEmu() ? "?emu=1" : "") + "#tienda"; };
+  $("pedirBloque").hidden = false;
 }
 
 async function mostrarInvitacion(u){
@@ -2631,6 +2554,43 @@ $("rondasTot").onchange = () => {
   try { localStorage.setItem(LS("rondas"), $("rondasTot").value); } catch(e){}
 };
 
+/* =========================================================
+   Publicar los emparejamientos mandando solo lo que cambió (28-09-2026).
+   Cada celular escucha pairings, y Firebase le manda solo lo que se escribe:
+   al tocar un ganador baja «Mesa 7: gana Camila» y no la hoja entera, que con
+   50 jugadores llega a 27 KB y antes se reenviaba en cada toque. El reloj no
+   pasa por acá: ya mandaba solo la hora de término.
+   Las posiciones se publican cuando la ronda queda completa, como en TOM: a
+   mitad de ronda la tabla está a medias y confunde.
+   Se compara contra lo que HAY publicado (PUB, que el lienzo ya escucha más
+   abajo) y no contra lo que este panel cree haber mandado: con dos
+   organizadores, cada uno compara contra lo mismo.
+   ========================================================= */
+let PUB = null;
+/* Las rutas que cambian entre lo publicado y lo nuevo, hoja por hoja. null y
+   un campo ausente son lo mismo: Firebase no guarda los null. */
+function diferencias(viejo, nuevo, ruta, out){
+  const esObj = x => x != null && typeof x === "object";
+  if (esObj(viejo) && esObj(nuevo)){
+    for (const k of new Set([...Object.keys(viejo), ...Object.keys(nuevo)])) diferencias(viejo[k], nuevo[k], ruta + "/" + k, out);
+  } else if (esObj(viejo) || esObj(nuevo) || (viejo ?? null) !== (nuevo ?? null)){
+    out[ruta] = nuevo ?? null;
+  }
+  return out;
+}
+async function publicarPairings(nuevo){
+  const base = BASE + "/pairings";
+  if (!nuevo) return;
+  /* La primera vez (o después de borrar) no hay con qué comparar: va entera, una vez. */
+  if (!PUB) return set(ref(db, base), nuevo);
+  if (nuevo.pendientes > 0 && PUB.standings) nuevo = Object.assign({}, nuevo, { standings: PUB.standings });
+  const rutas = diferencias(PUB, nuevo, base, {}), n = Object.keys(rutas).length;
+  if (!n) return;
+  /* Si cambió casi todo (otro torneo, un .tdf distinto), la hoja entera pesa lo mismo. */
+  if (n > 300) return set(ref(db, base), nuevo);
+  return update(ref(db), rutas);
+}
+
 async function publishPairings(){
   if (!parsed) return;
   const tot = parseInt($("rondasTot").value, 10);
@@ -2638,7 +2598,7 @@ async function publishPairings(){
   $("pubMsg").textContent = "Publicando…";
   drop.classList.add("busy");
   try {
-    await conTimeout(set(ref(db, BASE + "/pairings"), parsed), 15000);
+    await conTimeout(publicarPairings(parsed), 15000);
     const hora = new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
     $("pubMsg").innerHTML = '<span class="ok">Publicado ✓ ronda '+parsed.lastRound+' — '+hora+'</span>';
   } catch(e){ $("pubMsg").innerHTML = '<span class="err">'+mensajeConexion(e)+'</span>'; }
@@ -2861,6 +2821,7 @@ setInterval(() => { if (vigHandle) pintarVig(); }, 1000);
    ========================================================= */
 onValue(ref(db, BASE + "/pairings"), snap => {
   const p = snap.val();
+  PUB = p;   // la base de publicarPairings
   if (!p || !p.rounds || !p.rounds.length){
     $("ttitle").textContent = "Timer de torneo";
     $("tsubt").textContent = "";
@@ -3058,7 +3019,7 @@ async function escribirT(rutas, publicar = true){
 async function publicarTorneo(){
   if (!TN || !rondasDe(TN).length) return;
   try {
-    await conTimeout(set(ref(db, BASE + "/pairings"), aPairings(TN)), 15000);
+    await conTimeout(publicarPairings(aPairings(TN)), 15000);
     $("tnPub").innerHTML = '<span class="ok">Publicado ✓ ' + horaCorta() + "</span>";
   } catch(e){ $("tnPub").innerHTML = '<span class="err">' + esc(mensajeConexion(e)) + "</span>"; }
 }
