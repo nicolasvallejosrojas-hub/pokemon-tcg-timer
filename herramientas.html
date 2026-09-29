@@ -41,6 +41,14 @@
   .mantCaja.cerrado b{color:var(--negativo);}
   .mantCaja .btn{min-height:44px;}
 
+  /* ---------------------------------------------------------- beta cerrada */
+  .btNuevo{display:flex;flex-wrap:wrap;gap:var(--e2) var(--e3);align-items:end;padding:var(--e4);}
+  .btNuevo label{display:grid;gap:4px;font-size:var(--t2);color:var(--apagado);}
+  .btNuevo .nota{flex:1 1 100%;margin:0;}
+  #btNota{min-width:min(100%,280px);}
+  #btMax{width:7em;}
+  .codigo{font-weight:700;letter-spacing:.08em;font-variant-numeric:tabular-nums;}
+
   /* ---------------------------------------------------------- tiendas */
   .tfila{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:12px 14px;position:relative;}
   .tfila + .tfila::before{content:"";position:absolute;top:0;right:0;left:14px;height:1px;background:var(--divider);}
@@ -138,6 +146,22 @@
         <input id="mantMensaje" maxlength="200" placeholder="Mensaje para los jugadores (opcional)" aria-label="Mensaje de mantenimiento">
       </div></div>
 
+      <h2 class="gtit">Beta cerrada <span id="btResumen"></span></h2>
+      <div class="grupo"><div class="mantCaja" id="beta">
+        <div><b id="btEstado">…</b><small id="btDesc"></small></div>
+        <button class="btn" id="btBtn" disabled>…</button>
+      </div></div>
+      <div class="grupo" style="margin-top:var(--e2)"><form class="btNuevo" id="btForm">
+        <label>Para quién es<input id="btNota" maxlength="80" placeholder="Ej.: jugadores de Cartas del Sur"></label>
+        <label>Usos<input type="number" id="btMax" min="1" max="1000" value="1" inputmode="numeric"></label>
+        <button class="btn primario" type="submit">Crear código</button>
+        <p class="nota" id="btMsg"></p>
+      </form></div>
+      <div class="grupo" id="btLista" style="margin-top:var(--e2)"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
+      <p class="nota" style="margin:var(--e2) var(--e3) 0">Con la beta cerrada, crear una cuenta pide un código; las cuentas que ya
+        existen entran igual. Comparte el enlace: abre el registro con el código escrito. Un código de varios usos sirve para
+        una tienda entera; al borrarlo deja de aceptar gente nueva, pero no borra las cuentas que ya lo usaron.</p>
+
       <h2 class="gtit">Solicitudes de tienda <span id="solResumen"></span></h2>
       <div class="grupo" id="solLista"><div class="nota" style="padding:var(--e4)">Cargando…</div></div>
       <p class="nota" style="margin:var(--e2) var(--e3) 0">Aprobada, quien la pidió la crea desde su panel y queda de dueño.
@@ -173,7 +197,7 @@
 <script type="module">
 import { ref, onValue, get, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=8";
+import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=9";
 import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=4";
 import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "herramientas");
@@ -204,6 +228,7 @@ onAuthStateChanged(auth, async u => {
   $("bajada").textContent = "Solo las ven las cuentas de administrador del sitio.";
   $("herr").classList.remove("oculto");
   escucharMantenimiento();
+  escucharBeta();
   escucharSolicitudes();
   escucharCifras();
   pintarTiendas();
@@ -239,6 +264,78 @@ $("mantBtn").onclick = async () => {
   try { await set(ref(db, "sistema/mantenimiento"), v); }
   catch(e){ $("mantBtn").disabled = false; $("mantDesc").textContent = "No se pudo cambiar. Revisa la conexión."; }
 };
+
+/* ------------------------------------------------------------ beta cerrada
+   beta/activa abre o cierra el registro. Cada código (beta/codigos/<CÓDIGO>)
+   tiene cuántos usos permite y cuántos lleva; las reglas cuentan cada uso junto
+   con el perfil nuevo, así que no se puede pasar del máximo ni saltarse el código. */
+let BETA = { activa: false, codigos: {} }, betaEscuchando = false;
+function escucharBeta(){
+  if (betaEscuchando) return;
+  betaEscuchando = true;
+  onValue(ref(db, "beta/activa"), s => {
+    BETA.activa = s.val() === true;
+    $("beta").classList.toggle("cerrado", BETA.activa);
+    $("btEstado").textContent = BETA.activa ? "Beta cerrada: registro solo con invitación" : "Registro abierto";
+    $("btDesc").textContent = BETA.activa
+      ? "Para crear una cuenta hay que tener un código de los de abajo. Las cuentas existentes no se ven afectadas."
+      : "Cualquiera puede crear una cuenta. Al cerrar la beta, el registro pide un código de invitación.";
+    $("btBtn").textContent = BETA.activa ? "Abrir el registro" : "Cerrar la beta";
+    $("btBtn").classList.toggle("primario", BETA.activa);
+    $("btBtn").disabled = false;
+  }, () => {});
+  onValue(ref(db, "beta/codigos"), s => { BETA.codigos = s.val() || {}; pintarCodigos(); },
+    () => { $("btLista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo leer. ¿Publicaste las reglas nuevas?</div>'; });
+}
+$("btBtn").onclick = async () => {
+  const cerrar = !BETA.activa;
+  if (cerrar && !Object.keys(BETA.codigos).length && !confirm("Todavía no hay códigos: nadie va a poder crear una cuenta. ¿Cerrar la beta igual?")) return;
+  $("btBtn").disabled = true;
+  try { await set(ref(db, "beta/activa"), cerrar); }
+  catch(e){ $("btBtn").disabled = false; $("btDesc").textContent = "No se pudo cambiar. ¿Publicaste las reglas nuevas?"; }
+};
+/* 10 caracteres sin los que se confunden (0/O, 1/I/L): se dictan y se escriben a mano. */
+function codigoNuevo(){
+  const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint32Array(10));
+  return [...r].map(n => A[n % A.length]).join("");
+}
+const enlaceBeta = c => new URL("cuenta.html?" + EMU + "invitacion=" + c + "#crear", location.href).href;
+$("btForm").onsubmit = async e => {
+  e.preventDefault();
+  const max = Math.min(1000, Math.max(1, parseInt($("btMax").value, 10) || 1)), c = codigoNuevo();
+  const v = { max, usados: 0, creado: Date.now() }, nota = $("btNota").value.trim();
+  if (nota) v.nota = nota.slice(0, 80);
+  try {
+    await set(ref(db, "beta/codigos/" + c), v);
+    $("btNota").value = ""; $("btMax").value = 1;
+    $("btMsg").textContent = "Código " + c + " creado. Copia su enlace en la lista.";
+  } catch(err){ $("btMsg").textContent = "No se pudo crear. ¿Publicaste las reglas nuevas?"; }
+};
+function pintarCodigos(){
+  const filas = Object.entries(BETA.codigos).sort(([, a], [, b]) => (b.creado || 0) - (a.creado || 0));
+  const usos = filas.reduce((n, [, c]) => n + (c.usados || 0), 0);
+  $("btResumen").textContent = filas.length ? filas.length + (filas.length === 1 ? " código · " : " códigos · ") + usos + (usos === 1 ? " cuenta" : " cuentas") : "";
+  $("btLista").innerHTML = filas.map(([c, x]) => {
+    const quienes = Object.keys(x.quienes || {}).map(uid => (CU[uid] || {}).nombre || "cuenta borrada");
+    const lleno = (x.usados || 0) >= x.max;
+    return '<div class="tfila"><span></span><div><b class="codigo">' + esc(c) + "</b>" +
+      "<small>" + esc([x.nota, (x.usados || 0) + " de " + x.max + (x.max === 1 ? " uso" : " usos"),
+        x.creado && "creado el " + new Date(x.creado).toLocaleDateString("es-CL")].filter(Boolean).join(" · ")) + "</small>" +
+      (quienes.length ? "<small>Lo usaron: " + esc(quienes.join(", ")) + "</small>" : "") + "</div>" +
+      '<span class="estado ' + (lleno ? "" : "e1") + '">' + (lleno ? "Sin cupos" : "Disponible") + "</span>" +
+      '<div class="acc"><button class="btn chico primario" data-btcopiar="' + esc(c) + '">Copiar enlace</button>' +
+      '<button class="btn chico peligro" data-btborrar="' + esc(c) + '">Borrar</button></div></div>';
+  }).join("") || '<div class="nota" style="padding:var(--e4)">Todavía no hay códigos.</div>';
+  $("btLista").querySelectorAll("[data-btcopiar]").forEach(b => b.onclick = async () => {
+    const url = enlaceBeta(b.dataset.btcopiar);
+    try { await navigator.clipboard.writeText(url); b.textContent = "Copiado"; } catch(e){ prompt("Copia el enlace:", url); }
+    setTimeout(() => b.textContent = "Copiar enlace", 1500);
+  });
+  $("btLista").querySelectorAll("[data-btborrar]").forEach(b => b.onclick = () => {
+    if (confirm("¿Borrar el código " + b.dataset.btborrar + "? Nadie más podrá usarlo; las cuentas que ya lo usaron siguen igual."))
+      remove(ref(db, "beta/codigos/" + b.dataset.btborrar)).catch(() => {});
+  });
+}
 
 /* ------------------------------------------------------------ tiendas
    Las que nadie ha revisado, primero. verificada: true sale en el directorio;
@@ -311,7 +408,7 @@ function escucharCifras(){
     $("cfCuentas").textContent = ids.length;
     $("cfCuentasDet").textContent = (semana ? semana + " en los últimos 7 días · " : "") +
       ids.filter(u => CU[u].playerId).length + " con ID de jugador";
-    pintarCuentas();
+    pintarCuentas(); pintarCodigos();
   }, () => { $("cfCuentas").textContent = "—"; $("cuLista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo leer. ¿Publicaste las reglas nuevas?</div>'; });
   onValue(ref(db, "buzon"), s => { BZ = s.val() || {}; pintarBuzon(); },
     () => { $("cfBuzon").textContent = "—"; $("bzLista").innerHTML = '<div class="nota" style="padding:var(--e4)">No se pudo leer. ¿Publicaste las reglas nuevas?</div>'; });

@@ -254,6 +254,10 @@
                 <p>Para saber en qué categoría de edad juegas. No sale en ninguna parte pública
                   y lo puedes corregir en tus ajustes.</p></details>
             </div></div>
+          <!-- Solo con la beta cerrada (beta/activa): sin código, la base no guarda el perfil. -->
+          <div class="fila oculto" id="filaCodigo"><label for="rgCodigo">Código de invitación</label>
+            <div><input type="text" id="rgCodigo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24">
+              <span class="falta">Estamos en beta cerrada: el código te lo da tu tienda o quien te invitó.</span></div></div>
           <div class="enviar">
             <div class="aviso mal oculto" id="errRegistro" role="alert"></div>
             <button class="btn primario" type="submit" id="btnRegistro">Crear mi cuenta</button>
@@ -370,7 +374,7 @@ import { signInWithEmailAndPassword, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { MES_LARGO } from "./agenda.js?v=4";
 import { db, auth, params, enEmulador, urlMuro, urlCuenta, urlPanel, decir, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar } from "./sesion.js?v=8";
+         textoFalta, errorNacimiento, registrar, codigoInvitacion, betaActiva, normCodigo, CODIGO_OK } from "./sesion.js?v=9";
 import { estoyEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "portada");
 
@@ -446,8 +450,15 @@ function error(){
   const d = new Date(f + "T12:00:00");
   if (d.getMonth() + 1 !== +$("rgMes").value) return ["rgDia", "Esa fecha no existe: revisa el día."];
   const mal = errorNacimiento(f);
-  return mal ? ["rgDia", mal] : null;
+  if (mal) return ["rgDia", mal];
+  if (BETA && !CODIGO_OK(normCodigo($("rgCodigo").value))) return ["rgCodigo", "Escribe tu código de invitación: son letras y números, sin espacios."];
+  return null;
 }
+
+/* Beta cerrada: si está activa se pide el código (el del enlace ya viene escrito). */
+let BETA = false;
+$("rgCodigo").defaultValue = codigoInvitacion();
+betaActiva().then(b => { BETA = b; $("filaCodigo").classList.toggle("oculto", !b); });
 
 $("formRegistro").onsubmit = async e => {
   e.preventDefault();
@@ -460,7 +471,7 @@ $("formRegistro").onsubmit = async e => {
   try {
     await registrar({ nombre: $("rgNombre").value.trim().replace(/\s+/g, " "),
                       correo: $("rgCorreo").value.trim(), clave: $("rgClave").value,
-                      nacimiento: fecha() });
+                      nacimiento: fecha(), invitacion: $("rgCodigo").value });
     location.replace(urlMuro("perfil"));
   } catch(err){
     registrando = false;

@@ -316,6 +316,11 @@
           <input type="date" id="crNacimiento">
           <span class="pista">Define tu división por edad. Es privada: no sale en ninguna parte pública.</span>
         </label>
+        <!-- Solo con la beta cerrada (beta/activa): sin código, la base no guarda el perfil. -->
+        <label class="campo oculto" id="campoCodigo"><span>Código de invitación</span>
+          <input type="text" id="crCodigo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="ABCD2345EF">
+          <span class="pista">ByePass está en beta cerrada. El código te lo da tu tienda o quien te invitó.</span>
+        </label>
         <div class="aviso mal oculto" id="err1" role="alert"></div>
         <div class="abajo">
           <button class="btn primario ancho" type="submit">Seguir</button>
@@ -538,7 +543,8 @@ import { BASE, BASE_T, nombreTienda, slug } from "./sala.js?v=4";   // BASE: el 
 /* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar, params } from "./sesion.js?v=8";
+         textoFalta, errorNacimiento, registrar, params, codigoInvitacion, betaActiva, revisarCodigo,
+         normCodigo, CODIGO_OK } from "./sesion.js?v=9";
 import { estoyEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "cuenta");
 
@@ -742,6 +748,11 @@ function medir(clave, nombre, correo, medidor, falta){
   f.innerHTML = textoFalta(clave, r);
   return r;
 }
+/* Beta cerrada: si está activa, el paso 1 pide el código (el del enlace ya viene escrito). */
+let BETA = false;
+$("crCodigo").defaultValue = codigoInvitacion();   // defaultValue: el reset() del formulario no lo borra
+betaActiva().then(b => { BETA = b; $("campoCodigo").classList.toggle("oculto", !b); });
+
 function pintarMedidor(){ return medir($("crClave").value, $("crNombre").value, $("crCorreo").value, "medidor", "falta"); }
 ["crClave", "crCorreo"].forEach(id => $(id).addEventListener("input", pintarMedidor));
 
@@ -752,6 +763,8 @@ function errorPaso(n){
     if (nombre.length < 3) return ["crNombre", "Escribe tu nombre y apellido."];
     const malNac = errorNacimiento($("crNacimiento").value);
     if (malNac) return ["crNacimiento", malNac];
+    if (BETA && !CODIGO_OK(normCodigo($("crCodigo").value)))
+      return ["crCodigo", "Escribe tu código de invitación: son letras y números, sin espacios."];
   }
   if (n === 2){
     const correo = $("crCorreo").value.trim();
@@ -786,6 +799,11 @@ $("formCrear").onsubmit = async e => {
     $(falla[0]).focus();
     return;
   }
+  /* El código se revisa contra la base al salir del paso 1, no recién al final. */
+  if (paso === 1 && BETA){
+    const mal = await revisarCodigo($("crCodigo").value);
+    if (mal){ aviso("err1", decir({ code: mal })); $("crCodigo").focus(); return; }
+  }
   if (paso < 3){
     location.hash = "crear-" + (paso + 1);
     /* Al cambiar de paso, el foco va al título: un lector de pantalla anuncia
@@ -808,7 +826,7 @@ async function crearCuenta(){
   registrando = true;
   try {
     await registrar({ nombre, correo, clave: $("crClave").value, nacimiento: $("crNacimiento").value,
-                      playerId: idJug, publico: $("crPublico").checked });
+                      playerId: idJug, publico: $("crPublico").checked, invitacion: $("crCodigo").value });
     /* Recién ahora, con los datos guardados, se sale al muro. */
     location.replace(urlMuro("perfil"));
   } catch(err){
@@ -821,8 +839,14 @@ async function crearCuenta(){
       pintarAjustes(); mostrar("ajustes");
       return;
     }
-    /* Un correo ya usado se corrige en el paso 2, no en el 3. */
+    /* Un correo ya usado se corrige en el paso 2, no en el 3; el código, en el 1. */
     const code = err && err.code;
+    if (code === "beta/codigo" || code === "beta/falta"){
+      location.hash = "crear";
+      setTimeout(() => { aviso("err1", decir(err)); $("crCodigo").focus(); }, 0);
+      b.disabled = false; b.textContent = "Crear mi cuenta";
+      return;
+    }
     if (code === "auth/email-already-in-use" || code === "auth/invalid-email" || code === "auth/weak-password"){
       location.hash = "crear-2";
       setTimeout(() => aviso("err2", decir(err)), 0);

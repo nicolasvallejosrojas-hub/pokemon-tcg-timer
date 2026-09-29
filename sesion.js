@@ -1,7 +1,7 @@
 /* ============================================================
    sesion.js — entrar y crear cuenta
    ------------------------------------------------------------
-   Versión actual: v=8   (subir el ?v= al tocar este archivo)
+   Versión actual: v=9   (subir el ?v= al tocar este archivo)
 
    Lo usan la portada (index.html), que tiene el registro a la vista, y la
    cuenta (cuenta.html), con sus tres pasos. Vive acá para que las reglas de
@@ -11,7 +11,7 @@
    Necesita config.js cargado antes: de ahí salen FIREBASE_CONFIG y EMULADOR.
    ============================================================ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, connectDatabaseEmulator, ref, set }
+import { getDatabase, connectDatabaseEmulator, ref, set, get, update, increment }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, updateProfile, sendEmailVerification }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -64,6 +64,8 @@ const ERRORES = {
   "auth/too-many-requests":      "Demasiados intentos seguidos. Espera un momento y vuelve a probar.",
   "auth/network-request-failed": "Sin conexión. Revisa tu internet y vuelve a intentar.",
   "auth/operation-not-allowed":  "El registro con correo no está habilitado en Firebase. Avísale al organizador.",
+  "beta/falta":                  "ByePass está en beta cerrada: para crear tu cuenta necesitas un código de invitación.",
+  "beta/codigo":                 "Ese código de invitación no existe o ya se usó todas las veces que permite.",
 };
 export const decir = e => {
   const c = e && e.code;
@@ -129,16 +131,61 @@ export function errorNacimiento(v){
 }
 
 /* ------------------------------------------------------------
+   Beta cerrada
+   ------------------------------------------------------------
+   Con beta/activa en true, crear una cuenta pide un código de invitación
+   (beta/codigos/<CÓDIGO>, los crea la administración en herramientas.html).
+   Lo que cierra de verdad son las reglas: sin un código válido la base no deja
+   guardar el perfil. Esto de acá es para avisar antes de crear el acceso.
+   El código llega por el enlace (?invitacion=) y se recuerda en la pestaña
+   por si la persona pasa de la portada a la cuenta. */
+export const normCodigo = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+export const CODIGO_OK = v => /^[A-Z0-9]{8,20}$/.test(v);
+export function codigoInvitacion(){
+  const q = normCodigo(new URLSearchParams(location.search).get("invitacion"));
+  try { if (q) sessionStorage.setItem("invitacion", q); return q || sessionStorage.getItem("invitacion") || ""; }
+  catch(e){ return q; }
+}
+codigoInvitacion();
+export const betaActiva = () => get(ref(db, "beta/activa")).then(s => s.val() === true, () => false);
+/* "" si el código sirve; si no, la clave del error para decir(). */
+export async function revisarCodigo(c){
+  c = normCodigo(c);
+  if (!CODIGO_OK(c)) return "beta/codigo";
+  try {
+    const [max, usados] = await Promise.all(["max", "usados"].map(k => get(ref(db, "beta/codigos/" + c + "/" + k)).then(s => s.val())));
+    return typeof max === "number" && (usados || 0) < max ? "" : "beta/codigo";
+  } catch(e){ return "beta/codigo"; }
+}
+
+/* ------------------------------------------------------------
    Registrarse
    ------------------------------------------------------------
    Crea la cuenta y guarda el perfil. Quien llama tiene que esperar a que
    termine antes de salir de la página: onAuthStateChanged dispara ANTES de
    que el perfil se guarde, y redirigir ahí dejaba la cuenta huérfana. */
-export async function registrar({ nombre, correo, clave, nacimiento, playerId = "", publico = false }){
+export async function registrar({ nombre, correo, clave, nacimiento, playerId = "", publico = false, invitacion = "" }){
+  /* En beta cerrada el código se revisa ANTES de crear el acceso: si no sirve,
+     no queda una cuenta a medias. Fuera de la beta no se usa. */
+  const beta = await betaActiva();
+  invitacion = beta ? normCodigo(invitacion) : "";
+  if (beta && !invitacion) throw { code: "beta/falta" };
+  if (invitacion){ const mal = await revisarCodigo(invitacion); if (mal) throw { code: mal }; }
   const cred = await createUserWithEmailAndPassword(auth, correo, clave);
   await updateProfile(cred.user, { displayName: nombre });
-  await set(ref(db, "usuarios/" + cred.user.uid),
-            { nombre, nacimiento, playerId, publico, creado: Date.now() });
+  const perfil = { nombre, nacimiento, playerId, publico, creado: Date.now() }, uid = cred.user.uid;
+  if (!invitacion) await set(ref(db, "usuarios/" + uid), perfil);
+  else try {
+    /* Perfil, uso y contador van juntos: las reglas exigen los tres a la vez. */
+    const c = "beta/codigos/" + invitacion;
+    await update(ref(db), { ["usuarios/" + uid]: { ...perfil, invitacion },
+      [c + "/quienes/" + uid]: Date.now(), [c + "/usados"]: increment(1) });
+  } catch(e){
+    /* Otro alcanzó a usar el último cupo entre la revisión y ahora: se borra
+       el acceso recién creado para no dejarlo huérfano. */
+    try { await cred.user.delete(); } catch(_){}
+    throw { code: "beta/codigo" };
+  }
   /* El correo para confirmar la dirección. Si no sale, el muro lo ofrece de
      nuevo; la marca le dice al muro que este ya se mandó. */
   try {
