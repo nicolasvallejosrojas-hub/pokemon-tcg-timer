@@ -1,7 +1,7 @@
 /* ============================================================
    insignias.js — el catálogo y la cuenta de las insignias
    ------------------------------------------------------------
-   Versión actual: v=1   (subir el ?v= al tocar este archivo)
+   Versión actual: v=3   (subir el ?v= al tocar este archivo)
 
    Dos tipos:
      · PERMANENTES: son de la cuenta. Cuentan los torneos de todas las tiendas
@@ -13,15 +13,15 @@
 
    Nada de esto se guarda por jugador: se calcula cada vez con datos que el
    jugador no puede escribir —el historial (lo archiva el organizador), las
-   insignias de evento (las crea el dueño) y la hora de alta (la pone el
-   servidor)—. Así nadie se regala una.
+   insignias de evento (las crea el dueño), la hora de alta (la pone el
+   servidor) y beta/testers (solo se escribe al gastar un código de invitación)—. Así nadie se regala una.
 
    Lo usan el muro (perfil propio y ajeno) y el panel (las de evento). No lee
    nada del navegador al cargarse, así que se puede probar con node.
    ============================================================ */
 import { clasificar, mesDe, nombreMes, PUNTOS_DEF } from "./clasificacion.js?v=1";
 
-export const BETA_CUPOS = 50;
+export const BETA_CUPOS = 100;
 export const NIVELES = ["bronce", "plata", "oro"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
                "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -139,7 +139,7 @@ function progreso(niveles, r){
    ------------------------------------------------------------ */
 export const PERMANENTES = [
   { id: "beta", nombre: "Beta tester", tono: "beta", ico: "beta",
-    como: "Ser de los primeros " + BETA_CUPOS + " en registrarse" },
+    como: "Ser de los primeros " + BETA_CUPOS + " en registrarse o entrar con invitación" },
   { id: "debut", nombre: "Debut", tono: "menta", ico: "debut", niveles: [1], serie: "torneos",
     como: "Juega tu primer torneo", logro: () => "Primer torneo jugado" },
   { id: "veterano", nombre: "Veterano", tono: "plata", ico: "veterano", niveles: [10, 25, 50], serie: "torneos",
@@ -198,15 +198,16 @@ export function series(tiendas, esDe, alta){
 
 /* Las permanentes de un jugador, como fichas listas para dibujar. `alta` y
    `numero` (su orden de registro) solo se conocen si se sabe su uid. */
-export function permanentes({ tiendas, esDe, alta = null, numero = null }){
+export function permanentes({ tiendas, esDe, alta = null, numero = null, tester = false }){
   const s = series(tiendas, esDe, alta);
   return PERMANENTES.map(def => {
     const base = { key: "p:" + def.id, tipo: "perm", ico: def.ico, tono: def.tono, como: def.como };
     if (def.id === "beta"){
-      const ok = numero != null && numero <= BETA_CUPOS;
+      /* Los primeros BETA_CUPOS registros, o quien entró con un código de la beta. */
+      const primero = numero != null && numero <= BETA_CUPOS, ok = primero || tester;
       /* Quien no la tiene no la ve: no se puede ganar después. */
-      return ok ? { ...base, ok, marca: base.key, anillo: 0, titulo: def.nombre, texto: "Registro Nº " + numero,
-                    rareza: "Solo " + BETA_CUPOS + " en total", fecha: alta ? isoLocal(new Date(alta)) : null } : null;
+      return ok ? { ...base, ok, marca: base.key, anillo: 0, titulo: def.nombre, texto: primero ? "Registro Nº " + numero : "Entró por invitación",
+                    rareza: "Solo en la beta", fecha: alta ? isoLocal(new Date(alta)) : null } : null;
     }
     if (def.conAlta && !alta) return null;
     const r = evaluar(def.niveles, s[def.serie]), conNiveles = def.niveles.length > 1;

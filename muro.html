@@ -520,7 +520,7 @@ import { nombreMes } from "./clasificacion.js?v=1";
 import { estoyEnLinea } from "./presencia.js?v=4";
 import { leerHistorial } from "./historial.js?v=1";
 import { vigilar } from "./mantenimiento.js?v=3";
-import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga } from "./insignias.js?v=1";
+import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga } from "./insignias.js?v=3";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
@@ -814,6 +814,7 @@ function resultadosHtml(mios, vacio){
    ------------------------------------------------------------ */
 /* El orden de registro: la posición de su hora de alta entre todas. */
 let ALTAS = null;
+let TESTERS = {};   // beta/testers/<uid>: entró con código de invitación
 function numeroDe(uid){
   if (!uid || !ALTAS || !ALTAS[uid]) return null;
   return Object.entries(ALTAS).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
@@ -844,7 +845,8 @@ function repintarInsignias(){
 function insigniasDe(esDe, uid, salas){
   const listas = salas.filter(cargada);
   const perm = permanentes({ tiendas: Object.fromEntries(listas.map(s => [s, TD[s].hist])), esDe,
-                             alta: uid && ALTAS ? ALTAS[uid] || null : null, numero: numeroDe(uid) });
+                             alta: uid && ALTAS ? ALTAS[uid] || null : null, numero: numeroDe(uid),
+                             tester: !!(uid && TESTERS[uid]) });
   const grupos = listas.map(sala => {
     const t = TD[sala], perfilT = (t.tienda && t.tienda.perfil) || null, nombre = nombreTienda(perfilT, sala);
     const color = (perfilT && perfilT.color) || COLOR_TIENDA;
@@ -1444,6 +1446,8 @@ onAuthStateChanged(auth, async u => {
     if (!ALTAS[u.uid] && !pidioAlta){ pidioAlta = true; set(ref(db, "altas/" + u.uid), serverTimestamp()).catch(() => {}); }
     repintarInsignias();
   }, () => { ALTAS = {}; repintarInsignias(); });
+  /* Quienes entraron con un código de la beta: también son Beta tester. */
+  onValue(ref(db, "beta/testers"), s => { TESTERS = s.val() || {}; repintarInsignias(); }, () => {});
   /* Lo que muestro a los demás: si mis rachas son públicas, mi vitrina y las
      insignias que oculto. */
   get(ref(db, "perfilPublico/" + u.uid)).then(s => {

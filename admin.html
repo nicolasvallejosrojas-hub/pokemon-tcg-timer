@@ -1145,7 +1145,7 @@ import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, no
 import { vigilar } from "./mantenimiento.js?v=3";
 import { estoyEnLinea } from "./presencia.js?v=4";
 import { barras } from "./graficos.js?v=1";
-import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=1";
+import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=3";
 import { rondasDe, resumen, tabla, emparejar, rondasSugeridas, aPairings, aHistorial,
          delCorte, emparejarCorte, clasificacion, tamanoCorte, corteTerminado, nombreCorte, CORTES,
          GANA_A, GANA_B, EMPATE, DOBLE } from "./torneo.js?v=1";
@@ -3039,7 +3039,36 @@ function escucharEnlaces(){
          existiera la opción, y un enlace sin el dato no pidió reservarse. */
       if (e && e.playerId) ENLACES[String(e.playerId)] = { uid, publico: e.publico !== false };
     });
+    enlazarPasados();
   }, () => { ENLACES = {}; });
+  onValue(ref(db, "idsHistorial/" + TIENDA), s => { IDS_HIST = s.val() || {}; enlazarPasados(); }, () => {});
+}
+/* Los ID de cada torneo archivado (idsHistorial/<sala>/<torneo>/<puesto>), en
+   un nodo que solo lee la tienda: el historial es público y el ID no viaja.
+   Con esto, quien comparte su ID DESPUÉS de jugar también recupera sus torneos
+   pasados, aunque el .tdf lo tenga con el nombre escrito distinto. Corre en el
+   panel del organizador, que es quien puede leer los dos lados. Los torneos
+   archivados antes del 29-09-2026 no guardaron ID: esos siguen por nombre. */
+let IDS_HIST = {}, enlazando = false;
+async function enlazarPasados(){
+  if (enlazando) return;
+  const rutas = {};
+  Object.entries(IDS_HIST).forEach(([tid, ids]) => {
+    const t = HIST_P[tid];
+    if (!t || !t.standings) return;
+    Object.entries(ids || {}).forEach(([i, id]) => {
+      const e = ENLACES[String(id)], fila = t.standings[i];
+      if (!e || !fila || fila.uid) return;
+      const r = "historial/" + tid + "/standings/" + i;
+      rutas[r + "/uid"] = e.uid;
+      if (!e.publico){ rutas[r + "/name"] = "Jugador reservado"; rutas[r + "/reservado"] = true; }
+    });
+  });
+  if (!Object.keys(rutas).length) return;
+  enlazando = true;
+  /* historialVer nuevo: los celulares que guardaron el historial lo bajan de nuevo. */
+  try { await update(ref(db, BASE_T), { ...rutas, historialVer: Date.now() }); } catch(e){}
+  enlazando = false;
 }
 const R_CFG  = ref(db, BASE_T + "/config");
 const PTS_DEF = [12,10,8,7,6,5,4,3], PTS_REST_DEF = 1;
@@ -3109,8 +3138,13 @@ async function archivarTorneo(){
     creado: Date.now()
   };
   const enlazadas = registro.standings.filter(f => f.uid).length;
+  const ids = {};
+  ID_POR_PUESTO.forEach((id, i) => { if (/^[0-9]{7,8}$/.test(String(id || ""))) ids[i] = String(id); });
   try {
-    await conTimeout(push(R_HIST, registro), 15000);
+    const clave = push(R_HIST).key;
+    await conTimeout(set(ref(db, BASE_T + "/historial/" + clave), registro), 15000);
+    /* Aparte y sin bloquear: si las reglas nuevas no están publicadas, se archiva igual. */
+    if (Object.keys(ids).length) set(ref(db, "idsHistorial/" + TIENDA + "/" + clave), ids).catch(() => {});
     $("archMsg").innerHTML = '<span class="ok">Archivado ✓ ' + esc(parsed.name) +
                              ' &middot; ' + fechaLarga(f) +
                              (enlazadas ? ' &middot; ' + enlazadas +
@@ -3122,7 +3156,7 @@ $("archiveBtn").onclick = archivarTorneo;
 
 onValue(R_HIST, snap => {
   const v = snap.val() || {};
-  HIST_P = v; pintarInsPanel(); pintarJuegos();
+  HIST_P = v; pintarInsPanel(); pintarJuegos(); enlazarPasados();
   const items = Object.entries(v).sort((a,b) => (b[1].creado||0) - (a[1].creado||0));
   if (!items.length){ $("histList").textContent = "Aún no hay torneos archivados."; return; }
   $("histList").innerHTML = "";
@@ -3139,6 +3173,7 @@ onValue(R_HIST, snap => {
       /* historialVer nuevo: los celulares que guardaron el historial
          (historial.js) lo bajan de nuevo, sin este torneo. */
       try { await update(ref(db, BASE_T), { ["historial/" + id]: null, historialVer: Date.now() }); } catch(e){}
+      remove(ref(db, "idsHistorial/" + TIENDA + "/" + id)).catch(() => {});
     };
     row.appendChild(b);
     $("histList").appendChild(row);

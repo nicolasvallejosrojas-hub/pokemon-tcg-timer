@@ -231,7 +231,7 @@
         <h2>Crea tu cuenta</h2>
         <p class="gratis">Es gratis, y la hace cualquiera que juegue.</p>
         <p class="betaAviso oculto" id="betaAviso"><span class="med" aria-hidden="true">β</span>
-          <span>Los primeros 50 en registrarse se llevan la insignia <b>Beta tester</b>.</span></p>
+          <span>Los primeros 100 en registrarse se llevan la insignia <b>Beta tester</b>.</span></p>
         <form id="formRegistro" novalidate>
           <div class="fila"><label for="rgNombre">Nombre y apellido</label>
             <input type="text" id="rgNombre" autocomplete="name" maxlength="80"></div>
@@ -374,7 +374,7 @@ import { signInWithEmailAndPassword, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { MES_LARGO } from "./agenda.js?v=4";
 import { db, auth, params, enEmulador, urlMuro, urlCuenta, urlPanel, decir, CORREO_OK, revisarClave, claveOk,
-         textoFalta, errorNacimiento, registrar, codigoInvitacion, betaActiva, normCodigo, CODIGO_OK } from "./sesion.js?v=9";
+         textoFalta, errorNacimiento, registrar, codigoInvitacion, betaActiva, normCodigo, CODIGO_OK } from "./sesion.js?v=10";
 import { estoyEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "portada");
 
@@ -384,9 +384,11 @@ function aviso(id, msg){ $(id).textContent = msg; $(id).classList.toggle("oculto
 /* Los enlaces llevan la sala y el ?emu=1 con que llegaste: sin eso, en una
    prueba local la cuenta abriría la base real en vez del emulador. */
 /* El aviso de la beta se ve solo mientras queden cupos: si la cuenta falla,
-   no se muestra (mejor callar que prometer una insignia que ya no queda). */
+   no se muestra (mejor callar que prometer una insignia que ya no queda).
+   El 100 es BETA_CUPOS de insignias.js, escrito acá y en el texto del aviso:
+   importar ese módulo solo por el número le sumaría 20 KB a la portada. */
 get(ref(db, "altas")).then(s => {
-  if (Object.keys(s.val() || {}).length < 50) $("betaAviso").classList.remove("oculto");
+  if (Object.keys(s.val() || {}).length < 100) $("betaAviso").classList.remove("oculto");
 }, () => {});
 
 const DESTINO = { ingresar: urlCuenta("ingresar"), olvide: urlCuenta("olvide"), panel: urlPanel(), pedir: urlCuenta("tienda"),

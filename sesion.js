@@ -176,10 +176,11 @@ export async function registrar({ nombre, correo, clave, nacimiento, playerId = 
   const perfil = { nombre, nacimiento, playerId, publico, creado: Date.now() }, uid = cred.user.uid;
   if (!invitacion) await set(ref(db, "usuarios/" + uid), perfil);
   else try {
-    /* Perfil, uso y contador van juntos: las reglas exigen los tres a la vez. */
+    /* Perfil, uso y contador van juntos: las reglas exigen los tres a la vez.
+       beta/testers es público y da la insignia Beta tester. */
     const c = "beta/codigos/" + invitacion;
     await update(ref(db), { ["usuarios/" + uid]: { ...perfil, invitacion },
-      [c + "/quienes/" + uid]: Date.now(), [c + "/usados"]: increment(1) });
+      [c + "/quienes/" + uid]: Date.now(), [c + "/usados"]: increment(1), ["beta/testers/" + uid]: true });
   } catch(e){
     /* Otro alcanzó a usar el último cupo entre la revisión y ahora: se borra
        el acceso recién creado para no dejarlo huérfano. */

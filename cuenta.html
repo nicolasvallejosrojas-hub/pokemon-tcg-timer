@@ -544,7 +544,7 @@ import { BASE, BASE_T, nombreTienda, slug } from "./sala.js?v=4";   // BASE: el 
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
          textoFalta, errorNacimiento, registrar, params, codigoInvitacion, betaActiva, revisarCodigo,
-         normCodigo, CODIGO_OK } from "./sesion.js?v=9";
+         normCodigo, CODIGO_OK } from "./sesion.js?v=10";
 import { estoyEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "cuenta");
 
@@ -1195,7 +1195,7 @@ $("btnEliminar").onclick = async () => {
     ". Antes de borrar tu cuenta, escríbenos para dejar la tienda en otras manos o eliminarla.");
   if (!confirm("¿Eliminar tu cuenta para siempre? No se puede deshacer.")) return listo();
   const uid = usuario.uid, rutas = {};
-  ["usuarios", "perfilPublico", "altas", "organiza", "solicitudes"].forEach(n => rutas[n + "/" + uid] = null);
+  ["usuarios", "perfilPublico", "altas", "organiza", "solicitudes", "beta/testers"].forEach(n => rutas[n + "/" + uid] = null);
   Object.keys((perfil && perfil.tiendas) || {}).forEach(t => rutas["enlaces/" + t + "/" + uid] = null);
   Object.keys(org).forEach(t => rutas["tiendas/" + t + "/miembros/" + uid] = null);
   try {
