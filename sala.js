@@ -1,7 +1,7 @@
 /* ============================================================
    sala.js — de qué sala habla esta pestaña
    ------------------------------------------------------------
-   Versión actual: v=4   (subir el ?v= al tocar este archivo)
+   Versión actual: v=5   (subir el ?v= al tocar este archivo)
 
    Existe porque estas tres líneas estaban copiadas en admin.html,
    timer-view.html y muro.html, y las copias YA HABÍAN DIVERGIDO: la de
@@ -34,6 +34,13 @@ export const SALA   = slug(new URLSearchParams(location.search).get("sala"), 28)
 export const TIENDA = tiendaDe(SALA);
 export const BASE   = "salas/" + SALA;      // el timer: reloj, mesas, sorteo
 export const BASE_T = "salas/" + TIENDA;    // la tienda: historial, puntos, agenda
+
+/* Desde el 30-09-2026 hay salas de invitado: un timer sin cuenta, con menos
+   opciones, que dura 24 horas. Se llaman inv-xxxxxx (6 letras o números) y no
+   son una tienda: no tienen perfil, historial que sume, agenda ni estadísticas.
+   Las reglas las cierran solas al vencer (salas/<id>/vence). */
+export const INVITADO = /^inv-[a-z0-9]{6}$/.test(SALA);
+export const HORAS_INVITADO = 24;
 
 /* Desde el 25-09-2026 una sala es también una TIENDA: tiendas/<id> en Firebase
    guarda su nombre, su color y quiénes la organizan, con el mismo id. Estas

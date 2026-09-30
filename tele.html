@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0F2E2A">
+<title>Timer — ByePass</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Newsreader:opsz,wght@6..72,300&display=swap">
+<!--
+  tele.html — la vista del timer para teles y navegadores viejos
+  -------------------------------------------------------------
+  Las Smart TV traen navegadores de hace años (Tizen, webOS: Chrome 56–79) y
+  timer-view.html no alcanza a arrancar ahí: usa módulos, ?. y ?? y el SDK de
+  Firebase. timer-view.html los detecta y los manda acá solo.
+
+  Esta página es JavaScript de antes (var, function, sin módulos) y CSS sin
+  inset, gap ni clamp. Lee Firebase por su API REST en vivo (EventSource) o,
+  si ni eso hay, preguntando cada 3 segundos. Solo lee: reloj, diseño,
+  imágenes y el nombre del torneo. Si algo cambia en el formato de
+  salas/<sala>/timer, cambiarlo también acá.
+-->
+<style>
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;}
+  body{background:#0F2E2A;color:#F3FFFB;font-family:Inter,Arial,sans-serif;}
+  #bg{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;display:none;z-index:0;}
+  .caja{position:fixed;z-index:1;}
+  .caja img{width:100%;height:100%;object-fit:contain;}
+  #cab{position:fixed;top:0;left:0;right:0;z-index:2;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;padding:2.2vh 2.4vw;}
+  #logo{max-height:6vh;max-width:30vw;display:none;margin-right:1.4vw;}
+  #marca{display:none;font-family:Newsreader,Georgia,serif;font-weight:300;font-size:4.2vh;margin-right:1.4vw;}
+  #marca b{font-weight:300;color:#F45B45;}
+  #titulo{font-size:2.8vh;font-weight:600;}
+  #sub{font-size:2.2vh;color:#9DBDB4;margin-top:.4vh;}
+  #centro{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;
+    -webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;}
+  #ronda{font-size:2.4vh;letter-spacing:.22em;text-transform:uppercase;color:#9DBDB4;margin-bottom:1.6vh;display:none;}
+  #reloj{font-family:Newsreader,Georgia,serif;font-weight:300;line-height:1;letter-spacing:.01em;text-shadow:0 .6vh 3vh rgba(0,0,0,.35);}
+  #reloj.pausado{opacity:.55;}
+  #reloj.pulso{-webkit-animation:pulso 1s ease-in-out infinite;animation:pulso 1s ease-in-out infinite;}
+  @-webkit-keyframes pulso{50%{opacity:.45;}}
+  @keyframes pulso{50%{opacity:.45;}}
+  #extras{margin-top:2vh;font-size:2.4vh;color:#F3FFFB;text-align:center;}
+  #extras span{display:inline-block;margin:0 1vw;padding:.6vh 1.2vw;border-radius:1vh;background:rgba(0,0,0,.28);}
+  #estado{position:fixed;bottom:2vh;left:0;right:0;z-index:2;text-align:center;font-size:2vh;color:#9DBDB4;}
+  #aviso{position:fixed;top:0;left:0;right:0;bottom:0;z-index:5;display:none;background:#0F2E2A;text-align:center;padding-top:36vh;}
+  #aviso h2{margin:0;font-size:5vh;}
+  #aviso p{color:#9DBDB4;font-size:2.6vh;}
+</style>
+</head>
+<body>
+<img id="bg" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+<div id="cab"><img id="logo" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><span id="marca">Bye<b>Pass</b></span><div><div id="titulo"></div><div id="sub"></div></div></div>
+<div id="centro"><div id="ronda"></div><div id="reloj">--:--</div><div id="extras"></div></div>
+<div id="estado">Conectando…</div>
+<div id="aviso"><h2 id="avisoT">Esta sala no está disponible</h2><p id="avisoP">Revisa el enlace, o crea tu sala en byepass.cl</p></div>
+
+<script src="config.js?v=8"></script>
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function param(k){ var m = new RegExp("[?&]" + k + "=([^&#]*)").exec(location.search); return m ? decodeURIComponent(m[1]) : ""; }
+  /* El mismo nombre de sala que sala.js: sin tildes, minúsculas y guiones. */
+  var SALA = (param("sala") || "principal").toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 28) || "principal";
+  var INVITADO = /^inv-[a-z0-9]{6}$/.test(SALA);
+
+  /* La base, por REST: la real o el emulador. */
+  var NS = FIREBASE_CONFIG.databaseURL.replace(/^https?:\/\//, "").split(".")[0];
+  function url(ruta){
+    return (typeof EMULADOR !== "undefined" && EMULADOR)
+      ? "http://" + EMULADOR.host + ":" + EMULADOR.db + "/" + ruta + ".json?ns=" + NS
+      : FIREBASE_CONFIG.databaseURL + "/" + ruta + ".json";
+  }
+
+  /* Aplica un «put» o «patch» del stream sobre el objeto guardado. */
+  function aplicar(obj, ruta, dato, esPatch){
+    var partes = ruta.split("/").filter(function(p){ return p; });
+    if (!partes.length){
+      if (!esPatch) return dato;
+      obj = obj && typeof obj === "object" ? obj : {};
+      for (var k in dato) if (dato.hasOwnProperty(k)){ if (dato[k] === null) delete obj[k]; else obj[k] = dato[k]; }
+      return obj;
+    }
+    obj = obj && typeof obj === "object" ? obj : {};
+    var o = obj;
+    for (var i = 0; i < partes.length - 1; i++){ if (!o[partes[i]] || typeof o[partes[i]] !== "object") o[partes[i]] = {}; o = o[partes[i]]; }
+    var ult = partes[partes.length - 1];
+    o[ult] = esPatch ? aplicar(o[ult], "/", dato, true) : dato;
+    if (o[ult] === null) delete o[ult];
+    return obj;
+  }
+
+  /* Escucha una ruta: en vivo con EventSource; si no hay, pregunta cada 3 s. */
+  var negada = false;
+  function escuchar(ruta, alCambiar){
+    var valor = null;
+    if (window.EventSource){
+      var al = function(esPatch){ return function(e){
+        var m; try { m = JSON.parse(e.data); } catch(x){ return; }
+        valor = aplicar(valor, m.path, m.data, esPatch); alCambiar(valor, true); }; };
+      var abrir = function(){
+        var es = new EventSource(url(ruta));
+        es.addEventListener("put", al(false));
+        es.addEventListener("patch", al(true));
+        es.addEventListener("cancel", function(){ es.close(); negada = true; noDisponible(); });
+        es.onopen = function(){ if (!negada) $("estado").innerHTML = S ? "" : "Esperando al organizador…"; };
+        es.onerror = function(){
+          if (negada) return;
+          $("estado").innerHTML = S ? "Sin conexión — mostrando lo último recibido" : "Sin conexión, reintentando…";
+          /* Cerrado del todo: o no hay permiso (sala que no existe o venció) o
+             se cayó la red. Se pregunta cuál antes de reintentar. */
+          if (es.readyState !== 2) return;
+          var x = new XMLHttpRequest(); x.open("GET", url(ruta));
+          x.onload = function(){ if (x.status === 401 || x.status === 403){ negada = true; noDisponible(); } else setTimeout(abrir, 3000); };
+          x.onerror = function(){ setTimeout(abrir, 5000); };
+          x.send();
+        };
+      };
+      abrir();
+    } else {
+      var preguntar = function(){
+        var x = new XMLHttpRequest();
+        x.open("GET", url(ruta) + (url(ruta).indexOf("?") < 0 ? "?" : "&") + "t=" + Date.now());
+        x.onload = function(){
+          if (x.status === 401 || x.status === 403){ negada = true; return noDisponible(); }
+          try { alCambiar(JSON.parse(x.responseText), false); } catch(e){}
+          $("estado").innerHTML = S ? "" : "Esperando al organizador…";
+        };
+        x.onerror = function(){ $("estado").innerHTML = "Sin conexión, reintentando…"; };
+        x.send();
+      };
+      preguntar(); setInterval(preguntar, 3000);
+    }
+  }
+  function noDisponible(){
+    if (INVITADO){ $("avisoT").innerHTML = "Esta sala de invitado terminó"; $("avisoP").innerHTML = "Las salas de invitado duran 24 horas. Crea la tuya en byepass.cl"; }
+    $("aviso").style.display = "block";
+  }
+
+  /* ---------------- reloj ---------------- */
+  var S = null, EXTRAS = {}, offset = 0, primera = true;
+  function dos(n){ return n < 10 ? "0" + n : "" + n; }
+  function fmt(sec){ var a = Math.abs(sec); return (sec < 0 ? "-" : "") + dos(Math.floor(a / 60)) + ":" + dos(a % 60); }
+  function ahora(){ return Date.now() + offset; }
+  function dibujar(){
+    if (!S) return;
+    var sec = (S.paused || !S.endTime) ? Math.round(S.remaining || 0) : Math.round((S.endTime - ahora()) / 1000);
+    var c = $("reloj");
+    c.innerHTML = fmt(sec);
+    c.style.color = sec < 0 ? (S.negativeColor || "#FF7A6B") : (S.timerColor || "#F3FFFB");
+    c.className = S.paused ? "pausado" : (sec <= 10 && sec >= 0 ? "pulso" : "");
+    /* Igual que la vista completa: el tamaño del panel, con tope de 26 % del ancho. */
+    c.style.fontSize = Math.min(S.timerSize || 150, window.innerWidth * 0.26) + "px";
+    var h = [];
+    for (var m in EXTRAS) if (EXTRAS.hasOwnProperty(m) && EXTRAS[m] > 0){
+      var resto = sec + EXTRAS[m] * 60;
+      h.push("<span>Mesa " + m + " <b>" + (sec > 0 ? "+" + EXTRAS[m] + " min" : resto > 0 ? fmt(resto) : "tiempo") + "</b></span>");
+    }
+    $("extras").innerHTML = h.join("");
+  }
+  escuchar("salas/" + SALA + "/timer/state", function(v, enVivo){
+    /* Sin la hora del servidor: si el reloj de la tele está corrido, se ajusta
+       con la hora a la que el panel publicó un cambio recién llegado. */
+    if (enVivo && !primera && v && v.updatedAt){ var d = v.updatedAt - Date.now(); if (Math.abs(d) > 2500) offset = d; }
+    primera = false; S = v; if (!negada) $("estado").innerHTML = S ? "" : "Esperando al organizador…"; dibujar();
+  });
+  escuchar("salas/" + SALA + "/timer/extras", function(v){ EXTRAS = v || {}; dibujar(); });
+  setInterval(dibujar, 250);
+
+  /* ---------------- diseño e imágenes ---------------- */
+  var TH = null, MED = null, medVer = null;
+  function pintarDiseno(){
+    if (!TH) return;
+    var V = TH.desktop || TH, M = (MED && MED.desktop) || {};
+    var bgSrc = INVITADO ? "" : (M.bgImage || V.bgImage || "");
+    var logo = INVITADO ? "" : ((MED && MED.logo) || TH.logo || "");
+    if (V.bgType === "image" && bgSrc){ $("bg").src = bgSrc; $("bg").style.display = "block"; document.body.style.background = "#0F2E2A"; }
+    else {
+      $("bg").style.display = "none";
+      var c1 = V.bgColor1 || "#0F2E2A", c2 = V.bgColor2 || "#0A221F";
+      document.body.style.background = c1;
+      if (V.bgType === "gradient"){
+        document.body.style.background = "-webkit-linear-gradient(" + (V.bgDir === "to bottom" ? "top" : "left") + ", " + c1 + ", " + c2 + ")";
+        document.body.style.background = "linear-gradient(" + (V.bgDir || "to right") + ", " + c1 + ", " + c2 + ")";
+      }
+    }
+    if (logo){ $("logo").src = logo; $("logo").style.display = "block"; } else $("logo").style.display = "none";
+    /* Las cajas de imagen, en la misma proporción que la vista completa (1180×660). */
+    var viejas = document.querySelectorAll(".caja");
+    for (var i = 0; i < viejas.length; i++) viejas[i].parentNode.removeChild(viejas[i]);
+    var cajas = INVITADO ? [] : (V.boxes || []);
+    for (var j = 0; j < cajas.length; j++){
+      var b = cajas[j], src = b.src || "";
+      if (!src && M.boxes) for (var k = 0; k < M.boxes.length; k++) if (M.boxes[k].id === b.id) src = M.boxes[k].src;
+      if (!src) continue;
+      var d = document.createElement("div"); d.className = "caja";
+      d.style.left = (b.x / 1180 * 100) + "vw"; d.style.top = (b.y / 660 * 100) + "vh";
+      d.style.width = (b.w / 1180 * 100) + "vw"; d.style.height = (b.h / 660 * 100) + "vh";
+      var im = document.createElement("img"); im.src = src; if (b.flip) im.style.transform = "scaleX(-1)";
+      d.appendChild(im); document.body.appendChild(d);
+    }
+  }
+  if (INVITADO) $("marca").style.display = "inline";
+  escuchar("salas/" + SALA + "/timer/theme", function(v){ TH = v; pintarDiseno(); });
+  /* Las imágenes son pesadas: se bajan una vez por versión. */
+  escuchar("salas/" + SALA + "/timer/mediaVersion", function(v){
+    if (v == null || v === medVer) return;
+    medVer = v;
+    var x = new XMLHttpRequest(); x.open("GET", url("salas/" + SALA + "/timer/media"));
+    x.onload = function(){ try { MED = JSON.parse(x.responseText); pintarDiseno(); } catch(e){} };
+    x.send();
+  });
+
+  /* ---------------- el torneo: nombre y ronda ---------------- */
+  escuchar("salas/" + SALA + "/pairings", function(P){
+    if (!P || !P.rounds){ $("titulo").innerHTML = ""; $("sub").innerHTML = ""; $("ronda").style.display = "none"; return; }
+    var rounds = P.rounds.length != null ? P.rounds : Object.keys(P.rounds).map(function(k){ return P.rounds[k]; });
+    var etq = "Ronda " + P.lastRound + (P.rondasTotales ? " de " + P.rondasTotales : "");
+    for (var i = 0; i < rounds.length; i++) if (rounds[i] && rounds[i].number === P.lastRound && rounds[i].etiqueta) etq = rounds[i].etiqueta;
+    $("titulo").textContent = P.name || "";
+    $("sub").textContent = etq + (P.roundtime ? " · rondas de " + P.roundtime + " min" : "");
+    $("ronda").textContent = etq + (P.phase === "results" ? " · resultados" : " · en curso");
+    $("ronda").style.display = "block";
+  });
+
+  window.addEventListener("resize", function(){ dibujar(); pintarDiseno(); });
+})();
+</script>
+</body>
+</html>

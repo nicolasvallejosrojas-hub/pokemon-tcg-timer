@@ -3,6 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* Navegadores viejos (Smart TV con Tizen o webOS de antes de 2021): esta
+   vista usa módulos, ?. y ?? y ahí ni arranca. Se van a tele.html, la vista
+   liviana del timer. ?completa=1 fuerza esta página igual. */
+(function(){
+  var viejo = !("noModule" in document.createElement("script"));
+  try { new Function("var a = {}; return a?.b ?? 1"); } catch(e){ viejo = true; }
+  if (viejo && !/[?&]completa=1/.test(location.search)) location.replace("tele.html" + location.search);
+})();
+</script>
 <title>Torneo — Timer y emparejamientos</title>
 <link rel="stylesheet" href="estilo.css?v=11">
 <style>
@@ -68,6 +78,14 @@
   #cabecera{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
     gap:11px;padding:14px 16px;text-align:left;min-width:0;}
   #logo{max-height:38px;max-width:38vw;object-fit:contain;display:none;flex-shrink:0;}
+  /* Sala de invitado: la marca de ByePass en vez del logo de la tienda. */
+  #marcaBP{display:none;font-family:var(--fuente-reloj);font-weight:300;font-size:30px;line-height:1;color:#F3FFFB;flex-shrink:0;}
+  #marcaBP b{font-weight:300;color:#F45B45;}
+  #vencida{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    padding:24px;text-align:center;background:#0F2E2A;color:#F3FFFB;}
+  #vencida h2{margin:0;font-size:clamp(24px,5vw,44px);}
+  #vencida p{margin:0;color:#9DBDB4;max-width:30em;line-height:1.5;}
+  #vencida a{color:#F45B45;font-weight:600;}
   #cabtxt{min-width:0;}
   #ctitulo{font-size:var(--t4);font-weight:600;line-height:1.25;overflow-wrap:anywhere;
     text-shadow:0 1px 3px rgba(0,0,0,.85);}
@@ -289,6 +307,7 @@
        ni el rótulo de "solo organizador", que ahí no significan nada. -->
   <div id="cabecera">
     <img id="logo" alt="">
+    <span id="marcaBP" aria-label="ByePass">Bye<b>Pass</b></span>
     <div id="cabtxt">
       <div id="ctitulo"></div>
       <div id="csub"></div>
@@ -384,7 +403,7 @@ import { vigilar } from "./mantenimiento.js?v=3";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
-import { SALA, BASE, TIENDA, BASE_T } from "./sala.js?v=4";
+import { SALA, BASE, TIENDA, BASE_T, INVITADO } from "./sala.js?v=5";
 import { estoyEnLinea } from "./presencia.js?v=4";
 
 /* Sin ?sala= no hay qué mostrar (antes abría «principal», que no era de
@@ -632,8 +651,9 @@ function applyTheme(){
   const modo = vistaActual();
   const V = TH[modo] || TH.desktop || TH;         // compatible con el formato anterior
   const M = (MED && (MED[modo] || MED.desktop)) || {};
-  const logoSrc = (MED && MED.logo) || TH.logo || "";
-  const bgSrc   = M.bgImage || V.bgImage || "";
+  /* Sala de invitado: sin logo propio, sin imagen de fondo y sin cajas. */
+  const logoSrc = INVITADO ? "" : (MED && MED.logo) || TH.logo || "";
+  const bgSrc   = INVITADO ? "" : M.bgImage || V.bgImage || "";
   const srcDe   = id => {
     const b = (M.boxes || []).find(x => x.id === id);
     return b ? b.src : null;
@@ -659,7 +679,7 @@ function applyTheme(){
   $("names").style.display = "none";
 
   document.querySelectorAll(".imgbox").forEach(e => e.remove());
-  (V.boxes || V.imgBoxes || []).forEach(box => {
+  (INVITADO ? [] : V.boxes || V.imgBoxes || []).forEach(box => {
     const src = box.src || srcDe(box.id);
     if (!src) return;
     const d = document.createElement("div"); d.className = "imgbox";
@@ -675,6 +695,20 @@ function applyTheme(){
 }
 window.addEventListener("resize", () => { if (TH) applyTheme(); });
 window.addEventListener("orientationchange", () => setTimeout(() => { if (TH) applyTheme(); }, 300));
+
+/* Sala de invitado: la marca de ByePass arriba, sin Ranking ni Agenda (son de
+   una tienda), y el aviso cuando vence: al pasar la hora las reglas cortan la
+   lectura, y también si la sala ya se borró. */
+if (INVITADO){
+  $("marcaBP").style.display = "block";
+  ["tabC", "tabA"].forEach(id => $(id).style.display = "none");   // la barra les pone display: hidden no alcanza
+  const vencida = () => { $("vencida").style.display = "flex"; };
+  onValue(ref(db, BASE + "/vence"), s => {
+    const v = s.val();
+    if (!(v > ahora())) return vencida();
+    setTimeout(vencida, Math.min(v - ahora(), 2147483647));
+  }, vencida);
+}
 
 // Si había respaldo, la vista aparece de inmediato sin esperar a la red
 if (TH) applyTheme();
@@ -1203,5 +1237,8 @@ setInterval(() => { if (tab === "agenda" && AG) renderAgenda(); }, 60000);
 const POR_HASH = { mesas: "pair", ranking: "clas", sorteo: "sorteo", agenda: "agenda" };
 if (POR_HASH[location.hash.slice(1)]) show(POR_HASH[location.hash.slice(1)]);
 </script>
+<!-- Sala de invitado vencida: las reglas ya no dejan leerla. -->
+<div id="vencida" role="alert"><h2>Esta sala de invitado terminó</h2>
+  <p>Las salas de invitado duran 24 horas y después se borran. Crea la tuya, o una cuenta para guardar tus torneos, en <a href="index.html">byepass.cl</a>.</p></div>
 </body>
 </html>

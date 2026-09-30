@@ -478,6 +478,14 @@
   <div id="unirseMsg" class="muted" style="margin-top:8px"></div>
 </div>
 
+<!-- ============ Sala de invitado vencida o ajena ============ -->
+<div class="card" id="invCard" style="display:none">
+  <h2 class="h2p" id="invTit">Esta sala de invitado ya no está</h2>
+  <div class="muted" id="invTxt">Las salas de invitado duran 24 horas y después se borran solas.</div>
+  <div class="row" style="margin-top:12px"><a class="btn" href="invitado.html">Abrir una sala nueva</a>
+    <a class="btn sec" href="cuenta.html#crear">Crear una cuenta</a></div>
+</div>
+
 <div id="all" style="display:none">
 
 <!-- ============ La tienda que se está organizando ============ -->
@@ -491,6 +499,16 @@
     <button class="small sec herr" hidden>Herramientas de administrador</button>
     <button id="cambiarTienda" class="small sec">Cambiar de tienda</button>
     <button id="logoutBtn" class="small sec">Salir</button>
+  </div>
+</div>
+
+<!-- Solo en la sala de invitado: cuánto le queda y qué gana con una cuenta. -->
+<div class="card" id="invBanner" hidden>
+  <div class="row" style="align-items:center">
+    <div style="flex:1;min-width:220px"><b>Sala de invitado</b> · <span id="invQueda"></span>
+      <div class="muted">Con una cuenta guardas tus torneos, suman a la clasificación del mes y tienes calendario,
+        estadísticas, tu logo, imágenes de fondo y cajas en la tele.</div></div>
+    <a class="btn" href="cuenta.html#crear">Crear mi cuenta</a>
   </div>
 </div>
 
@@ -563,7 +581,7 @@
 
   <div class="row" style="margin-top:10px;align-items:center">
     <span id="syncMsg" class="muted" style="flex:1"></span>
-    <span class="muted">Clic derecho sobre el lienzo para agregar cajitas.</span>
+    <span class="muted" id="hintCajas">Clic derecho sobre el lienzo para agregar cajitas.</span>
   </div>
   <div id="extraMesa">
     <b>Tiempo extra por mesa</b>
@@ -803,13 +821,14 @@
 
 <div class="card">
   <div style="font-size:var(--t3);margin-bottom:6px">Cierre del torneo</div>
-  <div class="muted" style="margin-bottom:8px">Cuando el torneo termin&oacute; de verdad, arch&iacute;valo aqu&iacute;.
+  <div class="muted" style="margin-bottom:8px" id="archTxt">Cuando el torneo termin&oacute; de verdad, arch&iacute;valo aqu&iacute;.
     Reci&eacute;n entonces suma a la clasificaci&oacute;n mensual. TOM no avisa cu&aacute;l es la &uacute;ltima ronda, as&iacute; que el bot&oacute;n es manual.</div>
   <div class="row" style="align-items:center">
-    <label style="white-space:nowrap">Fecha del torneo <input type="date" id="archDate" style="width:auto"></label>
-    <label style="white-space:nowrap">Juego <input id="archJuego" list="archJuegos" maxlength="40" placeholder="Opcional" style="width:12em"></label>
+    <label style="white-space:nowrap" id="archFechaLbl">Fecha del torneo <input type="date" id="archDate" style="width:auto"></label>
+    <label style="white-space:nowrap" id="archJuegoLbl">Juego <input id="archJuego" list="archJuegos" maxlength="40" placeholder="Opcional" style="width:12em"></label>
     <datalist id="archJuegos"></datalist>
     <button id="archiveBtn" disabled>Archivar torneo</button>
+    <button class="sec" id="tablaBtn" disabled>Descargar la tabla (imagen)</button>
   </div>
   <div id="archMsg" class="muted" style="margin-top:6px"></div>
 </div>
@@ -1146,10 +1165,10 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha } from "./agenda.js?v=4";
-import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
+import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA, INVITADO } from "./sala.js?v=5";
 import { vigilar } from "./mantenimiento.js?v=3";
 import { estoyEnLinea } from "./presencia.js?v=4";
 import { barras } from "./graficos.js?v=1";
@@ -1160,11 +1179,15 @@ import { rondasDe, resumen, tabla, emparejar, rondasSugeridas, aPairings, aHisto
 import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_SETS,
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
          revisar, esOriginal, aplicar as palAplicarEn, alDia } from "./paleta.js?v=4";
+import { entregarTabla } from "./tablafinal.js?v=1";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
    ========================================================= */
-const app  = initializeApp(FIREBASE_CONFIG);
+/* La sala de invitado usa su propia app de Firebase: su sesión anónima queda
+   guardada aparte y las demás páginas (muro, cuenta) no la confunden con una
+   cuenta de verdad. */
+const app  = initializeApp(FIREBASE_CONFIG, INVITADO ? "invitado" : undefined);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 
@@ -1251,6 +1274,48 @@ function irA(sala, modo){
 }
 const carpeta = () => location.origin + location.pathname.replace(/admin(\.html)?\/?$/, "").replace(/[^/]*$/, "");
 const conEmu = () => (typeof EMULADOR !== "undefined" && EMULADOR) ? "&emu=1" : "";
+
+/* ------------------------------------------------------------
+   Sala de invitado (desde el 30-09-2026). La crea invitado.html; acá solo se
+   entra si la sala es de esta sesión anónima y no venció. Lo que no aplica
+   (Calendario, Tienda, Estadísticas, logo propio, imagen de fondo, cajas,
+   archivar) se esconde; la tabla final como imagen sí queda.
+   ------------------------------------------------------------ */
+let VENCE = 0;
+function salaPerdida(txt, tit){
+  $("all").style.display = "none"; $("invCard").style.display = "block";
+  if (tit) $("invTit").textContent = tit;
+  if (txt) $("invTxt").textContent = txt;
+}
+async function entrarComoInvitado(u){
+  let own = null, vence = 0;
+  try { [own, vence] = await Promise.all(["owner", "vence"].map(k => get(ref(db, BASE + "/" + k)).then(s => s.val()))); } catch(e){}
+  if (own !== u.uid || !(vence > now())){
+    salaPerdida(own && own !== u.uid ? "Esta sala se abrió en otro navegador. Cada sala de invitado queda en el navegador donde se creó."
+                                      : "Las salas de invitado duran 24 horas y después se borran solas.");
+    return false;
+  }
+  miRol = "dueno"; VENCE = vence;
+  $("salaLogo").innerHTML = '<span style="font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t4)">Bye<span style="color:var(--accion-texto)">Pass</span></span>';
+  $("invBanner").hidden = false;
+  const queda = () => {
+    const m = Math.max(0, Math.round((VENCE - now()) / 60000));
+    if (m <= 0) return salaPerdida("Pasaron las 24 horas: la sala se cerró y sus datos se borran.", "Tu sala de invitado venció");
+    $("invQueda").textContent = "se borra en " + (m >= 60 ? Math.floor(m / 60) + " h " : "") + (m % 60) + " min";
+  };
+  queda(); setInterval(queda, 30000);
+  return true;
+}
+if (INVITADO){
+  ["tabC", "tabO", "tabE", "timerSel", "cambiarTienda", "logoutBtn"].forEach(id => $(id).hidden = true);
+  /* Apariencia reducida: sin logo propio ni imagen de fondo (las cajas, en su menú). */
+  $("fLogo").closest("section").hidden = true;
+  $("bgTImg").hidden = true;
+  $("hintCajas").hidden = true;
+  /* Con TOM: sin archivar, pero con la tabla final. */
+  ["archiveBtn", "archFechaLbl", "archJuegoLbl"].forEach(id => $(id).hidden = true);
+  $("archTxt").textContent = "Cuando termine el torneo, descarga la tabla final como imagen para compartirla.";
+}
 
 /* El rol que tengo en una tienda. Una sala de antes tiene dueño (owner) pero
    no tienda: su dueño pasa a ser el dueño de la tienda, una vez. */
@@ -1367,10 +1432,13 @@ async function mostrarInvitacion(u){
 let soyDueno = false;          // puede organizar ESTA tienda (el nombre es de cuando había un solo dueño)
 let miRol = null;              // "dueno" | "organizador"
 onAuthStateChanged(auth, async u => {
-  $("loginCard").style.display = u ? "none" : "block";
+  $("loginCard").style.display = u || INVITADO ? "none" : "block";
   ["all", "elegirCard", "unirseCard"].forEach(id => $(id).style.display = "none");
   document.querySelectorAll(".herr").forEach(b => b.hidden = true);
-  if (!u) return;
+  /* El invitado entra solo, con una sesión anónima de este navegador. */
+  if (!u){ if (INVITADO) signInAnonymously(auth).catch(() => salaPerdida("No se pudo abrir la sala. Revisa la conexión y recarga.")); return; }
+  if (INVITADO){ if (!(await entrarComoInvitado(u))) return; }
+  else {
   /* Lo del sitio entero vive en su propia página, solo para quien administra. */
   soyAdmin(u).then(si => document.querySelectorAll(".herr").forEach(b => b.hidden = !si));
 
@@ -1389,9 +1457,10 @@ onAuthStateChanged(auth, async u => {
     try { de = (await get(ref(db, BASE + "/tienda"))).val(); } catch(e){}
     if (de !== TIENDA) return mostrarSelector(u, "Ese timer no existe, o lo eliminaron. Elige la tienda de nuevo.");
   }
+  }
   $("all").style.display = "block";
   /* Mi nombre en la tienda, al día con mi cuenta (antes quedaba «Organizador»). */
-  if (miRol === "dueno" || miRol === "organizador") miNombre(u).then(n =>
+  if (!INVITADO && (miRol === "dueno" || miRol === "organizador")) miNombre(u).then(n =>
     get(ref(db, "tiendas/" + PEDIDA + "/miembros/" + u.uid + "/nombre")).then(s => {
       if (s.exists() && s.val() !== n) return set(s.ref, n); })).catch(() => {});
 
@@ -1399,20 +1468,19 @@ onAuthStateChanged(auth, async u => {
   // para no mostrar por un instante controles que después se esconden.
   $("tabs").style.display = "none";
   $("panelT").style.display = "none";
-  $("salaName").textContent = TIENDA;
+  $("salaName").textContent = INVITADO ? "Sala de invitado" : TIENDA;
 
   /* Lo publicado de la tienda: estado, diseño e imágenes. Si no hay nada, es
      una tienda recién creada y la primera vez se publica todo. */
   let publicado = null, salaNueva = false;
   try { publicado = (await get(T)).val(); salaNueva = !publicado; } catch(e){}
   soyDueno = true;
-  escucharTienda(u);
-  escucharTimers();
+  if (!INVITADO){ escucharTienda(u); escucharTimers(); }
 
   if (soyDueno){
     $("salaMsg").innerHTML = "";
     $("tabs").style.display = ""; $("panelT").style.display = "";
-    escucharEnlaces();
+    if (!INVITADO) escucharEnlaces();
     escucharTorneoPagina();
     /* Si la huella guardada no coincide con lo que hay ahora, esta sesion se
        abrio sobre un borrador que nunca se confirmo: hay que avisarlo en vez
@@ -2322,7 +2390,7 @@ function menuCaja(id, e){
   ]);
 }
 $("canvas").addEventListener("contextmenu", e => {
-  if (e.target.closest(".box")) return;
+  if (INVITADO || e.target.closest(".box")) return;
   e.preventDefault();
   const r = $("canvas").getBoundingClientRect();
   const x = (e.clientX-r.left)/escala, y = (e.clientY-r.top)/escala;
@@ -2648,7 +2716,7 @@ function aplicarTdf(texto, nombre, { autoPublicar = false, silencioso = false } 
   try {
     parsed = parseTdf(texto); showPreview(parsed);
     $("publishBtn").disabled = false;
-    $("archiveBtn").disabled = false;
+    $("archiveBtn").disabled = false; $("tablaBtn").disabled = false;
     $("archDate").value = parsed.fecha || new Date().toISOString().slice(0,10);
     $("archMsg").innerHTML = parsed.fecha
       ? 'Fecha leída del archivo: <b>'+fechaLarga(parsed.fecha)+'</b>. Corrígela si no calza.'
@@ -2658,7 +2726,7 @@ function aplicarTdf(texto, nombre, { autoPublicar = false, silencioso = false } 
     return true;
   } catch(err){
     if (!silencioso){
-      parsed = null; $("publishBtn").disabled = true; $("archiveBtn").disabled = true; $("preview").innerHTML = "";
+      parsed = null; $("publishBtn").disabled = true; $("archiveBtn").disabled = true; $("tablaBtn").disabled = true; $("preview").innerHTML = "";
       $("parseMsg").innerHTML = '<span class="err">No pude leer el archivo: '+esc(err.message)+'</span>';
     }
     return false;
@@ -3162,6 +3230,19 @@ async function archivarTorneo(){
 }
 $("archiveBtn").onclick = archivarTorneo;
 
+/* La tabla como imagen para compartir. Quien pidió no salir con su nombre
+   sale como «Jugador reservado», igual que en lo que se archiva. */
+/* En la sala de invitado no hay tienda: la imagen dice «Tabla final». */
+const nombreDeLaTienda = () => INVITADO ? "" : nombreTienda((TIENDA_P || {}).perfil || null, TIENDA);
+$("tablaBtn").onclick = () => {
+  if (!parsed) return;
+  entregarTabla({ torneo: parsed.name, fecha: $("archDate").value, tienda: nombreDeLaTienda(),
+    filas: parsed.standings.map((p, i) => {
+      const e = ENLACES[String(ID_POR_PUESTO[i] || "")];
+      return { puesto: p.place, nombre: e && !e.publico ? "Jugador reservado" : p.name, w: p.w, l: p.l, t: p.t, pts: p.pts };
+    }) }).catch(() => { $("archMsg").innerHTML = '<span class="err">No se pudo armar la imagen.</span>'; });
+};
+
 /* Torneos archivados antes de que se guardaran los ID: el .tdf viejo se lee
    de nuevo y se empareja con su torneo del historial por nombre, cantidad de
    jugadores y la tabla fila por fila (es el mismo cálculo que al archivar).
@@ -3336,8 +3417,9 @@ function pintarTorneo(){
     } else if (enCorte && !corteTerminado(TN)){
       h += '<button id="tnEmparejar">Emparejar ' + conArticulo(nombreCorte(act.mesas.length)) + "</button>";
     } else {
-      h += '<label style="margin:0;white-space:nowrap">Fecha <input type="date" id="tnArchFecha" value="' + esc(TN.fecha) + '" style="width:auto"></label>' +
-        '<button id="tnArchivar">Terminar y archivar</button>' +
+      h += (INVITADO ? '<span class="ok">Terminó el torneo. Descarga la tabla final abajo.</span>' :
+        '<label style="margin:0;white-space:nowrap">Fecha <input type="date" id="tnArchFecha" value="' + esc(TN.fecha) + '" style="width:auto"></label>' +
+        '<button id="tnArchivar">Terminar y archivar</button>') +
         (enCorte ? "" : selCorte() + '<button class="sec small" id="tnOtra">Jugar una ronda suiza más</button>');
     }
     if (!TN.archivado) h += '<span style="flex:1"></span><button class="sec small" id="tnDeshacer">Deshacer ' +
@@ -3355,7 +3437,8 @@ function pintarTorneo(){
         (p.drop ? " · se retiró" : "") + "</td>" + (enCorte ? "<td>" + esc(p.etapa || "") + "</td>" : "") +
         '<td class="num">' + p.pts + '</td><td class="num">' + p.w + "-" + p.l + "-" + p.e +
         '</td><td class="num">' + (p.owp * 100).toFixed(2) + '%</td><td class="num">' + (p.oowp * 100).toFixed(2) + "%</td></tr>").join("") +
-      "</table></details>";
+      "</table></details>" +
+      '<div class="row" style="margin-top:8px"><button class="sec small" id="tnTablaImg">Descargar la tabla (imagen)</button></div>';
 
     /* Los jugadores: retirar a quien se va, o devolverlo. */
     if (!TN.archivado && !enCorte) h += '<details class="plegable"><summary>Jugadores (' + ids.filter(id => !J[id].drop).length + " siguen)</summary>" +
@@ -3439,6 +3522,9 @@ function enlazarTorneo(){
     } catch(e){ tnFallo(e); }
   });
   btn("tnArchivar", archivarPagina);
+  btn("tnTablaImg", () => entregarTabla({ torneo: TN.nombre, fecha: TN.fecha, tienda: nombreDeLaTienda(),
+    filas: clasificacion(TN).map(p => ({ puesto: p.puesto, nombre: p.nombre, w: p.w, l: p.l, t: p.e, pts: p.pts, etapa: p.etapa })) })
+    .catch(() => tnFallo(new Error("No se pudo armar la imagen."))));
   btn("tnCerrar", () => {
     if (!confirm("¿Cerrar el torneo? Ya está archivado; los jugadores siguen viendo la última ronda hasta que empieces otro o borres los emparejamientos.")) return;
     escribirT({ [rutaT()]: null }, false).catch(tnFallo);

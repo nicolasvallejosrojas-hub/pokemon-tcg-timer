@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="description" content="Prueba el timer de ByePass sin crear una cuenta: reloj en la tele, mesas en el celular y sorteo, por 24 horas.">
+<title>Timer sin cuenta — ByePass</title>
+<link rel="stylesheet" href="estilo.css?v=11">
+<style>
+  body{min-height:100vh;}
+  .sup{display:flex;align-items:center;min-height:56px;padding:0 var(--e4);}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);color:var(--texto);text-decoration:none;}
+  .marca b{font-weight:300;color:var(--accion-texto);}
+  main{max-width:640px;margin:0 auto;padding:var(--e5) var(--e4) var(--e6);box-sizing:border-box;}
+  h1{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;margin:0;}
+  .bajada{font-size:var(--t4);color:var(--apagado);line-height:1.5;margin:var(--e2) 0 0;}
+  .acc{display:flex;flex-direction:column;gap:var(--e2);margin-top:var(--e5);max-width:360px;}
+  .acc .btn{text-align:center;text-decoration:none;}
+  .msg{min-height:1.4em;margin-top:var(--e2);font-size:var(--t2);color:var(--apagado);}
+  .msg.err{color:var(--peligro, #B8392A);}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:var(--e3);margin-top:var(--e6);}
+  .caja{background:var(--sup);border-radius:var(--radio);padding:var(--e4);}
+  .caja h2{font-size:var(--t2);text-transform:uppercase;letter-spacing:.06em;color:var(--rotulo);font-weight:600;margin:0 0 var(--e2);}
+  .caja ul{margin:0;padding-left:1.1em;line-height:1.7;font-size:var(--t3);}
+  .nota{font-size:var(--t2);color:var(--rotulo);line-height:1.6;margin-top:var(--e5);}
+  .nota a{color:var(--apagado);}
+  @media (max-width:560px){ .cols{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+  <header class="sup"><a class="marca" href="index.html">Bye<b>Pass</b></a></header>
+  <main>
+    <h1>Prueba el timer sin cuenta</h1>
+    <p class="bajada">El reloj en la tele, las mesas en el celular de cada jugador y el sorteo con rueda.
+      Tu sala dura 24 horas y después se borra sola.</p>
+
+    <div class="acc">
+      <button class="btn primario" id="seguir" hidden>Volver a mi sala</button>
+      <button class="btn primario" id="abrir">Abrir mi sala de prueba</button>
+      <a class="btn" href="cuenta.html#crear">Mejor, crear una cuenta</a>
+    </div>
+    <p class="msg" id="msg" role="status"></p>
+
+    <div class="cols">
+      <div class="caja"><h2>En la sala de prueba</h2><ul>
+        <li>Timer con alarma y fondo de color</li>
+        <li>Emparejamientos con TOM o en la página</li>
+        <li>Sorteo con rueda</li>
+        <li>Tabla final como imagen</li></ul></div>
+      <div class="caja"><h2>Con una cuenta, además</h2><ul>
+        <li>Tus torneos guardados y la clasificación del mes</li>
+        <li>Calendario, estadísticas y perfil de tienda</li>
+        <li>Tu logo, imágenes de fondo y cajas en la tele</li>
+        <li>Insignias para tus jugadores</li></ul></div>
+    </div>
+
+    <p class="nota">La sala queda en este navegador. Los nombres que escribas se guardan solo mientras dura la sala
+      y después se borran. Más en la <a href="privacidad.html">política de privacidad</a>.</p>
+  </main>
+
+<script src="config.js?v=8"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, connectDatabaseEmulator, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, connectAuthEmulator, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { HORAS_INVITADO } from "./sala.js?v=5";
+
+/* La misma app «invitado» que usa el panel: su sesión anónima queda aparte de
+   la de una cuenta de verdad. La sesión recién se pide al tocar el botón:
+   abrir esta página no crea nada. */
+const app = initializeApp(FIREBASE_CONFIG, "invitado");
+const db = getDatabase(app), auth = getAuth(app);
+if (typeof EMULADOR !== "undefined" && EMULADOR){
+  connectAuthEmulator(auth, "http://" + EMULADOR.host + ":" + EMULADOR.auth, { disableWarnings: true });
+  connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);
+}
+const $ = id => document.getElementById(id);
+let offset = 0;
+onValue(ref(db, ".info/serverTimeOffset"), s => offset = s.val() || 0);
+const now = () => Date.now() + offset;
+const CLAVE = "sala-invitado";
+const emu = () => (typeof EMULADOR !== "undefined" && EMULADOR) ? "&emu=1" : "";
+const irA = c => { location.href = "admin.html?sala=" + c + emu(); };
+const guardada = () => { try { return localStorage.getItem(CLAVE) || ""; } catch(e){ return ""; } };
+
+/* ¿Hay una sala mía que siga viva? */
+async function vigente(u){
+  const c = guardada();
+  if (!u || !/^inv-[a-z0-9]{6}$/.test(c)) return null;
+  try {
+    const [own, vence] = await Promise.all(["owner", "vence"].map(k => get(ref(db, "salas/" + c + "/" + k)).then(s => s.val())));
+    return own === u.uid && vence > now() ? { c, vence } : null;
+  } catch(e){ return null; }
+}
+onAuthStateChanged(auth, async u => {
+  const v = await vigente(u);
+  $("seguir").hidden = !v;
+  $("abrir").textContent = v ? "Empezar una sala nueva" : "Abrir mi sala de prueba";
+  $("abrir").classList.toggle("primario", !v);
+  if (v){
+    const h = Math.max(1, Math.round((v.vence - now()) / 3600000));
+    $("msg").textContent = "Tu sala sigue abierta: le quedan unas " + h + (h === 1 ? " hora." : " horas.");
+    $("seguir").onclick = () => irA(v.c);
+  }
+});
+
+/* Sin letras que se confunden (0/o, 1/l/i). */
+const codigo = () => "inv-" + [...crypto.getRandomValues(new Uint32Array(6))].map(n => "abcdefghjkmnpqrstuvwxyz23456789"[n % 31]).join("");
+$("abrir").onclick = async () => {
+  $("abrir").disabled = true; $("msg").className = "msg"; $("msg").textContent = "Abriendo tu sala…";
+  try {
+    const u = auth.currentUser || (await signInAnonymously(auth)).user;
+    /* La sala anterior de este navegador se borra al abrir otra. */
+    const vieja = guardada();
+    if (/^inv-[a-z0-9]{6}$/.test(vieja))
+      await update(ref(db), { ["salas/" + vieja]: null, ["jugadores/" + vieja]: null, ["invitados/" + vieja]: null }).catch(() => {});
+    for (let i = 0; i < 4; i++){
+      const c = codigo(), vence = now() + HORAS_INVITADO * 3600000;
+      try {
+        await update(ref(db), { ["salas/" + c + "/owner"]: u.uid, ["salas/" + c + "/vence"]: vence, ["invitados/" + c]: vence });
+        try { localStorage.setItem(CLAVE, c); } catch(e){}
+        return irA(c);
+      } catch(e){ /* el código ya existía: se prueba otro */ }
+    }
+    throw new Error("sin código");
+  } catch(e){
+    $("abrir").disabled = false; $("msg").className = "msg err";
+    $("msg").textContent = "No se pudo abrir la sala. Revisa la conexión y vuelve a intentarlo.";
+  }
+};
+</script>
+</body>
+</html>

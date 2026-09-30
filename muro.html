@@ -515,7 +515,7 @@ import { getAuth, connectAuthEmulator, signOut, onAuthStateChanged, sendEmailVer
 import { estaVigente, urlGoogle, fechaLegible, cuantoFalta, ordenar } from "./agenda.js?v=4";
 /* SALA es el timer que se está mirando (su reloj y sus mesas); TIENDA, la
    tienda de ese timer: historial, agenda, a quién sigo y mi ID compartido. */
-import { SALA, BASE, TIENDA, BASE_T, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=4";
+import { SALA, BASE, TIENDA, BASE_T, nombreTienda, iniciales, COLOR_TIENDA } from "./sala.js?v=5";
 import { nombreMes } from "./clasificacion.js?v=1";
 import { estoyEnLinea } from "./presencia.js?v=4";
 import { leerHistorial } from "./historial.js?v=1";
@@ -863,7 +863,7 @@ const forma = (it, s) => it.tipo === "tienda"
 function fichaIns(it){
   return '<button type="button" class="ins' + (it.ok ? "" : " no") + (it.oculta ? " oculta" : "") + '" data-ins="' + esc(it.key) + '" aria-label="' +
     esc(it.titulo + (it.ok ? ", ganada" + (it.oculta ? ", oculta a los demás. " : ". ") : ", por ganar. ") + it.texto) + '">' + forma(it, 64) +
-    (it.oculta ? '<span class="etqOculta">Oculta</span>' : it.ok && NUEVAS && NUEVAS.has(it.marca) ? '<span class="nueva">Nueva</span>' : "") +
+    (it.oculta ? '<span class="etqOculta">Oculta</span>' : it.ok && NUEVAS.has(it.marca) ? '<span class="nueva">Nueva</span>' : "") +
     "<b>" + esc(it.titulo) + "</b><small>" + esc(it.texto) + "</small>" +
     (it.prog ? '<span class="prog"><i style="width:' + Math.round(Math.min(it.prog.v, it.prog.meta) / it.prog.meta * 100) +
                '%"></i></span><small>' + esc(it.prog.txt) + "</small>" : "") +
@@ -983,17 +983,23 @@ $("dlgIns").addEventListener("click", e => {
 
 /* Las que se ganaron desde la última vez: dicen «Nueva» en esta sesión y se
    celebran una vez. La marca lleva el nivel, así que subir de bronce a plata
-   también se celebra. Lo ya visto se guarda en este navegador, nada más. */
-let NUEVAS = null;
+   también se celebra. Lo ya visto se guarda en este navegador, nada más.
+
+   Lo visto solo crece: antes se reemplazaba por lo calculado en el primer
+   dibujo, que a veces llega incompleto (las tiendas que organizo y
+   beta/testers cargan después), y lo que faltaba se volvía a celebrar en la
+   sesión siguiente. Lo que aparece tarde se celebra en la misma sesión. */
+const NUEVAS = new Set();
+let VISTAS = null;
 function revisarNuevas(r){
-  if (NUEVAS || !usuario) return;
-  const k = "insignias2-" + usuario.uid, ganadas = r.todas.filter(i => i.ok);
-  let vistas = [];
-  try { vistas = JSON.parse(localStorage.getItem(k)) || []; } catch(e){}
-  NUEVAS = new Set(ganadas.map(i => i.marca).filter(x => !vistas.includes(x)));
-  try { localStorage.setItem(k, JSON.stringify(ganadas.map(i => i.marca))); } catch(e){}
-  const nuevas = ganadas.filter(i => NUEVAS.has(i.marca));
-  if (nuevas.length) celebrar(nuevas);
+  if (!usuario) return;
+  const k = "insignias2-" + usuario.uid;
+  if (!VISTAS){ try { VISTAS = new Set(JSON.parse(localStorage.getItem(k)) || []); } catch(e){ VISTAS = new Set(); } }
+  const nuevas = r.todas.filter(i => i.ok && !VISTAS.has(i.marca));
+  if (!nuevas.length) return;
+  nuevas.forEach(i => { VISTAS.add(i.marca); NUEVAS.add(i.marca); });
+  try { localStorage.setItem(k, JSON.stringify([...VISTAS])); } catch(e){}
+  if (!$("dlgNueva").open) celebrar(nuevas);
 }
 function celebrar(nuevas){
   const it = nuevas[0], otras = nuevas.length - 1, d = $("dlgNueva");
