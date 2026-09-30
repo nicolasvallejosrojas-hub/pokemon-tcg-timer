@@ -203,8 +203,8 @@
 <script type="module">
 import { ref, onValue, get, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=11";
-import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=5";
+import { db, auth, enEmulador, urlCuenta, urlMuro } from "./sesion.js?v=12";
+import { nombreTienda, iniciales, salaDeTimer, MAX_TIMERS } from "./sala.js?v=6";
 import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "herramientas");
 
@@ -524,6 +524,9 @@ async function eliminarCuenta(uid){
   if (escrito.trim() !== String(c.nombre || "").trim()) return alert("El nombre no coincide. No se borró nada.");
   const rutas = {};
   ["usuarios", "perfilPublico", "altas", "organiza", "solicitudes", "beta/testers"].forEach(n => rutas[n + "/" + uid] = null);
+  /* Su timer personal (mi-xxxxxx) y la base de jugadores de ese timer. */
+  const miSala = c.sala;
+  if (/^mi-[a-z0-9]{6}$/.test(miSala || "")) { rutas["salas/" + miSala] = null; rutas["jugadores/" + miSala] = null; }
   const tiendas = new Set([...Object.keys(TODAS), ...Object.keys(c.tiendas || {})]);
   tiendas.forEach(t => rutas["enlaces/" + t + "/" + uid] = null);
   Object.entries(TODAS).forEach(([t, d]) => { if ((d.miembros || {})[uid]) rutas["tiendas/" + t + "/miembros/" + uid] = null; });

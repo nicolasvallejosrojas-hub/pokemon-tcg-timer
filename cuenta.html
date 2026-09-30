@@ -539,12 +539,12 @@ import { EmailAuthProvider, reauthenticateWithCredential, deleteUser } from "htt
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail,
          verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { fechaLegible, ordenar, MES_LARGO } from "./agenda.js?v=4";
-import { BASE, BASE_T, nombreTienda, slug } from "./sala.js?v=5";   // BASE: el timer; BASE_T: su tienda
+import { BASE, BASE_T, nombreTienda, slug } from "./sala.js?v=6";   // BASE: el timer; BASE_T: su tienda
 /* La conexión, los enlaces con ?emu y ?sala, los errores en castellano, la
    contraseña y el registro viven en sesion.js: la portada registra igual. */
 import { db, auth, urlPanel, urlMuro, urlCuenta, decir, ID_OK, CORREO_OK, revisarClave, claveOk,
          textoFalta, errorNacimiento, registrar, params, codigoInvitacion, betaActiva, revisarCodigo,
-         normCodigo, CODIGO_OK } from "./sesion.js?v=11";
+         normCodigo, CODIGO_OK } from "./sesion.js?v=12";
 import { estoyEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "cuenta");
 
@@ -1196,6 +1196,9 @@ $("btnEliminar").onclick = async () => {
   if (!confirm("¿Eliminar tu cuenta para siempre? No se puede deshacer.")) return listo();
   const uid = usuario.uid, rutas = {};
   ["usuarios", "perfilPublico", "altas", "organiza", "solicitudes", "beta/testers"].forEach(n => rutas[n + "/" + uid] = null);
+  /* Su timer personal (mi-xxxxxx) y la base de jugadores de ese timer. */
+  const miSala = perfil && perfil.sala;
+  if (/^mi-[a-z0-9]{6}$/.test(miSala || "")) { rutas["salas/" + miSala] = null; rutas["jugadores/" + miSala] = null; }
   Object.keys((perfil && perfil.tiendas) || {}).forEach(t => rutas["enlaces/" + t + "/" + uid] = null);
   Object.keys(org).forEach(t => rutas["tiendas/" + t + "/miembros/" + uid] = null);
   try {

@@ -403,7 +403,7 @@ import { vigilar } from "./mantenimiento.js?v=3";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
-import { SALA, BASE, TIENDA, BASE_T, INVITADO } from "./sala.js?v=5";
+import { SALA, BASE, TIENDA, BASE_T, INVITADO, SIN_TIENDA } from "./sala.js?v=6";
 import { estoyEnLinea } from "./presencia.js?v=4";
 
 /* Sin ?sala= no hay qué mostrar (antes abría «principal», que no era de
@@ -651,8 +651,9 @@ function applyTheme(){
   const modo = vistaActual();
   const V = TH[modo] || TH.desktop || TH;         // compatible con el formato anterior
   const M = (MED && (MED[modo] || MED.desktop)) || {};
-  /* Sala de invitado: sin logo propio, sin imagen de fondo y sin cajas. */
-  const logoSrc = INVITADO ? "" : (MED && MED.logo) || TH.logo || "";
+  /* Sin tienda (invitado o timer personal): el logo es el de ByePass. El
+     invitado, además, sin imagen de fondo ni cajas. */
+  const logoSrc = SIN_TIENDA ? "" : (MED && MED.logo) || TH.logo || "";
   const bgSrc   = INVITADO ? "" : M.bgImage || V.bgImage || "";
   const srcDe   = id => {
     const b = (M.boxes || []).find(x => x.id === id);
@@ -699,9 +700,11 @@ window.addEventListener("orientationchange", () => setTimeout(() => { if (TH) ap
 /* Sala de invitado: la marca de ByePass arriba, sin Ranking ni Agenda (son de
    una tienda), y el aviso cuando vence: al pasar la hora las reglas cortan la
    lectura, y también si la sala ya se borró. */
-if (INVITADO){
+if (SIN_TIENDA){
   $("marcaBP").style.display = "block";
   ["tabC", "tabA"].forEach(id => $(id).style.display = "none");   // la barra les pone display: hidden no alcanza
+}
+if (INVITADO){
   const vencida = () => { $("vencida").style.display = "flex"; };
   onValue(ref(db, BASE + "/vence"), s => {
     const v = s.val();

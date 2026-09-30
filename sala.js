@@ -1,7 +1,7 @@
 /* ============================================================
    sala.js — de qué sala habla esta pestaña
    ------------------------------------------------------------
-   Versión actual: v=5   (subir el ?v= al tocar este archivo)
+   Versión actual: v=6   (subir el ?v= al tocar este archivo)
 
    Existe porque estas tres líneas estaban copiadas en admin.html,
    timer-view.html y muro.html, y las copias YA HABÍAN DIVERGIDO: la de
@@ -41,6 +41,13 @@ export const BASE_T = "salas/" + TIENDA;    // la tienda: historial, puntos, age
    Las reglas las cierran solas al vencer (salas/<id>/vence). */
 export const INVITADO = /^inv-[a-z0-9]{6}$/.test(SALA);
 export const HORAS_INVITADO = 24;
+
+/* Y el timer personal de una cuenta que no es tienda: mi-xxxxxx, uno por
+   cuenta (usuarios/<uid>/sala). Tiene imagen de fondo y cajas, pero no guarda
+   torneos, clasificación, calendario, estadísticas ni insignias: eso es de las
+   tiendas. El logo es siempre el de ByePass, igual que en la de invitado. */
+export const PERSONAL = /^mi-[a-z0-9]{6}$/.test(SALA);
+export const SIN_TIENDA = INVITADO || PERSONAL;
 
 /* Desde el 25-09-2026 una sala es también una TIENDA: tiendas/<id> en Firebase
    guarda su nombre, su color y quiénes la organizan, con el mismo id. Estas

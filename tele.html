@@ -62,6 +62,7 @@
   /* El mismo nombre de sala que sala.js: sin tildes, minúsculas y guiones. */
   var SALA = (param("sala") || "principal").toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 28) || "principal";
   var INVITADO = /^inv-[a-z0-9]{6}$/.test(SALA);
+  var SIN_TIENDA = INVITADO || /^mi-[a-z0-9]{6}$/.test(SALA);   // timer personal: logo de ByePass, pero con fondo y cajas
 
   /* La base, por REST: la real o el emulador. */
   var NS = FIREBASE_CONFIG.databaseURL.replace(/^https?:\/\//, "").split(".")[0];
@@ -172,7 +173,7 @@
     if (!TH) return;
     var V = TH.desktop || TH, M = (MED && MED.desktop) || {};
     var bgSrc = INVITADO ? "" : (M.bgImage || V.bgImage || "");
-    var logo = INVITADO ? "" : ((MED && MED.logo) || TH.logo || "");
+    var logo = SIN_TIENDA ? "" : ((MED && MED.logo) || TH.logo || "");
     if (V.bgType === "image" && bgSrc){ $("bg").src = bgSrc; $("bg").style.display = "block"; document.body.style.background = "#0F2E2A"; }
     else {
       $("bg").style.display = "none";
@@ -199,7 +200,7 @@
       d.appendChild(im); document.body.appendChild(d);
     }
   }
-  if (INVITADO) $("marca").style.display = "inline";
+  if (SIN_TIENDA) $("marca").style.display = "inline";
   escuchar("salas/" + SALA + "/timer/theme", function(v){ TH = v; pintarDiseno(); });
   /* Las imágenes son pesadas: se bajan una vez por versión. */
   escuchar("salas/" + SALA + "/timer/mediaVersion", function(v){

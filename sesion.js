@@ -15,7 +15,7 @@ import { getDatabase, connectDatabaseEmulator, ref, set, get, update, increment 
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, updateProfile, sendEmailVerification }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { SALA } from "./sala.js?v=5";
+import { SALA } from "./sala.js?v=6";
 import { vigilar } from "./mantenimiento.js?v=3";
 
 export const app  = initializeApp(FIREBASE_CONFIG);

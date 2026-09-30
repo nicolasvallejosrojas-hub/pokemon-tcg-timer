@@ -64,7 +64,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, connectAuthEmulator, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { HORAS_INVITADO } from "./sala.js?v=5";
+import { HORAS_INVITADO } from "./sala.js?v=6";
 
 /* La misma app «invitado» que usa el panel: su sesión anónima queda aparte de
    la de una cuenta de verdad. La sesión recién se pide al tocar el botón:
@@ -125,8 +125,16 @@ $("abrir").onclick = async () => {
     }
     throw new Error("sin código");
   } catch(e){
+    /* Que el mensaje diga qué pasó: sin el acceso anónimo activado en la
+       consola de Firebase, o sin las reglas publicadas, no es la conexión. */
+    const c = (e && (e.code || e.message)) || "";
     $("abrir").disabled = false; $("msg").className = "msg err";
-    $("msg").textContent = "No se pudo abrir la sala. Revisa la conexión y vuelve a intentarlo.";
+    $("msg").textContent = /operation-not-allowed|admin-restricted-operation/.test(c)
+      ? "El timer sin cuenta todavía no está activado. Avísale a la administración del sitio."
+      : /permission|PERMISSION_DENIED/i.test(c)
+      ? "La base no dejó crear la sala. Avísale a la administración del sitio."
+      : "No se pudo abrir la sala. Revisa la conexión y vuelve a intentarlo.";
+    console.warn("Sala de invitado:", c);
   }
 };
 </script>
