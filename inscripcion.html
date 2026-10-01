@@ -128,7 +128,7 @@ import { getAuth, connectAuthEmulator, signInAnonymously, onAuthStateChanged } f
 import { db, auth, ID_OK, CORREO_OK, errorNacimiento, params } from "./sesion.js?v=12";
 import { slug, nombreTienda } from "./sala.js?v=6";
 import { fechaLegible, urlGoogle } from "./agenda.js?v=4";
-import { leerLista, cuenta, division, hoja, imprimir } from "./listamazo.js?v=2";
+import { leerLista, cuenta, division, hoja, imprimir, cargarEstandar } from "./listamazo.js?v=3";
 
 const $ = id => document.getElementById(id);
 const q = new URLSearchParams(location.search);
@@ -169,8 +169,10 @@ function pintarAcuerdo(){
 }
 
 /* ------------------------------------------------------------ la lista, en vivo */
+/* La base de cartas de Estándar: avisa lo que no es legal y llena la columna Reg. de la hoja. */
+let BASE_E = null;
 function revisarLista(){
-  const r = leerLista($("lista").value);
+  const r = leerLista($("lista").value, BASE_E);
   const vacia = !$("lista").value.trim();
   $("conteo").innerHTML = vacia ? "" :
     "<span>Pokémon <b>" + cuenta(r, "pokemon") + "</b></span><span>Entrenador <b>" + cuenta(r, "entrenador") + "</b></span>" +
@@ -243,7 +245,7 @@ $("anular").onclick = async () => {
   try { await remove(ref(YO.db, ruta(YO.uid))); MIA = null; $("acepta").checked = false; pintarMia(); }
   catch(err){ error("No se pudo anular. Revisa la conexión y vuelve a intentarlo."); }
 };
-$("imprimir").onclick = () => MIA && imprimir([hoja(MIA, { ...EV, formato: EV.inscripcion.formato, tienda: TIENDA })]);
+$("imprimir").onclick = () => MIA && imprimir([hoja(MIA, { ...EV, formato: EV.inscripcion.formato, tienda: TIENDA }, BASE_E)]);
 
 /* ------------------------------------------------------------ arranque */
 (async () => {
@@ -264,6 +266,7 @@ $("imprimir").onclick = () => MIA && imprimir([hoja(MIA, { ...EV, formato: EV.in
     (EV.detalle ? "<br>" + esc(EV.detalle) : "");
   $("google").href = urlGoogle(EV);
   pintarAcuerdo();
+  if (EV.inscripcion.formato !== "expandido") cargarEstandar().then(b => { BASE_E = b; revisarLista(); });
 
   /* ¿Quién se inscribe? Primero una cuenta de ByePass; si no, la sesión
      anónima que haya quedado de una inscripción anterior en este navegador. */

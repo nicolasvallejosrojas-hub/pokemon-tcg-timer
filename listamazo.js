@@ -1,7 +1,7 @@
 /* ============================================================
    listamazo.js — la lista de mazo de las inscripciones
    ------------------------------------------------------------
-   Versión actual: v=2   (subir el ?v= al tocar este archivo)
+   Versión actual: v=3   (subir el ?v= al tocar este archivo)
 
    La usan la página de inscripción (el jugador la escribe y ve si está bien)
    y el panel (la tienda imprime las de todos). Vive acá para que las dos
@@ -47,7 +47,44 @@ const TITULO = { pokemon: "Pokémon", entrenador: "Entrenador", energia: "Energ�
 const LINEA = /^\*?\s*(\d{1,2})x?\s+(.+?)\s*$/;
 const COLA  = /^(.*\S)\s+([A-Z][A-Z0-9]{1,4}(?:-[A-Z0-9]{1,4})?)\s+([A-Z]{0,4}\d{1,4}[a-z]?)$/;
 
-export function leerLista(texto){
+/* La base de cartas legales en Estándar: cartas-estandar.json, que arma
+   cartas-estandar.py desde Limitless (expansión, número, nombre, categoría y
+   marca de regulación). Se baja una vez y solo para eventos Estándar. */
+const sinCeros = n => String(n || "").replace(/^0+(?=\d)/, "");
+const normNom = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/[’`´]/g, "'").replace(/\s+/g, " ").trim();
+const BASICA = /\bbasic\b.*energy|energ[ií]a .*b[aá]sica/i;
+export function indexar(d){
+  const porCodigo = new Map(), nombres = new Set();
+  d.cartas.forEach(([s, n, nom, , reg]) => { porCodigo.set(s + " " + sinCeros(n), reg); nombres.add(normNom(nom)); });
+  return { porCodigo, nombres, actualizado: d.actualizado };
+}
+let PEDIDA = null;
+export const cargarEstandar = () => PEDIDA ??= fetch("cartas-estandar.json")
+  .then(r => r.ok ? r.json() : Promise.reject(r.status)).then(indexar)
+  .catch(() => { PEDIDA = null; return null; });   // sin la base, la lista se revisa igual, sin esta parte
+
+/* Con la base (formato Estándar), cada carta se busca por expansión y número:
+   así funciona también con la lista exportada en castellano. Si no calza, por
+   nombre: una carta vieja reimpresa en una expansión legal también se juega
+   (en la hoja va con «NA»). Son avisos y no errores: la última palabra la tiene
+   la tienda, y la base puede ir un paso atrás de la expansión recién salida. */
+function revisarLegal(r, base){
+  const fuera = [], reimp = [];
+  [...r.pokemon, ...r.entrenador, ...r.energia].forEach(c => {
+    const reg = c.set ? base.porCodigo.get(c.set + " " + sinCeros(c.num)) : undefined;
+    if (reg !== undefined){ c.reg = reg; return; }
+    if (BASICA.test(c.nombre)) return;
+    const quien = c.nombre + (c.set ? " " + c.set + " " + c.num : "");
+    if (!base.nombres.has(normNom(c.nombre))) fuera.push(quien);
+    else if (r.pokemon.includes(c) && c.set) reimp.push(quien);
+  });
+  if (fuera.length) r.avisos.push("No aparecen en la lista de Estándar (al " + base.actualizado + "): " + fuera.join(", ") + ".");
+  if (reimp.length) r.avisos.push("Estos Pokémon no están en Estándar con esa expansión y número: " + reimp.join(", ") +
+    ". Si son reimpresión de una carta legal con el mismo texto, valen (en la hoja, NA en la expansión).");
+}
+
+export function leerLista(texto, base = null){
   const r = { pokemon: [], entrenador: [], energia: [], total: 0, errores: [], avisos: [] };
   let sec = null;
   String(texto || "").split(/\r?\n/).forEach((crudo, i) => {
@@ -75,6 +112,7 @@ export function leerLista(texto){
     .forEach(c => n[c.nombre.toLowerCase()] = (n[c.nombre.toLowerCase()] || 0) + c.cant);
   const pasadas = Object.keys(n).filter(k => n[k] > 4);
   if (pasadas.length) r.avisos.push("Más de 4 copias de: " + pasadas.join(", ") + ".");
+  if (base) revisarLegal(r, base);
   return r;
 }
 
@@ -84,13 +122,13 @@ export const cuenta = (r, sec) => r[sec].reduce((s, c) => s + c.cant, 0);
 export const ddmmaaaa = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? iso.split("-").reverse().join("/") : "";
 
 /* Una hoja A4 con los datos del jugador y las tres tablas, con las mismas
-   columnas que la hoja oficial. La columna Reg. queda en blanco: el juego en
-   línea no la exporta y la marca la revisa la tienda. */
-export function hoja(ins, ev){
-  const r = leerLista(ins.lista), div = division(ins.nacimiento);
+   columnas que la hoja oficial. La columna Reg. sale de la base de Estándar
+   (el juego en línea no la exporta); sin base, o si la carta no está, en blanco. */
+export function hoja(ins, ev, base = null){
+  const r = leerLista(ins.lista, ev.formato === "expandido" ? null : base), div = division(ins.nacimiento);
   const filas = (sec, n, conSet) => {
     const cs = r[sec].map(c => "<tr><td>" + c.cant + "</td><td>" + esc(c.nombre) + "</td>" +
-      (conSet ? "<td>" + esc(c.set) + "</td><td>" + esc(c.num) + "</td><td></td>" : "") + "</tr>");
+      (conSet ? "<td>" + esc(c.set) + "</td><td>" + esc(c.num) + "</td><td>" + esc(c.reg || "") + "</td>" : "") + "</tr>");
     while (cs.length < n) cs.push("<tr><td>&nbsp;</td><td></td>" + (conSet ? "<td></td><td></td><td></td>" : "") + "</tr>");
     return cs.join("");
   };

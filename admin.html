@@ -1200,7 +1200,7 @@ import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
          revisar, esOriginal, aplicar as palAplicarEn, alDia } from "./paleta.js?v=4";
 import { entregarTabla } from "./tablafinal.js?v=1";
-import { leerLista, division, hoja, imprimir, ddmmaaaa } from "./listamazo.js?v=2";
+import { leerLista, division, hoja, imprimir, ddmmaaaa, cargarEstandar } from "./listamazo.js?v=3";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -4126,9 +4126,13 @@ function verInscritos(ev){
   renderAgenda();
 }
 
+/* La base de cartas de Estándar: se baja una vez, al abrir los inscritos de un evento Estándar. */
+let BASE_E = null;
 function pintarInscritos(){
   const c = $("inscCaja"), ev = AGENDA.find(e => e.id === inscAbierto);
   if (!c || !ev || !ev.inscripcion) return;
+  const estandar = ev.inscripcion.formato !== "expandido";
+  if (estandar && !BASE_E) cargarEstandar().then(b => { if (b){ BASE_E = b; pintarInscritos(); } });
   if (!INSC){ c.textContent = "Cargando…"; return; }
   const filas = Object.entries(INSC).map(([uid, d]) => ({ uid, ...d })).sort((a, b) => (a.creado || 0) - (b.creado || 0));
   const abierta = ev.inscripcion.abierta, empezo = (ev.inicioMs || 0) <= Date.now();
@@ -4141,10 +4145,11 @@ function pintarInscritos(){
       (!abierta ? "cerradas" : empezo ? "el torneo ya empezó: nadie puede inscribirse ni cambiar su lista" : "abiertas hasta que empiece el torneo") + "</div>" +
     (filas.length ? '<div style="overflow-x:auto"><table class="inscTabla"><thead><tr><th>#</th><th>Nick</th><th>Nombre</th><th>ID</th>' +
       "<th>Nacimiento</th><th>División</th><th>Lista</th><th></th></tr></thead><tbody>" +
-      filas.map((f, i) => { const r = leerLista(f.lista);
+      filas.map((f, i) => { const r = leerLista(f.lista, estandar ? BASE_E : null), av = r.avisos.filter(a => /Estándar/.test(a));
         return "<tr><td>" + (i + 1) + "</td><td>" + esc(f.nick) + "</td><td>" + esc(f.nombre + " " + f.apellido) +
           '<br><span class="muted">' + esc(f.correo) + "</span></td><td>" + esc(f.playerId) + "</td><td>" + esc(ddmmaaaa(f.nacimiento)) +
           "</td><td>" + esc(division(f.nacimiento)) + "</td><td>" + (r.errores.length ? '<span class="err">' + r.total + " cartas</span>" : "60 ✓") +
+          (av.length ? ' <span class="err" title="' + esc(av.join(" ")) + '">· revisar</span>' : "") +
           '</td><td><button class="small sec" data-imp="' + esc(f.uid) + '">Imprimir</button> <button class="small sec" data-quitar="' + esc(f.uid) + '">Quitar</button></td></tr>';
       }).join("") + "</tbody></table></div>" : "") +
     '<div class="row" style="margin-top:10px;gap:8px">' +
@@ -4157,8 +4162,8 @@ function pintarInscritos(){
     if (d.i === "copiar") navigator.clipboard?.writeText(urlInscripcion(ev)).then(() => { b.textContent = "Copiado ✓"; });
     if (d.i === "abrir") try { await update(ref(db, BASE_T + "/agenda/" + ev.id + "/inscripcion"), { abierta: !abierta }); }
       catch(err){ alert(mensajeConexion(err)); }
-    if (d.imp && INSC[d.imp]) imprimir([hoja(INSC[d.imp], paraHoja(ev))]);
-    if (d.i === "todas") imprimir(filas.map(f => hoja(f, paraHoja(ev))));
+    if (d.imp && INSC[d.imp]) imprimir([hoja(INSC[d.imp], paraHoja(ev), BASE_E)]);
+    if (d.i === "todas") imprimir(filas.map(f => hoja(f, paraHoja(ev), BASE_E)));
     if (d.i === "csv") bajarCsvInscritos(ev, filas);
     if (d.quitar && INSC[d.quitar] && confirm("¿Quitar a " + INSC[d.quitar].nombre + " " + INSC[d.quitar].apellido + " de «" + ev.titulo + "»? Se borra su lista."))
       try { await remove(ref(db, "inscripciones/" + TIENDA + "/" + ev.id + "/" + d.quitar)); } catch(err){ alert(mensajeConexion(err)); }
