@@ -155,7 +155,7 @@
     </div>
   </main>
 
-<script src="config.js?v=8"></script>
+<script src="config.js?v=9"></script>
 <script type="module">
 import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -163,11 +163,10 @@ import { db, auth, enEmulador, urlCuenta } from "./sesion.js?v=12";
 import { nombreTienda } from "./sala.js?v=6";
 import { contarEnLinea } from "./presencia.js?v=4";
 import { historialUnaVez } from "./historial.js?v=1";
-import { barras } from "./graficos.js?v=1";
+import { barras } from "./graficos.js?v=2";
+import { norm } from "./insignias.js?v=4";
 
 const $ = id => document.getElementById(id);
-const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
-  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 const EMU = enEmulador() ? "emu=1&" : "";
 const DEST = { inicio: "index.html" + (EMU ? "?emu=1" : ""), tiendas: "tienda.html" + (EMU ? "?emu=1" : ""),
                herramientas: "herramientas.html" + (EMU ? "?emu=1" : "") };
@@ -204,7 +203,6 @@ const PAGINA = { portada: "portada", cuenta: "cuenta", muro: "muro", tiendas: "t
                  panel: "paneles", herramientas: "herramientas", widget: "widgets" };
 const NOMBRE_PAGINA = { portada: "Portada", cuenta: "Cuenta", muro: "Muro", tiendas: "Tiendas y perfiles", timer: "Timer y mesas (QR)",
                         panel: "Panel del organizador", herramientas: "Herramientas", widget: "Widget en webs de tiendas" };
-const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const fmtN = n => Math.round(n).toLocaleString("es-CL");
 const pct = (a, b) => b ? Math.round(100 * a / b) + "%" : "—";
 

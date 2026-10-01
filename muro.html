@@ -449,7 +449,7 @@
           <div class="avatar grande" id="jgAvatar" aria-hidden="true">·</div>
           <div class="quienSoy">
             <h1 class="nomPerfil" id="hJugador">Jugador</h1>
-            <div class="idLinea">En los torneos archivados de esta tienda.</div>
+            <div class="idLinea">En los torneos archivados de tus tiendas.</div>
             <div class="vitrina" id="jgVitrina"></div>
           </div>
           <button class="btn" id="jgVolver">Volver</button>
@@ -505,7 +505,7 @@
 <dialog class="hojaIns" id="dlgIns" aria-labelledby="dlgTitulo"><div id="dlgCuerpo"></div></dialog>
 <dialog class="celebra" id="dlgNueva" aria-labelledby="celTitulo"><div class="rayos"></div><div id="celCuerpo"></div></dialog>
 
-<script src="config.js?v=8"></script>
+<script src="config.js?v=9"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, get, set, update, serverTimestamp }
@@ -520,11 +520,9 @@ import { nombreMes } from "./clasificacion.js?v=1";
 import { estoyEnLinea } from "./presencia.js?v=4";
 import { leerHistorial } from "./historial.js?v=1";
 import { vigilar } from "./mantenimiento.js?v=3";
-import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga } from "./insignias.js?v=3";
+import { permanentes, deTienda, medalla, parche, colorTienda, fechaLarga, norm } from "./insignias.js?v=4";
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
-  c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 
 const app  = initializeApp(FIREBASE_CONFIG);
 const db   = getDatabase(app);
@@ -579,16 +577,21 @@ function verTab(t){
   if (location.hash.slice(1) !== t) history.replaceState(null, "", "#" + t);
 }
 document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => verTab(b.dataset.tab));
-addEventListener("hashchange", () => verTab(location.hash.slice(1)));
+/* Un enlace #jugador=<nombre> abierto con el muro ya cargado solo cambia el #:
+   sin esto caía en Inicio. */
+addEventListener("hashchange", () => {
+  const m = /^#jugador=(.+)$/.exec(location.hash);
+  if (m && HIST) try { return verJugador(decodeURIComponent(m[1])); } catch(e){}
+  verTab(location.hash.slice(1));
+});
 
 /* ------------------------------------------------------------
    Récord del jugador, calculado sobre los torneos archivados
    ------------------------------------------------------------
    El historial guarda los nombres tal como venian en el .tdf del TOM, asi que
    el cruce es por nombre normalizado. Por eso el registro pide escribir el
-   nombre igual que como se inscribe en la tienda. */
-const norm = s => String(s || "").toLowerCase()
-  .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+   nombre igual que como se inscribe en la tienda. La normalización (norm) es
+   la de insignias.js: la misma que usa el directorio de jugadores. */
 
 /* Una fila es mía si la tienda la marcó con mi uid —eso ocurre solo si le
    compartí mi ID de jugador— y si no, por nombre. El nombre sigue siendo el
@@ -604,10 +607,25 @@ const esMia = p => {
   return !!yo && norm(p.name) === yo;
 };
 
+/* Los torneos de mis tiendas: las que sigo, las que organizo y la que estoy
+   mirando. El muro, los perfiles y las rachas leen todos de acá. Antes el muro
+   juntaba las tiendas y el perfil miraba solo la de ?sala=: abierto sin sala,
+   el muro mostraba los torneos de la tienda que organizo y el perfil de esos
+   mismos jugadores salía vacío («Jugador», sin resultados ni rachas). */
+function torneosDeMisTiendas(){
+  const out = [];
+  misSalas().forEach(s => {
+    cargarTienda(s);
+    const h = s === TIENDA && !(TD[s] && TD[s].hist) ? HIST : TD[s] && TD[s].hist;
+    Object.values(h || {}).forEach(t => out.push({ t, sala: s }));
+  });
+  return out;
+}
+
 function filasDe(esDe){
   if (!HIST) return [];
   const out = [];
-  Object.values(HIST).forEach(t => {
+  torneosDeMisTiendas().forEach(({ t }) => {
     const fila = (t.standings || []).find(esDe);
     if (fila) out.push({ torneo: t, fila });
   });
@@ -629,7 +647,7 @@ function rachasDe(esDe){
   if (!HIST) return null;
   const riv = {};
   let hayPartidas = false;
-  Object.values(HIST)
+  torneosDeMisTiendas().map(x => x.t)
     .sort((a, b) => (a.fecha || "").localeCompare(b.fecha || "") || (a.creado || 0) - (b.creado || 0))
     .forEach(t => {
       const st = t.standings || [], yo = st.findIndex(esDe);
@@ -694,12 +712,7 @@ function pintarMuro(){
   /* Los torneos de mis tiendas (las que sigo, las que organizo y la que estoy
      mirando). Sin búsqueda va SOLO el más reciente: el historial entero vive
      en el perfil de cada tienda. Buscando a un jugador, van todos donde sale. */
-  const lista = [];
-  misSalas().forEach(s => {
-    const h = s === TIENDA && !(TD[s] && TD[s].hist) ? HIST : TD[s] && TD[s].hist;
-    Object.values(h || {}).forEach(t => lista.push({ t, sala: s }));
-  });
-  const todos = lista
+  const todos = torneosDeMisTiendas()
     .sort((a, b) => String(b.t.fecha || "").localeCompare(String(a.t.fecha || "")) || (b.t.creado || 0) - (a.t.creado || 0))
     .filter(({ t }) => !filtro || (t.standings || []).some(p => norm(p.name).includes(filtro)));
   const torneos = filtro ? todos : todos.slice(0, 1);
@@ -837,7 +850,9 @@ const misSalas = () => [...new Set([TIENDA, ...Object.keys(TIENDAS || {}), ...Ob
 let pintura = 0;
 function repintarInsignias(){
   cancelAnimationFrame(pintura);
-  pintura = requestAnimationFrame(() => { pintarInsigniasPropias(); pintarJugador(); pintarTienda(); pintarMuro(); pintarProximo(); });
+  /* pintarPerfil ya incluye las insignias propias; va porque mis resultados
+     también suman los torneos de cada tienda que termina de llegar. */
+  pintura = requestAnimationFrame(() => { pintarFicha(); pintarPerfil(); pintarJugador(); pintarTienda(); pintarMuro(); pintarProximo(); });
 }
 
 /* Todas las de un jugador en las tiendas dadas. El uid da la Beta tester y

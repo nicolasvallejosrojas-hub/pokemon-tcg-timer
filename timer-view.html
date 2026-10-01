@@ -395,7 +395,7 @@
 
 </main>
 
-<script src="config.js?v=8"></script>
+<script src="config.js?v=9"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -448,8 +448,6 @@ estoyEnLinea(db, "timer", TIENDA);
 
 const $ = id => document.getElementById(id);
 
-const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
-  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 
 

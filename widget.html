@@ -55,7 +55,7 @@
   <div class="pie"><a id="pie" target="_blank" rel="noopener">Ver todo en <span class="marca">Bye<span>Pass</span></span></a></div>
 </main>
 
-<script src="config.js?v=8"></script>
+<script src="config.js?v=9"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, get, goOffline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -66,7 +66,6 @@ import { historialUnaVez } from "./historial.js?v=1";
 import { contarVisita } from "./presencia.js?v=4";
 
 const $ = id => document.getElementById(id);
-const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 const db = getDatabase(initializeApp(FIREBASE_CONFIG));
 const EMU = typeof EMULADOR !== "undefined" && EMULADOR;
 if (EMU) connectDatabaseEmulator(db, EMULADOR.host, EMULADOR.db);

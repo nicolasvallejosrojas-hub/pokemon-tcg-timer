@@ -199,7 +199,7 @@
       <button class="btn" id="dbSi" disabled>Descargar respaldo y eliminar</button></div>
   </dialog>
 
-<script src="config.js?v=8"></script>
+<script src="config.js?v=9"></script>
 <script type="module">
 import { ref, onValue, get, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -209,8 +209,6 @@ import { estoyEnLinea, contarEnLinea } from "./presencia.js?v=4";
 estoyEnLinea(db, "herramientas");
 
 const $ = id => document.getElementById(id);
-const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
-  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 /* El ?emu=1 viaja en cada enlace: sin eso, una prueba local abriría la base real. */
 const EMU = enEmulador() ? "emu=1&" : "";
 const aTienda = id => "tienda.html?" + EMU + "sala=" + encodeURIComponent(id);

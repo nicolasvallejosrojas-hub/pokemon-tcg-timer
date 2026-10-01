@@ -1,7 +1,7 @@
 /* ============================================================
    listamazo.js — la lista de mazo de las inscripciones
    ------------------------------------------------------------
-   Versión actual: v=1   (subir el ?v= al tocar este archivo)
+   Versión actual: v=2   (subir el ?v= al tocar este archivo)
 
    La usan la página de inscripción (el jugador la escribe y ve si está bien)
    y el panel (la tienda imprime las de todos). Vive acá para que las dos
@@ -80,8 +80,8 @@ export function leerLista(texto){
 
 export const cuenta = (r, sec) => r[sec].reduce((s, c) => s + c.cant, 0);
 
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
-const ddmmaaaa = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? iso.split("-").reverse().join("/") : "";
+/* esc() es la global de config.js: todas las páginas que importan este módulo la cargan antes. */
+export const ddmmaaaa = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? iso.split("-").reverse().join("/") : "";
 
 /* Una hoja A4 con los datos del jugador y las tres tablas, con las mismas
    columnas que la hoja oficial. La columna Reg. queda en blanco: el juego en

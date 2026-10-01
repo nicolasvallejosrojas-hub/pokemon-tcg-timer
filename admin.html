@@ -1181,7 +1181,7 @@
 <div id="menu"></div>
 <input type="file" accept="image/*" id="fBox" style="display:none">
 
-<script src="config.js?v=8"></script>
+<script src="config.js?v=9"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -1191,8 +1191,8 @@ import { aEpoch, estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, or
 import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, nombreTienda, iniciales, COLOR_TIENDA, INVITADO, PERSONAL, SIN_TIENDA } from "./sala.js?v=6";
 import { vigilar } from "./mantenimiento.js?v=3";
 import { estoyEnLinea } from "./presencia.js?v=4";
-import { barras } from "./graficos.js?v=1";
-import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=3";
+import { barras } from "./graficos.js?v=2";
+import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=4";
 import { rondasDe, resumen, tabla, emparejar, rondasSugeridas, aPairings, aHistorial,
          delCorte, emparejarCorte, clasificacion, tamanoCorte, corteTerminado, nombreCorte, CORTES,
          GANA_A, GANA_B, EMPATE, DOBLE } from "./torneo.js?v=1";
@@ -1200,7 +1200,7 @@ import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
          revisar, esOriginal, aplicar as palAplicarEn, alDia } from "./paleta.js?v=4";
 import { entregarTabla } from "./tablafinal.js?v=1";
-import { leerLista, division, hoja, imprimir } from "./listamazo.js?v=1";
+import { leerLista, division, hoja, imprimir, ddmmaaaa } from "./listamazo.js?v=2";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -1223,8 +1223,6 @@ vigilar(db, auth);   // la pantalla de mantenimiento
 estoyEnLinea(db, "panel");
 
 const $ = id => document.getElementById(id);
-const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c =>
-  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 
 /* Cada organizador tiene su propio espacio de datos */
 const T  = ref(db, BASE + "/timer");
@@ -4089,7 +4087,6 @@ async function borrar(ev){
    ------------------------------------------------------------ */
 let inscAbierto = null, offInsc = null, INSC = null;
 const urlInscripcion = ev => new URL("inscripcion.html?sala=" + TIENDA + "&evento=" + ev.id, location.href).href;
-const ddmm = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? iso.split("-").reverse().join("/") : "";
 const paraHoja = ev => ({ ...ev, formato: ev.inscripcion.formato, tienda: nombreDeLaTienda() });
 
 function verInscritos(ev){
@@ -4117,7 +4114,7 @@ function pintarInscritos(){
       "<th>Nacimiento</th><th>División</th><th>Lista</th><th></th></tr></thead><tbody>" +
       filas.map((f, i) => { const r = leerLista(f.lista);
         return "<tr><td>" + (i + 1) + "</td><td>" + esc(f.nick) + "</td><td>" + esc(f.nombre + " " + f.apellido) +
-          '<br><span class="muted">' + esc(f.correo) + "</span></td><td>" + esc(f.playerId) + "</td><td>" + esc(ddmm(f.nacimiento)) +
+          '<br><span class="muted">' + esc(f.correo) + "</span></td><td>" + esc(f.playerId) + "</td><td>" + esc(ddmmaaaa(f.nacimiento)) +
           "</td><td>" + esc(division(f.nacimiento)) + "</td><td>" + (r.errores.length ? '<span class="err">' + r.total + " cartas</span>" : "60 ✓") +
           '</td><td><button class="small sec" data-imp="' + esc(f.uid) + '">Imprimir</button> <button class="small sec" data-quitar="' + esc(f.uid) + '">Quitar</button></td></tr>';
       }).join("") + "</tbody></table></div>" : "") +
@@ -4143,7 +4140,7 @@ function pintarInscritos(){
 function bajarCsvInscritos(ev, filas){
   const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
   const t = [["Nombre", "Apellido", "Nick", "ID de jugador", "Nacimiento", "División", "Correo", "Inscrito", "Lista de mazo"]]
-    .concat(filas.map(f => [f.nombre, f.apellido, f.nick, f.playerId, ddmm(f.nacimiento), division(f.nacimiento), f.correo,
+    .concat(filas.map(f => [f.nombre, f.apellido, f.nick, f.playerId, ddmmaaaa(f.nacimiento), division(f.nacimiento), f.correo,
                             new Date(f.actualizado || f.creado || 0).toLocaleString("es-CL"), f.lista]));
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + t.map(r => r.map(q).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" }));

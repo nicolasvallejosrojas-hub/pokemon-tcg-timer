@@ -1,14 +1,14 @@
 /* ============================================================
    graficos.js — barras verticales en SVG, sin librerías
    ------------------------------------------------------------
-   Versión actual: v=1   (subir el ?v= al tocar este archivo)
+   Versión actual: v=2   (subir el ?v= al tocar este archivo)
 
    Lo usan estadisticas.html (quien administra) y la pestaña Estadísticas del
    panel de cada tienda. Cada página pone los colores con sus clases:
    .b0 (la barra clara, `a`), .b1 (la oscura, `b`, encima y desde abajo),
    .ejes text / .ejes line, y .vacio para cuando no hay datos.
    ============================================================ */
-const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+/* esc() es la global de config.js: todas las páginas que importan este módulo la cargan antes. */
 const fmtN = n => Math.round(n).toLocaleString("es-CL");
 
 /* serie: [{ x, a, b }]. etq(x) es el rótulo del eje; desc(d) va al pasar el

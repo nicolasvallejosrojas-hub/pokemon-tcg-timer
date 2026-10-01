@@ -1,7 +1,7 @@
 /* ============================================================
    insignias.js — el catálogo y la cuenta de las insignias
    ------------------------------------------------------------
-   Versión actual: v=3   (subir el ?v= al tocar este archivo)
+   Versión actual: v=4   (subir el ?v= al tocar este archivo)
 
    Dos tipos:
      · PERMANENTES: son de la cuenta. Cuentan los torneos de todas las tiendas
@@ -26,8 +26,6 @@ export const NIVELES = ["bronce", "plata", "oro"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
                "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
-  c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /* ------------------------------------------------------------
    Íconos, medallas y parches
@@ -96,6 +94,7 @@ export function parche(ico, color, sigla, { s = 64, ok = true, anillo = 0, event
 /* ------------------------------------------------------------
    Quién es quién en el historial
    ------------------------------------------------------------ */
+/* esc() es la global de config.js: todas las páginas que importan este módulo la cargan antes. */
 export const norm = s => String(s || "").toLowerCase().normalize("NFD")
   .replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 /* La misma clave que usan las rachas: los reservados, por uid; el resto, por nombre. */

@@ -12,6 +12,18 @@ const FIREBASE_CONFIG = {
   appId: "1:551925622696:web:0bb0195d153fe7c64f9f9d"
 };
 
+// ====== ESCAPAR TEXTO ======
+// Todo lo que escribe una persona (nombres del TOM, tiendas, mensajes) pasa por
+// acá antes de ir a innerHTML. Una sola para todo el sitio: había una copia por
+// página y ya no escapaban lo mismo (la mitad dejaba pasar la comilla simple).
+// Va como función global, igual que FIREBASE_CONFIG, porque todas las páginas
+// cargan este archivo antes que sus módulos. Sin flechas: la usa tele.html.
+function esc(t){
+  return String(t == null ? "" : t).replace(/[&<>"']/g, function(c){
+    return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+  });
+}
+
 // ====== EMULADOR LOCAL ======
 // Este archivo se publica, así que el emulador tiene que ser IMPOSIBLE de
 // encender en producción: primero se exige que la página venga de localhost o

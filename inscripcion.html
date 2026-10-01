@@ -120,7 +120,7 @@ Energy: 8
     </form>
   </main>
 
-<script src="config.js?v=8"></script>
+<script src="config.js?v=9"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, connectDatabaseEmulator, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -128,10 +128,9 @@ import { getAuth, connectAuthEmulator, signInAnonymously, onAuthStateChanged } f
 import { db, auth, ID_OK, CORREO_OK, errorNacimiento, params } from "./sesion.js?v=12";
 import { slug, nombreTienda } from "./sala.js?v=6";
 import { fechaLegible, urlGoogle } from "./agenda.js?v=4";
-import { leerLista, cuenta, division, hoja, imprimir } from "./listamazo.js?v=1";
+import { leerLista, cuenta, division, hoja, imprimir } from "./listamazo.js?v=2";
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const q = new URLSearchParams(location.search);
 const T = slug(q.get("sala")), E = String(q.get("evento") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
 
