@@ -357,9 +357,10 @@
           <p class="bajada">Las dos son opcionales y las puedes poner después en ajustes. El ID, eso
             sí, no se cambia una vez guardado.</p>
         </div>
-        <label class="campo"><span>ID de jugador <span class="opcional">— opcional</span></span>
+        <label class="campo"><span>ID de jugador de TOM <span class="opcional">— opcional</span></span>
           <input type="text" id="crId" inputmode="numeric" placeholder="7 u 8 dígitos" maxlength="8">
-          <span class="pista">Es el número con que la tienda te inscribe en el torneo. Revísalo bien.</span>
+          <span class="pista">El número de 7 u 8 dígitos con que te inscriben en los torneos que se llevan con TOM, el programa
+            oficial de torneos. Con él tus resultados llegan solos a tu perfil. Los ID de otros juegos van en tus ajustes.</span>
         </label>
         <div class="filas">
           <label class="filaj"><span class="k">Salir con mi nombre en la clasificación
@@ -439,18 +440,19 @@
       <h2>Tu torneo</h2>
       <div class="filas">
         <!-- Con ID: fijo, con candado. Sin ID: se puede poner, una sola vez. -->
-        <div class="filaj oculto" id="idFijo"><span class="k">ID de jugador
+        <div class="filaj oculto" id="idFijo"><span class="k">ID de jugador de TOM
           <small>No se cambia. Si está mal, habla con la tienda.</small></span>
           <span class="v" id="ajIdFijo"></span>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></div>
         <div id="edId">
           <button class="filaj" type="button" aria-expanded="false" aria-controls="formId">
-            <span class="k">ID de jugador</span><span class="v" id="ajId"></span>
+            <span class="k">ID de jugador de TOM</span><span class="v" id="ajId"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></button>
           <form class="edicion oculto" id="formId" novalidate>
-            <label class="campo"><span>ID de jugador</span>
+            <label class="campo"><span>ID de jugador de TOM</span>
               <input type="text" id="nuevoId" inputmode="numeric" placeholder="7 u 8 dígitos" maxlength="8">
-              <span class="pista">Revísalo bien: una vez guardado, no se puede cambiar.</span>
+              <span class="pista">El de 7 u 8 dígitos de los torneos que se llevan con TOM, el programa oficial de torneos.
+                Revísalo bien: una vez guardado, no se puede cambiar.</span>
             </label>
             <div class="aviso mal oculto" id="errId" role="alert"></div>
             <div class="acciones"><button class="fant" type="button" data-cancelar>Cancelar</button>
@@ -462,6 +464,26 @@
           <input type="checkbox" role="switch" class="sw" id="ajPublico"></label>
       </div>
       <div class="aviso oculto" id="msgTorneo" role="status"></div>
+    </div>
+
+    <!-- Desde el 30-09-2026: los ID de otros juegos de cartas. Solo los ve su dueño.
+         Mitos y Leyendas usa CL + números; el resto se escribe libre. -->
+    <div class="grupo">
+      <h2>Tus ID de otros juegos</h2>
+      <p class="pista" style="margin:0 0 var(--e2)">Si juegas otros juegos de cartas, deja acá tu ID de cada uno para tenerlos a mano.
+        Solo tú los ves.</p>
+      <div class="filas" id="otrosIds"></div>
+      <form class="edicion" id="formOtroId" novalidate>
+        <label class="campo"><span>Juego</span>
+          <select id="oiJuego"><option value="mitos-y-leyendas">Mitos y Leyendas</option><option value="otro">Otro juego</option></select></label>
+        <label class="campo oculto" id="oiNombreCampo"><span>Nombre del juego</span>
+          <input type="text" id="oiNombre" maxlength="40" autocomplete="off"></label>
+        <label class="campo"><span>Tu ID</span>
+          <input type="text" id="oiId" maxlength="30" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CL y números, por ejemplo CL1234"></label>
+        <div class="aviso mal oculto" id="errOi" role="alert"></div>
+        <div class="acciones"><button class="btn primario" type="submit">Agregar</button></div>
+      </form>
+      <div class="aviso oculto" id="msgOi" role="status"></div>
     </div>
 
     <div class="grupo" id="grPrivacidad">
@@ -574,6 +596,11 @@ const A_PRIVACIDAD = location.hash === "#privacidad", A_SUGERENCIAS = location.h
 const DESDE = (() => { try { const r = new URL(document.referrer);
   return r.origin === location.origin && !/cuenta\.html$/.test(r.pathname) ? (r.pathname.split("/").pop() + r.search).slice(0, 200) : "";
 } catch(e){ return ""; } })();
+/* ?volver=inscripcion.html?... : quien entra desde una inscripción vuelve a
+   ella y no al muro. Solo a esa página, para que el parámetro no sirva para
+   mandar a nadie a otro sitio. */
+const VOLVER = (v => /^inscripcion\.html\?[A-Za-z0-9=&_%-]{1,200}$/.test(v) ? v : "")(new URLSearchParams(location.search).get("volver") || "");
+const alSalir = h => VOLVER || urlMuro(h);
 let usuario = null, perfil = null, vista = "ingresar", paso = 1;
 /* Mientras se crea una cuenta, onAuthStateChanged dispara ANTES de que los
    datos terminen de guardarse. Si en ese momento redirigiera al muro, la
@@ -828,7 +855,7 @@ async function crearCuenta(){
     await registrar({ nombre, correo, clave: $("crClave").value, nacimiento: $("crNacimiento").value,
                       playerId: idJug, publico: $("crPublico").checked, invitacion: $("crCodigo").value });
     /* Recién ahora, con los datos guardados, se sale al muro. */
-    location.replace(urlMuro("perfil"));
+    location.replace(alSalir("perfil"));
   } catch(err){
     registrando = false;
     /* Si lo que falló fue el set y no la creación, la sesión ya está abierta:
@@ -881,8 +908,53 @@ function pintarAjustes(){
   $("ajIdFijo").textContent = p.playerId || "";
   $("ajId").textContent = "Agregar";
   $("ajPublico").checked = !!p.publico;
+  pintarOtrosIds();
   pintarPrivacidad();
 }
+
+/* ------------------------------------------------------------ ID de otros juegos
+   usuarios/<uid>/otrosIds/<clave> = { juego, id }. La clave es el nombre del
+   juego como slug, así el mismo juego no queda dos veces. Mitos y Leyendas
+   tiene formato conocido (CL + números); lo demás se valida suelto. Las
+   reglas repiten estas mismas condiciones. */
+const MITOS = "mitos-y-leyendas";
+const claveJuego = n => n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+function pintarOtrosIds(){
+  const o = (perfil && perfil.otrosIds) || {}, ks = Object.keys(o).sort((a, b) => o[a].juego.localeCompare(o[b].juego));
+  $("otrosIds").innerHTML = ks.map(k => '<div class="filaj"><span class="k">' + esc(o[k].juego) + '</span><span class="v">' + esc(o[k].id) +
+    '</span><button class="fant" type="button" data-quitaroi="' + esc(k) + '" aria-label="Quitar el ID de ' + esc(o[k].juego) + '">Quitar</button></div>').join("");
+  $("otrosIds").querySelectorAll("[data-quitaroi]").forEach(b => b.onclick = async () => {
+    const k = b.dataset.quitaroi;
+    try {
+      await remove(ref(db, "usuarios/" + usuario.uid + "/otrosIds/" + k));
+      delete perfil.otrosIds[k]; pintarOtrosIds(); aviso("msgOi", "ID quitado.");
+    } catch(e){ aviso("errOi", "No se pudo quitar. Revisa la conexión."); }
+  });
+}
+$("oiJuego").onchange = () => {
+  const otro = $("oiJuego").value === "otro";
+  $("oiNombreCampo").classList.toggle("oculto", !otro);
+  $("oiId").placeholder = otro ? "Tu ID en ese juego" : "CL y números, por ejemplo CL1234";
+};
+$("formOtroId").onsubmit = async e => {
+  e.preventDefault();
+  aviso("errOi", "");
+  const otro = $("oiJuego").value === "otro";
+  const juego = otro ? $("oiNombre").value.trim().replace(/\s+/g, " ") : "Mitos y Leyendas";
+  const k = otro ? claveJuego(juego) : MITOS;
+  const id = $("oiId").value.trim().toUpperCase().replace(/\s+/g, "");
+  if (otro && (juego.length < 2 || !k)) return aviso("errOi", "Escribe el nombre del juego.");
+  if (k === MITOS && !/^CL[0-9]{3,12}$/.test(id)) return aviso("errOi", "El ID de Mitos y Leyendas es CL seguido de números, por ejemplo CL1234.");
+  if (!/^[A-Z0-9-]{3,30}$/.test(id)) return aviso("errOi", "El ID lleva de 3 a 30 letras, números o guiones.");
+  try {
+    const v = { juego, id };
+    await update(ref(db), { ["usuarios/" + usuario.uid + "/otrosIds/" + k]: v });
+    perfil = Object.assign({}, perfil, { otrosIds: Object.assign({}, (perfil && perfil.otrosIds) || {}, { [k]: v }) });
+    $("oiId").value = ""; $("oiNombre").value = "";
+    pintarOtrosIds(); aviso("msgOi", "ID guardado.");
+  } catch(err){ aviso("errOi", "No se pudo guardar. Revisa la conexión."); }
+};
 
 /* ------------------------------------------------------------
    Privacidad en tus tiendas: con cuáles comparto mi ID, y dejar de seguir
@@ -1306,7 +1378,7 @@ onAuthStateChanged(auth, async u => {
       pintarTienda();
       return;
     }
-    location.replace(urlMuro());
+    location.replace(alSalir());
     return;
   }
   perfil = null;

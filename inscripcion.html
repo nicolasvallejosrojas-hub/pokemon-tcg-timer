@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B7F6C">
+<meta name="description" content="Inscripción a un torneo con lista de mazo.">
+<title>Inscripción — ByePass</title>
+<link rel="stylesheet" href="estilo.css?v=11">
+<style>
+  /* Inscripción a un torneo de una tienda (League Challenge, League Cup).
+     Llega por un enlace que comparte la tienda. La cuenta es opcional: sin
+     cuenta se usa una sesión anónima que solo sirve para volver a esta misma
+     inscripción desde este navegador. */
+  body{min-height:100vh;}
+  .sup{display:flex;align-items:center;min-height:56px;padding:0 var(--e4);}
+  .marca{font-family:var(--fuente-reloj);font-weight:300;font-size:var(--t5);color:var(--texto);text-decoration:none;}
+  .marca b{font-weight:300;color:var(--accion-texto);}
+  main{max-width:640px;margin:0 auto;padding:var(--e4) var(--e4) var(--e6);box-sizing:border-box;display:flex;flex-direction:column;gap:var(--e4);}
+  h1{font-size:var(--d3);font-weight:700;letter-spacing:-.022em;line-height:1.1;margin:0;}
+  .meta{font-size:var(--t3);color:var(--apagado);line-height:1.6;margin:var(--e1) 0 0;}
+  .estado{font-size:var(--t2);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ok);}
+  .estado.cerrado{color:var(--rotulo);}
+  .caja{background:var(--sup);border-radius:var(--radio);padding:var(--e4);display:flex;flex-direction:column;gap:var(--e3);}
+  .caja h2{font-size:var(--t2);text-transform:uppercase;letter-spacing:.06em;color:var(--rotulo);font-weight:600;margin:0;}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:var(--e3);}
+  .campo{display:flex;flex-direction:column;gap:7px;}
+  .campo > span:not(.pista){font-size:var(--t1);letter-spacing:.06em;text-transform:uppercase;color:var(--apagado);}
+  .campo input,.campo textarea{width:100%;padding:13px 14px;font-size:var(--t4);box-sizing:border-box;font-family:inherit;}
+  .campo textarea{min-height:260px;font-size:var(--t3);line-height:1.5;resize:vertical;font-variant-numeric:tabular-nums;}
+  .pista{font-size:var(--t2);color:var(--apagado);line-height:1.5;margin:0;}
+  .pista a,.meta a{color:var(--accion-texto);}
+  .conteo{display:flex;gap:var(--e3);flex-wrap:wrap;font-size:var(--t3);font-variant-numeric:tabular-nums;}
+  .conteo b{font-weight:600;}
+  .conteo .tot.ok{color:var(--ok);} .conteo .tot.mal{color:var(--negativo);}
+  .revision{margin:0;padding-left:1.1em;font-size:var(--t2);line-height:1.55;}
+  .revision .mal{color:var(--negativo);} .revision .av{color:var(--apagado);}
+  .acuerdo{max-height:220px;overflow:auto;background:var(--campo);border-radius:var(--radio);padding:var(--e3) var(--e4);font-size:var(--t2);line-height:1.6;}
+  .acuerdo h3{font-size:var(--t3);margin:0 0 var(--e1);} .acuerdo p{margin:0 0 var(--e2);}
+  .chk{display:flex;gap:var(--e2);align-items:flex-start;font-size:var(--t3);line-height:1.45;min-height:44px;cursor:pointer;}
+  .chk input{width:22px;height:22px;margin:1px 0 0;flex:none;}
+  .acc{display:flex;gap:var(--e2);flex-wrap:wrap;}
+  .acc .btn{min-height:44px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;}
+  .enlace{background:none;border:none;color:var(--apagado);font:inherit;font-size:var(--t3);text-decoration:underline;cursor:pointer;min-height:44px;padding:0;}
+  .oculto{display:none!important;}
+  @media (max-width:560px){ .dos{grid-template-columns:1fr;} .acc .btn{flex:1 1 100%;} }
+</style>
+</head>
+<body>
+  <header class="sup"><a class="marca" href="index.html">Bye<b>Pass</b></a></header>
+  <main>
+    <div>
+      <div class="estado" id="estado">Cargando…</div>
+      <h1 id="titulo">Inscripción</h1>
+      <p class="meta" id="meta"></p>
+    </div>
+
+    <div class="aviso mal oculto" id="noHay" role="alert"></div>
+
+    <form id="form" class="oculto" novalidate>
+      <div class="caja">
+        <p class="pista" id="quien"></p>
+        <div class="aviso oculto" id="yaInscrito" role="status"></div>
+      </div>
+
+      <div class="caja" style="margin-top:var(--e4)">
+        <h2>Tus datos</h2>
+        <label class="campo"><span>Correo electrónico</span>
+          <input id="correo" type="email" autocomplete="email" maxlength="120" required></label>
+        <label class="campo"><span>ID de jugador de Play! Pokémon</span>
+          <input id="playerId" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="7 u 8 números" required></label>
+        <label class="campo"><span>Nickname</span>
+          <input id="nick" autocomplete="nickname" maxlength="40" required></label>
+        <div class="dos">
+          <label class="campo"><span>Nombre</span>
+            <input id="nombre" autocomplete="given-name" maxlength="60" required></label>
+          <label class="campo"><span>Apellido</span>
+            <input id="apellido" autocomplete="family-name" maxlength="60" required></label>
+        </div>
+        <label class="campo"><span>Fecha de nacimiento</span>
+          <input id="nacimiento" type="date" autocomplete="bday" required>
+          <span class="pista">Día, mes y año. Define tu división (Junior, Senior o Masters).</span></label>
+      </div>
+
+      <div class="caja" style="margin-top:var(--e4)">
+        <h2>Lista de mazo</h2>
+        <p class="pista">Pégala tal como la exporta el juego en línea, o escríbela con el mismo formato: un título por
+          sección y una carta por línea con cantidad, nombre, expansión y número. Puedes corregirla hasta que empiece el torneo.</p>
+        <label class="campo"><span>Tu lista</span>
+          <textarea id="lista" maxlength="6000" spellcheck="false" placeholder="Pokémon: 12
+3 Dreepy TWM 128
+…
+
+Trainer: 40
+4 Arven SVI 166
+…
+
+Energy: 8
+4 Basic {P} Energy SVE 5"></textarea></label>
+        <div class="conteo" id="conteo" aria-live="polite"></div>
+        <ul class="revision" id="revision"></ul>
+      </div>
+
+      <div class="caja" style="margin-top:var(--e4)">
+        <h2>Acuerdo de cesión de derechos</h2>
+        <div class="acuerdo" id="acuerdo" tabindex="0"></div>
+        <label class="chk"><input type="checkbox" id="acepta"> Leí y acepto el Acuerdo de Cesión de Derechos.</label>
+        <p class="pista">Si eres menor de edad, léelo junto a tu madre, padre o apoderado.</p>
+      </div>
+
+      <div class="aviso mal oculto" id="err" role="alert" style="margin-top:var(--e4)"></div>
+      <div class="acc" style="margin-top:var(--e4)">
+        <button class="btn primario" id="enviar" type="submit">Inscribirme</button>
+        <button class="btn oculto" id="imprimir" type="button">Imprimir mi lista</button>
+        <a class="btn" id="google" target="_blank" rel="noopener">Agendar en Google</a>
+      </div>
+      <button class="enlace oculto" id="anular" type="button">Anular mi inscripción</button>
+      <p class="pista" style="margin-top:var(--e3)">Tus datos los ve solo la tienda que organiza, para inscribirte en el
+        torneo. Más en la <a href="privacidad.html">política de privacidad</a>.</p>
+    </form>
+  </main>
+
+<script src="config.js?v=8"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, connectDatabaseEmulator, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, connectAuthEmulator, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { db, auth, ID_OK, CORREO_OK, errorNacimiento, params } from "./sesion.js?v=12";
+import { slug, nombreTienda } from "./sala.js?v=6";
+import { fechaLegible, urlGoogle } from "./agenda.js?v=4";
+import { leerLista, cuenta, division, hoja, imprimir } from "./listamazo.js?v=1";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const q = new URLSearchParams(location.search);
+const T = slug(q.get("sala")), E = String(q.get("evento") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+
+/* Sin cuenta, la sesión anónima vive en la app «invitado», igual que la sala
+   de invitado: queda aparte de una cuenta de verdad. Se pide recién al
+   inscribirse; abrir la página no crea nada. */
+const appInv = initializeApp(FIREBASE_CONFIG, "invitado");
+const dbInv = getDatabase(appInv), authInv = getAuth(appInv);
+if (typeof EMULADOR !== "undefined" && EMULADOR){
+  connectAuthEmulator(authInv, "http://" + EMULADOR.host + ":" + EMULADOR.auth, { disableWarnings: true });
+  connectDatabaseEmulator(dbInv, EMULADOR.host, EMULADOR.db);
+}
+const primera = a => new Promise(r => { const off = onAuthStateChanged(a, u => { off(); r(u); }); });
+
+let EV = null, TIENDA = "", YO = null, MIA = null;   // YO: { db, uid, cuenta }
+const abierta = () => EV && EV.inscripcion && EV.inscripcion.abierta === true && (EV.inicioMs || 0) > Date.now();
+const ruta = uid => "inscripciones/" + T + "/" + E + "/" + uid;
+
+function noHay(txt){
+  $("estado").textContent = ""; $("titulo").textContent = "Inscripción";
+  $("noHay").textContent = txt; $("noHay").classList.remove("oculto");
+}
+
+/* ------------------------------------------------------------ el acuerdo */
+function pintarAcuerdo(){
+  $("acuerdo").innerHTML = "<h3>Acuerdo de Cesión de Derechos</h3>" +
+    "<p><i>(Consentimiento para el uso de grabaciones de vídeo y/o fotografías)</i><br><b>" + esc(EV.titulo) + "</b></p>" +
+    "<p>Este evento está siendo fotografiado, filmado y grabado en video.</p>" +
+    "<p>Si usted asiste a este evento, está informado y reconociendo que puede ser fotografiado y/o registrado como parte de este evento. " +
+    "Además, por su presencia en el evento, usted está autorizando de manera irrevocable, irreversible, y definitiva del uso y usos futuros, " +
+    "sin cargo ni compensación, crédito o de otra forma de pago, de su nombre, imagen y / o voz registrada en este evento, en todos y cada uno " +
+    "de los tipos de medios, ya sean estos físicos o electrónicos existentes en la fecha del evento o que puedan surgir en el futuro, incluidas " +
+    "las promociones que aparezcan en todo el territorio nacional y en otros países en el extranjero.</p>" +
+    "<p>Si no está de acuerdo con lo anterior y no desea ser fotografiado y filmado / grabado, comuníquese con la persona responsable del evento. " +
+    "La permanencia en el área del evento se interpretará como un consentimiento a los términos de esta notificación. Gracias por su cooperación.</p>";
+}
+
+/* ------------------------------------------------------------ la lista, en vivo */
+function revisarLista(){
+  const r = leerLista($("lista").value);
+  const vacia = !$("lista").value.trim();
+  $("conteo").innerHTML = vacia ? "" :
+    "<span>Pokémon <b>" + cuenta(r, "pokemon") + "</b></span><span>Entrenador <b>" + cuenta(r, "entrenador") + "</b></span>" +
+    "<span>Energía <b>" + cuenta(r, "energia") + '</b></span><span class="tot ' + (r.total === 60 ? "ok" : "mal") + '">Total <b>' + r.total + "</b> / 60</span>";
+  $("revision").innerHTML = vacia ? "" : r.errores.map(e => '<li class="mal">' + esc(e) + "</li>").join("") +
+    r.avisos.map(a => '<li class="av">' + esc(a) + "</li>").join("");
+  return r;
+}
+$("lista").oninput = revisarLista;
+
+/* ------------------------------------------------------------ formulario */
+const CAMPOS = ["correo", "playerId", "nick", "nombre", "apellido", "nacimiento", "lista"];
+function rellenar(d, soloVacios){
+  CAMPOS.forEach(k => { if (d[k] && (!soloVacios || !$(k).value)) $(k).value = d[k]; });
+  revisarLista();
+}
+function leer(){
+  const d = {};
+  CAMPOS.forEach(k => d[k] = $(k).value.trim().replace(/[ \t]+/g, " "));
+  d.playerId = d.playerId.replace(/\D/g, "");
+  if (!CORREO_OK(d.correo)) return { error: "Revisa el correo: no tiene un formato válido." };
+  if (!ID_OK(d.playerId)) return { error: "El ID de jugador son 7 u 8 números. Está en tu cuenta de Play! Pokémon." };
+  if (!d.nick) return { error: "Escribe tu nickname." };
+  if (!d.nombre || !d.apellido) return { error: "Escribe tu nombre y tu apellido." };
+  const n = errorNacimiento(d.nacimiento); if (n) return { error: n };
+  const r = leerLista(d.lista);
+  if (r.errores.length) return { error: "La lista de mazo tiene problemas: " + r.errores[0] };
+  if (!$("acepta").checked) return { error: "Para inscribirte tienes que aceptar el Acuerdo de Cesión de Derechos." };
+  return { d };
+}
+const error = t => { $("err").textContent = t; $("err").classList.toggle("oculto", !t); if (t) $("err").scrollIntoView({ block: "center", behavior: "smooth" }); };
+
+function pintarMia(){
+  const hay = !!MIA;
+  $("enviar").textContent = hay ? "Guardar cambios" : "Inscribirme";
+  $("imprimir").classList.toggle("oculto", !hay);
+  $("anular").classList.toggle("oculto", !hay || !abierta());
+  $("yaInscrito").classList.toggle("oculto", !hay);
+  if (hay) $("yaInscrito").innerHTML = "<b>Estás inscrito</b> · División " + esc(division(MIA.nacimiento)) +
+    ". " + (abierta() ? "Puedes corregir tus datos y tu lista hasta que empiece el torneo." : "Las inscripciones ya cerraron: tu lista quedó así.");
+}
+
+$("form").onsubmit = async e => {
+  e.preventDefault(); error("");
+  if (!abierta()) return error("Las inscripciones de este torneo están cerradas.");
+  const { d, error: mal } = leer();
+  if (mal) return error(mal);
+  const b = $("enviar"); b.disabled = true; b.textContent = "Guardando…";
+  try {
+    if (!YO){ const u = authInv.currentUser || (await signInAnonymously(authInv)).user; YO = { db: dbInv, uid: u.uid, cuenta: false }; }
+    const ahora = Date.now();
+    const dato = { ...d, acepta: true, creado: (MIA && MIA.creado) || ahora, actualizado: ahora };
+    await set(ref(YO.db, ruta(YO.uid)), dato);
+    MIA = dato; pintarMia();
+    $("yaInscrito").scrollIntoView({ block: "center", behavior: "smooth" });
+  } catch(err){
+    const c = (err && (err.code || err.message)) || "";
+    error(/operation-not-allowed|admin-restricted-operation/.test(c)
+      ? "La inscripción sin cuenta todavía no está activada. Avísale a la tienda o entra con tu cuenta."
+      : /permission|PERMISSION_DENIED/i.test(c)
+      ? "No se pudo guardar: puede que las inscripciones se hayan cerrado recién. Recarga la página."
+      : "No se pudo guardar. Revisa la conexión y vuelve a intentarlo.");
+    console.warn("Inscripción:", c);
+  }
+  b.disabled = false; pintarMia();
+};
+
+$("anular").onclick = async () => {
+  if (!YO || !confirm("¿Anular tu inscripción a «" + EV.titulo + "»? Se borran tus datos y tu lista de este torneo.")) return;
+  try { await remove(ref(YO.db, ruta(YO.uid))); MIA = null; $("acepta").checked = false; pintarMia(); }
+  catch(err){ error("No se pudo anular. Revisa la conexión y vuelve a intentarlo."); }
+};
+$("imprimir").onclick = () => MIA && imprimir([hoja(MIA, { ...EV, formato: EV.inscripcion.formato, tienda: TIENDA })]);
+
+/* ------------------------------------------------------------ arranque */
+(async () => {
+  if (!T || !E) return noHay("Este enlace de inscripción está incompleto. Pídele el enlace de nuevo a la tienda.");
+  try {
+    const [ev, perfil] = await Promise.all([get(ref(db, "salas/" + T + "/agenda/" + E)), get(ref(db, "tiendas/" + T + "/perfil"))]);
+    EV = ev.val(); TIENDA = nombreTienda(perfil.val(), T);
+  } catch(e){ return noHay("No se pudo cargar el torneo. Revisa la conexión y recarga."); }
+  if (!EV || !EV.inscripcion) return noHay("Este torneo no existe o ya no recibe inscripciones por acá.");
+
+  document.title = "Inscripción: " + EV.titulo + " — ByePass";
+  $("titulo").textContent = EV.titulo;
+  $("estado").textContent = abierta() ? "Inscripciones abiertas" : "Inscripciones cerradas";
+  $("estado").classList.toggle("cerrado", !abierta());
+  $("meta").innerHTML = esc(fechaLegible(EV.fecha) + (EV.hora ? ", " + EV.hora + " h" : "")) + " · " +
+    '<a href="tienda.html?sala=' + encodeURIComponent(T) + '">' + esc(TIENDA) + "</a>" +
+    (EV.lugar ? "<br>" + esc(EV.lugar) : "") + "<br>Formato " + (EV.inscripcion.formato === "expandido" ? "Expandido" : "Estándar") +
+    (EV.detalle ? "<br>" + esc(EV.detalle) : "");
+  $("google").href = urlGoogle(EV);
+  pintarAcuerdo();
+
+  /* ¿Quién se inscribe? Primero una cuenta de ByePass; si no, la sesión
+     anónima que haya quedado de una inscripción anterior en este navegador. */
+  const u = await primera(auth);
+  if (u){
+    YO = { db, uid: u.uid, cuenta: true };
+    $("quien").innerHTML = "Te inscribes con tu cuenta de ByePass (" + esc(u.email || "") + "). Rellenamos lo que ya tenías guardado; revísalo antes de enviar.";
+  } else {
+    const a = await primera(authInv);
+    if (a) YO = { db: dbInv, uid: a.uid, cuenta: false };
+    $("quien").innerHTML = "No necesitas cuenta para inscribirte. <b>Si no tienes una, tus datos se usan solo para esta inscripción y no crean una cuenta en ByePass.</b> " +
+      "Para corregir tu lista después, vuelve a este enlace desde este mismo navegador. " +
+      '¿Tienes cuenta? <a href="cuenta.html' + (params() ? params() + "&" : "?") + "volver=" + encodeURIComponent("inscripcion.html" + location.search) + '#ingresar">Entra</a> y tus datos se rellenan solos.';
+  }
+  try { if (YO) MIA = (await get(ref(YO.db, ruta(YO.uid)))).val(); } catch(e){ MIA = null; }
+  if (MIA){ rellenar(MIA, false); $("acepta").checked = true; }
+  else if (u){
+    let p = null; try { p = (await get(ref(db, "usuarios/" + u.uid))).val(); } catch(e){}
+    const partes = String((p && p.nombre) || u.displayName || "").trim().split(/\s+/);
+    rellenar({ correo: u.email || "", playerId: (p && p.playerId) || "", nacimiento: (p && p.nacimiento) || "",
+               nombre: partes[0] || "", apellido: partes.slice(1).join(" ") }, true);
+  }
+  if (!abierta()) $("form").querySelectorAll("input,textarea,#enviar").forEach(x => x.disabled = true);
+  $("form").classList.remove("oculto");
+  pintarMia();
+})();
+</script>
+</body>
+</html>

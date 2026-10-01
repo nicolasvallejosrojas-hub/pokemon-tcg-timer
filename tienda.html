@@ -693,7 +693,8 @@ function pintarVivo(){
       '<div class="reloj texto">' + esc(prox ? cuantoFalta(prox, ahora()) : "Pronto") + "</div>" +
       '<div class="nom">' + (prox ? esc(prox.titulo) + " · " + esc(fechaLegible(prox.fecha)) + (prox.hora ? ", " + esc(prox.hora) : "")
                                  : "Cuando la tienda anuncie su próxima fecha, aparece acá.") + "</div>" +
-      (prox ? '<div class="acc"><a class="btn primario" href="' + urlGoogle(prox) + '" target="_blank" rel="noopener">' + ICO.cal + " Agendar</a>" +
+      (prox ? '<div class="acc">' + (inscAbierta(prox) ? '<a class="btn primario" href="' + urlInsc(prox) + '">Inscribirse</a>' : "") +
+              '<a class="btn' + (inscAbierta(prox) ? "" : " primario") + '" href="' + urlGoogle(prox) + '" target="_blank" rel="noopener">' + ICO.cal + " Agendar</a>" +
               '<button class="btn" data-ir="agenda">Ver agenda</button></div>' : "") + "</div></div>";
   }
 }
@@ -744,6 +745,8 @@ function pintarTorneos(){
   $("torneosTodo").innerHTML = ts.length ? ts.map(fila).join("") : v;
 }
 const chipJuego = j => j ? '<span class="chipJuego">' + esc(j) + "</span>" : "";
+const inscAbierta = e => !!(e.inscripcion && e.inscripcion.abierta && (e.inicioMs || 0) > ahora());
+const urlInsc = e => "inscripcion.html?sala=" + encodeURIComponent(ID) + "&evento=" + encodeURIComponent(e.id);
 /* Con eventos de más de un juego, se puede filtrar; lo elegido se recuerda por tienda. */
 let JUEGO_SEL = "";
 try { JUEGO_SEL = localStorage.getItem("juego-" + ID) || ""; } catch(e){}
@@ -760,10 +763,14 @@ function pintarAgenda(){
     pintarAgenda();
   });
   const prox = JUEGO_SEL ? todos.filter(e => (e.juego || "").trim() === JUEGO_SEL) : todos;
-  $("agendaTodo").innerHTML = prox.length ? prox.map(e =>
-    '<a class="fila" href="' + urlGoogle(e) + '" target="_blank" rel="noopener">' + fechaBadge(e.fecha) + '<div class="txt"><b>' + chipJuego(e.juego) + esc(e.titulo) +
+  /* Con inscripciones abiertas, la fila lleva a inscribirse (y desde ahí se
+     agenda); si no, directo a Google Calendar. */
+  $("agendaTodo").innerHTML = prox.length ? prox.map(e => {
+    const insc = inscAbierta(e);
+    return '<a class="fila" href="' + (insc ? urlInsc(e) + '"' : urlGoogle(e) + '" target="_blank" rel="noopener"') + ">" + fechaBadge(e.fecha) +
+    '<div class="txt"><b>' + chipJuego(e.juego) + esc(e.titulo) +
     "</b><small>" + esc([fechaLegible(e.fecha) + (e.hora ? ", " + e.hora : ""), e.lugar || ""].filter(Boolean).join(" · ")) +
-    '</small></div><span class="der">' + esc(cuantoFalta(e, ahora())) + "</span></a>").join("")
+    '</small></div><span class="der">' + (insc ? "<b>Inscribirse</b>" : esc(cuantoFalta(e, ahora()))) + "</span></a>"; }).join("")
     : '<div class="vacio">No hay fechas anunciadas.</div>';
 }
 

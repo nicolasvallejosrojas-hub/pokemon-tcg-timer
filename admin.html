@@ -425,6 +425,12 @@
     background:color-mix(in srgb, var(--franja) 14%, transparent);color:var(--franja);vertical-align:2px;margin-right:6px;white-space:nowrap;}
   .evMeta{font-size:var(--t2);color:var(--apagado);margin-top:3px;line-height:1.5;}
   .evAcc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+  /* Inscritos de un evento: se abren debajo de su fila. */
+  .inscCaja{flex:1 1 100%;background:var(--sup-alta);border-radius:var(--radio);padding:10px 12px;}
+  .inscTabla{width:100%;border-collapse:collapse;font-size:var(--t2);margin-top:8px;}
+  .inscTabla th,.inscTabla td{padding:6px 5px;border-bottom:1px solid var(--divider);text-align:left;vertical-align:top;}
+  .inscTabla th{color:var(--rotulo);font-weight:600;}
+  .inscTabla td:last-child{white-space:nowrap;text-align:right;}
   #evForm.editando{box-shadow:inset 0 0 0 1px var(--accion);border-radius:var(--radio);padding:10px;margin:-10px;}
 
   /* =========================================================
@@ -1002,6 +1008,14 @@
       </label>
     </div>
     <label class="chk"><input type="checkbox" id="evTodoDia"> Todo el d&iacute;a (sin hora fija)</label>
+    <label class="chk"><input type="checkbox" id="evInsc"> Recibir inscripciones con lista de mazo
+      <span class="muted">(League Challenge, League Cup: te da un enlace para compartir)</span></label>
+    <label id="evFmtWrap" style="display:none">Formato
+      <select id="evFmt" style="display:block;margin-top:4px">
+        <option value="estandar">Est&aacute;ndar</option>
+        <option value="expandido">Expandido</option>
+      </select>
+    </label>
 
     <label>Lugar <span class="muted">(opcional)</span>
       <input id="evLugar" style="width:100%;margin-top:4px" placeholder="Tienda, direcci&oacute;n" maxlength="120">
@@ -1186,6 +1200,7 @@ import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
          revisar, esOriginal, aplicar as palAplicarEn, alDia } from "./paleta.js?v=4";
 import { entregarTabla } from "./tablafinal.js?v=1";
+import { leerLista, division, hoja, imprimir } from "./listamazo.js?v=1";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -3981,6 +3996,8 @@ function modoTodoDia(){
   $("evDurWrap").style.display  = td ? "none" : "";
 }
 $("evTodoDia").onchange = modoTodoDia;
+const modoInsc = () => $("evFmtWrap").style.display = $("evInsc").checked ? "" : "none";
+$("evInsc").onchange = modoInsc;
 
 function leerForm(){
   const titulo = $("evTit").value.trim();
@@ -3990,7 +4007,10 @@ function leerForm(){
   if (!titulo) return { error:"Ponle un título al torneo." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { error:"Elige la fecha." };
   if (!todoDia && !hora) return { error:"Pon la hora de inicio, o marca «todo el día»." };
+  /* Al editar se respeta si la tienda ya las había cerrado. */
+  const antes = editandoId && (AGENDA.find(e => e.id === editandoId) || {}).inscripcion;
   return { ev: {
+    inscripcion: $("evInsc").checked ? { abierta: antes ? antes.abierta : true, formato: $("evFmt").value } : null,
     titulo, fecha, hora,
     duracion: todoDia ? 0 : +$("evDur").value,
     lugar:    $("evLugar").value.trim(),
@@ -4005,6 +4025,7 @@ function limpiarForm(){
   editandoId = null;
   $("evTit").value = ""; $("evJuego").value = ""; $("evLugar").value = ""; $("evDet").value = "";
   $("evTodoDia").checked = false; modoTodoDia();
+  $("evInsc").checked = false; $("evFmt").value = "estandar"; modoInsc();
   $("evGuardar").textContent = "Agregar fecha";
   $("evCancelar").style.display = "none";
   $("evForm").classList.remove("editando");
@@ -4038,7 +4059,9 @@ function editar(ev){
   $("evDur").value   = ev.duracion || 240;
   $("evLugar").value = ev.lugar || "";
   $("evDet").value   = ev.detalle || "";
-  modoTodoDia();
+  $("evInsc").checked = !!ev.inscripcion;
+  $("evFmt").value   = (ev.inscripcion && ev.inscripcion.formato) || "estandar";
+  modoTodoDia(); modoInsc();
   $("evGuardar").textContent = "Guardar cambios";
   $("evCancelar").style.display = "";
   $("evForm").classList.add("editando");
@@ -4047,8 +4070,85 @@ function editar(ev){
 }
 
 async function borrar(ev){
-  if (!confirm('¿Borrar "' + ev.titulo + '" del calendario?\n\nDesaparece de la agenda de los jugadores. Los que ya lo agregaron a su Google Calendar lo conservan.')) return;
-  try { await remove(ref(db, BASE_T + "/agenda/" + ev.id)); } catch(e){ alert(mensajeConexion(e)); }
+  if (!confirm('¿Borrar "' + ev.titulo + '" del calendario?\n\nDesaparece de la agenda de los jugadores. Los que ya lo agregaron a su Google Calendar lo conservan.' +
+               (ev.inscripcion ? "\n\nTambién se borran sus inscripciones y listas de mazo." : ""))) return;
+  /* Con inscripciones, se borran en la misma escritura: solas no sirven y
+     guardan datos personales. Sin ellas no se toca ese nodo. */
+  const rutas = { [BASE_T + "/agenda/" + ev.id]: null };
+  if (ev.inscripcion) rutas["inscripciones/" + TIENDA + "/" + ev.id] = null;
+  try { await update(ref(db), rutas); } catch(e){ alert(mensajeConexion(e)); }
+}
+
+/* ------------------------------------------------------------
+   Inscripciones (League Challenge, League Cup)
+   Un evento de la agenda con «inscripcion» tiene un enlace público
+   (inscripcion.html) donde el jugador deja sus datos y su lista de mazo, con o
+   sin cuenta. Quedan en inscripciones/<tienda>/<evento>/<uid>, que lee solo
+   la tienda. Se bajan recién al abrir los inscritos de un evento: una lista
+   pesa ~1,5 KB y no hace falta traerlas todas para mostrar el calendario.
+   ------------------------------------------------------------ */
+let inscAbierto = null, offInsc = null, INSC = null;
+const urlInscripcion = ev => new URL("inscripcion.html?sala=" + TIENDA + "&evento=" + ev.id, location.href).href;
+const ddmm = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? iso.split("-").reverse().join("/") : "";
+const paraHoja = ev => ({ ...ev, formato: ev.inscripcion.formato, tienda: nombreDeLaTienda() });
+
+function verInscritos(ev){
+  if (offInsc){ offInsc(); offInsc = null; }
+  inscAbierto = inscAbierto === ev.id ? null : ev.id; INSC = null;
+  if (inscAbierto) offInsc = onValue(ref(db, "inscripciones/" + TIENDA + "/" + ev.id), s => { INSC = s.val() || {}; pintarInscritos(); },
+    () => { const c = $("inscCaja"); if (c) c.innerHTML = '<span class="err">No se pudieron cargar las inscripciones.</span>'; });
+  renderAgenda();
+}
+
+function pintarInscritos(){
+  const c = $("inscCaja"), ev = AGENDA.find(e => e.id === inscAbierto);
+  if (!c || !ev || !ev.inscripcion) return;
+  if (!INSC){ c.textContent = "Cargando…"; return; }
+  const filas = Object.entries(INSC).map(([uid, d]) => ({ uid, ...d })).sort((a, b) => (a.creado || 0) - (b.creado || 0));
+  const abierta = ev.inscripcion.abierta, empezo = (ev.inicioMs || 0) <= Date.now();
+  c.innerHTML =
+    '<div class="row" style="align-items:center;gap:8px">' +
+      '<input readonly id="inscUrl" value="' + esc(urlInscripcion(ev)) + '" style="flex:1;min-width:220px">' +
+      '<button class="small sec" data-i="copiar">Copiar enlace</button>' +
+      '<button class="small sec" data-i="abrir">' + (abierta ? "Cerrar inscripciones" : "Abrir inscripciones") + "</button></div>" +
+    '<div class="muted" style="margin-top:6px">' + filas.length + (filas.length === 1 ? " inscrito" : " inscritos") + " · " +
+      (!abierta ? "cerradas" : empezo ? "el torneo ya empezó: nadie puede inscribirse ni cambiar su lista" : "abiertas hasta que empiece el torneo") + "</div>" +
+    (filas.length ? '<div style="overflow-x:auto"><table class="inscTabla"><thead><tr><th>#</th><th>Nick</th><th>Nombre</th><th>ID</th>' +
+      "<th>Nacimiento</th><th>División</th><th>Lista</th><th></th></tr></thead><tbody>" +
+      filas.map((f, i) => { const r = leerLista(f.lista);
+        return "<tr><td>" + (i + 1) + "</td><td>" + esc(f.nick) + "</td><td>" + esc(f.nombre + " " + f.apellido) +
+          '<br><span class="muted">' + esc(f.correo) + "</span></td><td>" + esc(f.playerId) + "</td><td>" + esc(ddmm(f.nacimiento)) +
+          "</td><td>" + esc(division(f.nacimiento)) + "</td><td>" + (r.errores.length ? '<span class="err">' + r.total + " cartas</span>" : "60 ✓") +
+          '</td><td><button class="small sec" data-imp="' + esc(f.uid) + '">Imprimir</button> <button class="small sec" data-quitar="' + esc(f.uid) + '">Quitar</button></td></tr>';
+      }).join("") + "</tbody></table></div>" : "") +
+    '<div class="row" style="margin-top:10px;gap:8px">' +
+      '<button class="small" data-i="todas"' + (filas.length ? "" : " disabled") + ">Imprimir todas las listas</button>" +
+      '<button class="small sec" data-i="csv"' + (filas.length ? "" : " disabled") + ">Descargar CSV</button></div>";
+
+  c.onclick = async e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const d = b.dataset;
+    if (d.i === "copiar") navigator.clipboard?.writeText(urlInscripcion(ev)).then(() => { b.textContent = "Copiado ✓"; });
+    if (d.i === "abrir") try { await update(ref(db, BASE_T + "/agenda/" + ev.id + "/inscripcion"), { abierta: !abierta }); }
+      catch(err){ alert(mensajeConexion(err)); }
+    if (d.imp && INSC[d.imp]) imprimir([hoja(INSC[d.imp], paraHoja(ev))]);
+    if (d.i === "todas") imprimir(filas.map(f => hoja(f, paraHoja(ev))));
+    if (d.i === "csv") bajarCsvInscritos(ev, filas);
+    if (d.quitar && INSC[d.quitar] && confirm("¿Quitar a " + INSC[d.quitar].nombre + " " + INSC[d.quitar].apellido + " de «" + ev.titulo + "»? Se borra su lista."))
+      try { await remove(ref(db, "inscripciones/" + TIENDA + "/" + ev.id + "/" + d.quitar)); } catch(err){ alert(mensajeConexion(err)); }
+  };
+}
+
+/* Con «;» y BOM, como el CSV de estadísticas: así lo abre bien Excel en castellano. */
+function bajarCsvInscritos(ev, filas){
+  const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const t = [["Nombre", "Apellido", "Nick", "ID de jugador", "Nacimiento", "División", "Correo", "Inscrito", "Lista de mazo"]]
+    .concat(filas.map(f => [f.nombre, f.apellido, f.nick, f.playerId, ddmm(f.nacimiento), division(f.nacimiento), f.correo,
+                            new Date(f.actualizado || f.creado || 0).toLocaleString("es-CL"), f.lista]));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + t.map(r => r.map(q).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  a.download = "inscritos-" + slug(ev.titulo, 40) + "-" + ev.fecha + ".csv";
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 const MES_CORTO = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
@@ -4119,11 +4219,14 @@ function filaEvento(ev, pasado){
       (pasado ? "" : " · " + esc(cuantoFalta(ev))) +
       (ev.lugar ? "<br>" + esc(ev.lugar) : "") +
       (ev.detalle ? '<br><span style="opacity:.75">' + esc(ev.detalle) + "</span>" : "") +
+      (ev.inscripcion ? "<br><b>Inscripciones " + (ev.inscripcion.abierta ? "abiertas" : "cerradas") + "</b> · " +
+        (ev.inscripcion.formato === "expandido" ? "Expandido" : "Estándar") : "") +
     "</div></div>";
 
   const acc = document.createElement("div");
   acc.className = "evAcc";
-  [["Editar", () => editar(ev)], ["Borrar", () => borrar(ev)]].forEach(([txt, fn]) => {
+  [...(ev.inscripcion ? [[inscAbierto === ev.id ? "Ocultar inscritos" : "Inscritos", () => verInscritos(ev)]] : []),
+   ["Editar", () => editar(ev)], ["Borrar", () => borrar(ev)]].forEach(([txt, fn]) => {
     const b = document.createElement("button");
     b.className = "small sec"; b.textContent = txt; b.onclick = fn;
     acc.appendChild(b);
@@ -4134,6 +4237,11 @@ function filaEvento(ev, pasado){
   g.style.cssText = "border:1px solid var(--divider);color:var(--texto);border-radius:var(--radio);padding:5px 10px;font-size:var(--t2);text-decoration:none;align-self:flex-start";
   acc.appendChild(g);
   row.appendChild(acc);
+  if (ev.inscripcion && inscAbierto === ev.id){
+    const c = document.createElement("div");
+    c.id = "inscCaja"; c.className = "inscCaja";
+    row.style.flexWrap = "wrap"; row.appendChild(c);
+  }
   return row;
 }
 
@@ -4170,6 +4278,7 @@ function renderAgenda(){
     caja.innerHTML = "";
     pasados.forEach(e => caja.appendChild(filaEvento(e, true)));
   }
+  pintarInscritos();
 }
 $("evVerPasados").onclick = () => { verPasados = !verPasados; renderAgenda(); };
 $("evIcsTodo").onclick = () => {
