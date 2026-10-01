@@ -1192,7 +1192,7 @@ import { slug, SALA, BASE, TIENDA, BASE_T, MAX_TIMERS, numTimer, salaDeTimer, no
 import { vigilar } from "./mantenimiento.js?v=3";
 import { estoyEnLinea } from "./presencia.js?v=4";
 import { barras } from "./graficos.js?v=2";
-import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=4";
+import { AUTO, ICONOS, ICONOS_EVENTO, parche, repartoEvento, claveFila, norm as normNombre } from "./insignias.js?v=5";
 import { rondasDe, resumen, tabla, emparejar, rondasSugeridas, aPairings, aHistorial,
          delCorte, emparejarCorte, clasificacion, tamanoCorte, corteTerminado, nombreCorte, CORTES,
          GANA_A, GANA_B, EMPATE, DOBLE } from "./torneo.js?v=1";
@@ -1582,6 +1582,9 @@ onAuthStateChanged(auth, async u => {
    reglas ponen el tope y quién los crea: quien organiza la tienda.
    ------------------------------------------------------------ */
 const HAY = { 1: true }, NOM = {};
+/* Cada timer tiene su tabla de clasificación (clasificacion.js, timerDe). La
+   tienda elige cuáles se ven en su perfil: config/tablas/<n> = false la esconde. */
+let OCULTAS = {};
 const nombreTimer = n => NOM[n] || "Timer " + n;
 const pantallaDe = id => carpeta() + "timer-view.html?sala=" + id + conEmu();
 function escucharTimers(){
@@ -1607,11 +1610,17 @@ function pintarTimers(){
     const id = salaDeTimer(TIENDA, n);
     return '<div class="miembro"><div class="txt"><b>' + esc(nombreTimer(n)) + (n === actual ? " · el que tienes abierto" : "") +
       '</b><small>Timer ' + n + ' · pantalla: <a href="' + esc(pantallaDe(id)) + '" target="_blank" rel="noopener">' + esc(id) + "</a></small></div>" +
+      '<label class="chk" style="margin:0 6px 0 0;white-space:nowrap"><input type="checkbox" data-tabla="' + n + '"' +
+        (OCULTAS[n] !== false ? " checked" : "") + "> Su tabla en el perfil</label>" +
       (n !== actual ? '<button class="small" data-abrir="' + n + '">Abrir</button>' : "") +
       '<button class="small sec" data-renombrar="' + n + '">Renombrar</button>' +
       (n > 1 ? '<button class="small sec" data-eliminar="' + n + '">Eliminar</button>' : "") + "</div>";
   }).join("");
   $("timersLista").querySelectorAll("[data-abrir]").forEach(b => b.onclick = () => irA(salaDeTimer(TIENDA, +b.dataset.abrir)));
+  $("timersLista").querySelectorAll("[data-tabla]").forEach(c => c.onchange = () =>
+    update(ref(db, BASE_T + "/config/tablas"), { [c.dataset.tabla]: c.checked ? null : false })
+      .catch(() => { c.checked = !c.checked; $("timersMsg").textContent = "No se pudo guardar. Revisa la conexión."; }));
+  pintarHist();
   $("timersLista").querySelectorAll("[data-renombrar]").forEach(b => b.onclick = async () => {
     const n = +b.dataset.renombrar, v = (prompt("Nombre del timer:", nombreTimer(n)) || "").trim().slice(0, 40);
     if (!v) return;
@@ -3213,6 +3222,7 @@ function fechaLarga(iso){
 onValue(R_CFG, snap => {
   const v = snap.val();
   if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? PTS_REST_DEF };
+  OCULTAS = (v && v.tablas) || {}; pintarTimers();
   $("ptsList").value = CFG.puntos.join(", ");
   $("ptsRest").value = CFG.resto;
 });
@@ -3222,7 +3232,7 @@ $("ptsSave").onclick = async () => {
   if (!arr.length){ $("ptsMsg").innerHTML = '<span class="err">Escribe al menos un número</span>'; return; }
   const resto = Math.max(0, parseInt($("ptsRest").value, 10) || 0);
   try {
-    await set(R_CFG, { puntos: arr, resto });
+    await update(R_CFG, { puntos: arr, resto });   // update: set borraría config/tablas
     $("ptsMsg").innerHTML = '<span class="ok">Guardado ✓</span>';
   } catch(e){ $("ptsMsg").innerHTML = '<span class="err">'+(e.code||e.message)+'</span>'; }
 };
@@ -3245,6 +3255,8 @@ async function archivarTorneo(){
     rondas: parsed.lastRound,
     jugadores: parsed.standings.length,
     ...($("archJuego").value.trim() ? { juego: $("archJuego").value.trim().replace(/\s+/g, " ") } : {}),
+    /* La tabla de clasificación es la del timer desde donde se archiva. */
+    ...(numTimer(SALA) > 1 ? { timer: numTimer(SALA) } : {}),
     /* La fila lleva el uid solo si ese jugador compartio su ID con la sala.
        Es lo que despues deja que su perfil reconozca el torneo sin depender de
        que el nombre este escrito igual que en el .tdf. El ID no viaja: el uid
@@ -3328,9 +3340,11 @@ $("recTdf").onchange = async e => {
 };
 
 onValue(R_HIST, snap => {
-  const v = snap.val() || {};
-  HIST_P = v; pintarInsPanel(); pintarJuegos(); enlazarPasados();
-  const items = Object.entries(v).sort((a,b) => (b[1].creado||0) - (a[1].creado||0));
+  HIST_P = snap.val() || {}; pintarInsPanel(); pintarJuegos(); enlazarPasados(); pintarHist();
+});
+function pintarHist(){
+  const items = Object.entries(HIST_P || {}).sort((a,b) => (b[1].creado||0) - (a[1].creado||0));
+  if (!$("histList")) return;
   if (!items.length){ $("histList").textContent = "Aún no hay torneos archivados."; return; }
   $("histList").innerHTML = "";
   items.forEach(([id, t]) => {
@@ -3339,6 +3353,21 @@ onValue(R_HIST, snap => {
     row.style.cssText = "align-items:center;padding:6px 0;border-bottom:1px solid var(--divider)";
     row.innerHTML = '<span style="flex:1">' + (t.juego ? '<span class="chipJuego">' + esc(t.juego) + "</span>" : "") + esc(t.nombre) + ' &middot; ' + esc(t.fecha) +
                     ' &middot; ' + t.jugadores + ' jugadores</span>';
+    /* Con más de un timer, a qué tabla suma. Los archivados antes del
+       01-10-2026 quedaron todos en la del timer 1. */
+    const ns = [...new Set([...Object.keys(HAY).map(Number), t.timer || 1])].sort((a, b) => a - b);
+    if (ns.length > 1){
+      const s = document.createElement("select");
+      s.title = "Tabla de clasificación"; s.style.marginRight = "6px";
+      s.innerHTML = ns.map(n => '<option value="' + n + '"' + (n === (t.timer || 1) ? " selected" : "") + ">Tabla: " + esc(nombreTimer(n)) + "</option>").join("");
+      s.onchange = async () => {
+        const n = +s.value;
+        /* historialVer nuevo: los celulares que guardaron el historial lo bajan de nuevo. */
+        try { await update(ref(db, BASE_T), { ["historial/" + id + "/timer"]: n > 1 ? n : null, historialVer: Date.now() }); }
+        catch(e){ s.value = t.timer || 1; alert(mensajeConexion(e)); }
+      };
+      row.appendChild(s);
+    }
     const b = document.createElement("button");
     b.className = "small sec"; b.textContent = "Borrar";
     b.onclick = async () => {
@@ -3351,7 +3380,7 @@ onValue(R_HIST, snap => {
     row.appendChild(b);
     $("histList").appendChild(row);
   });
-});
+}
 
 /* =========================================================
    12d. Torneo de la página (sin TOM)
@@ -3594,7 +3623,7 @@ async function archivarPagina(){
   const rutas = {
     [BASE_T + "/historial/" + clave]: { nombre: TN.nombre, fecha: f, mes: f.slice(0, 7), rondas: h.rondas,
       jugadores: h.standings.length, standings: h.standings, partidas: h.partidas, creado: ahora,
-      ...(TN.juego ? { juego: TN.juego } : {}) },
+      ...(TN.juego ? { juego: TN.juego } : {}), ...(numTimer(SALA) > 1 ? { timer: numTimer(SALA) } : {}) },
     [rutaT("archivado")]: ahora };
   Object.keys(TN.jugadores || {}).forEach(id => { if (BASEJ[id]) rutas[rutaJ(id) + "/ultimo"] = ahora; });
   $("tnArchivar").disabled = true;

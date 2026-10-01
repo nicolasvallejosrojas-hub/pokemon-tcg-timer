@@ -403,7 +403,7 @@ import { vigilar } from "./mantenimiento.js?v=3";
 import { getDatabase, connectDatabaseEmulator, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { estaVigente, urlGoogle, bajarIcs, fechaLegible, cuantoFalta, ordenar,
          MES_LARGO, DOWS, mesDesplazado, celdasDelMes, porFecha, mesDeInteres } from "./agenda.js?v=4";
-import { SALA, BASE, TIENDA, BASE_T, INVITADO, SIN_TIENDA } from "./sala.js?v=6";
+import { SALA, BASE, TIENDA, BASE_T, INVITADO, SIN_TIENDA, numTimer } from "./sala.js?v=6";
 import { estoyEnLinea } from "./presencia.js?v=4";
 
 /* Sin ?sala= no hay qué mostrar (antes abría «principal», que no era de
@@ -427,7 +427,7 @@ if (!new URLSearchParams(location.search).get("sala"))
 }
 import { resolver as palResolver, esOriginal as palEsOriginal, aplicar as palAplicarEn,
          alDia } from "./paleta.js?v=4";
-import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF } from "./clasificacion.js?v=1";
+import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF, deTimer } from "./clasificacion.js?v=2";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -906,7 +906,8 @@ function pintarPodio(filas){
 
 function renderClas(soloTabla){
   if (!HIST) return;
-  const torneos = Object.values(HIST);
+  /* El historial es de la tienda; cada timer muestra su propia tabla. */
+  const torneos = deTimer(Object.values(HIST), numTimer(SALA));
   if (!torneos.length){
     $("clasBox").innerHTML = "";
     $("podio").className = "hide";

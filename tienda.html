@@ -115,7 +115,7 @@
   .mesaM b{display:block;font-weight:600;overflow-wrap:anywhere;}
   .mesaM small{display:block;color:var(--apagado);margin-bottom:3px;font-variant-numeric:tabular-nums;}
   .dos{display:grid;gap:0 var(--e4);}
-  #mesSel{margin:var(--e3) 0 0;font-size:var(--t3);}
+  #mesSel,#tablaSel{margin:var(--e3) var(--e2) 0 0;font-size:var(--t3);}
 
   /* ---------------------------------------------------------- directorio */
   #vDir{padding-top:var(--e4);padding-bottom:var(--e6);max-width:720px;}
@@ -227,6 +227,7 @@
           </div>
         </section>
         <section data-sec="clas" class="oculto">
+          <select id="tablaSel" class="oculto" aria-label="Tabla de clasificación"></select>
           <select id="mesSel" aria-label="Mes de la clasificación"></select>
           <h2 class="gtit" id="hClas">Clasificación</h2>
           <div class="grupo" id="clasTodo"></div>
@@ -285,8 +286,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/f
 import { db, auth, enEmulador, urlCuenta, urlMuro, urlPanel } from "./sesion.js?v=12";
 import { slug, tiendaDe, salaDeTimer, MAX_TIMERS, nombreTienda, iniciales } from "./sala.js?v=6";
 import { ordenar, estaVigente, fechaLegible, cuantoFalta, urlGoogle, MES_LARGO } from "./agenda.js?v=4";
-import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF } from "./clasificacion.js?v=1";
-import { norm } from "./insignias.js?v=4";
+import { nombreMes, mesDe, mesesDe, clasificar, PUNTOS_DEF, timerDe, deTimer } from "./clasificacion.js?v=2";
+import { norm } from "./insignias.js?v=5";
 import { estoyEnLinea } from "./presencia.js?v=4";
 import { leerHistorial, historialUnaVez } from "./historial.js?v=1";
 
@@ -468,6 +469,7 @@ function perfil(){
   onValue(ref(db, "salas/" + ID + "/pairings"), s => { PAIR = s.val(); pintarVivo(); });
   onValue(ref(db, "salas/" + ID + "/config"), s => {
     const v = s.val(); if (v && Array.isArray(v.puntos)) CFG = { puntos: v.puntos, resto: v.resto ?? 1 };
+    OCULTAS = (v && v.tablas) || {};
     pintarClas(); });
   leerHistorial(db, ID, h => { HIST = Object.values(h);
     pintarCabecera(); pintarClas(); pintarTorneos(); });
@@ -479,11 +481,11 @@ function perfil(){
       if (s.val() !== ID){ delete TIMERS[n]; return pintarTimers(); }
       if (TIMERS[n]) return;
       TIMERS[n] = {};
-      onValue(ref(db, "salas/" + id + "/nombre"), x => { if (TIMERS[n]){ TIMERS[n].nombre = x.val(); pintarTimers(); } });
+      onValue(ref(db, "salas/" + id + "/nombre"), x => { if (TIMERS[n]){ TIMERS[n].nombre = x.val(); pintarTimers(); pintarClas(); } });
       onValue(ref(db, "salas/" + id + "/timer/state"), x => { if (TIMERS[n]){ TIMERS[n].estado = x.val(); pintarTimers(); } });
     }, () => {});
   }
-  onValue(ref(db, "salas/" + ID + "/nombre"), s => { NOMBRE1 = s.val(); pintarTimers(); }, () => {});
+  onValue(ref(db, "salas/" + ID + "/nombre"), s => { NOMBRE1 = s.val(); pintarTimers(); pintarClas(); }, () => {});
   setInterval(pintarReloj, 1000);
 }
 
@@ -708,25 +710,35 @@ function filasClas(filas, n){
       (r.wr === null ? "" : " · " + r.wr.toFixed(0) + "% vict.") + '</small></div><span class="der">' + r.pts + " pts</span></div>";
   }).join("");
 }
+/* Una tabla por timer, con el nombre del timer. Se ven las que tienen torneos,
+   salvo las que la tienda escondió en el panel (config/tablas/<n> = false). */
+let OCULTAS = {}, TABLA = null;
+const nombreTabla = n => (n === 1 ? NOMBRE1 : TIMERS[n] && TIMERS[n].nombre) || "Timer " + n;
 function pintarClas(){
   if (!HIST) return;
-  const meses = mesesDe(HIST);
+  const tablas = [...new Set(HIST.map(timerDe))].filter(n => OCULTAS[n] !== false).sort((a, b) => a - b);
+  if (!tablas.includes(TABLA)) TABLA = tablas[0] ?? null;
+  $("tablaSel").classList.toggle("oculto", tablas.length < 2);
+  $("tablaSel").innerHTML = tablas.map(n => '<option value="' + n + '"' + (n === TABLA ? " selected" : "") + ">" + esc(nombreTabla(n)) + "</option>").join("");
+  const ts = TABLA ? deTimer(HIST, TABLA) : [], de = tablas.length > 1 ? " · " + nombreTabla(TABLA) : "";
+  const meses = mesesDe(ts);
   if (!meses.length){
-    const v = '<div class="vacio">Todavía no hay torneos archivados.</div>';
+    const v = '<div class="vacio">' + (HIST.length ? "La tienda no publica su clasificación." : "Todavía no hay torneos archivados.") + "</div>";
     $("clasCorta").innerHTML = v; $("clasTodo").innerHTML = v; $("mesSel").classList.add("oculto"); return;
   }
   if (!mesSel || !meses.includes(mesSel)) mesSel = meses[0];
   $("mesSel").classList.remove("oculto");
   $("mesSel").innerHTML = meses.map(m => '<option value="' + m + '"' + (m === mesSel ? " selected" : "") + ">" + nombreMes(m) + "</option>").join("");
-  const actual = clasificar(HIST, meses[0], CFG);
-  $("hClasCorta").textContent = "Clasificación de " + nombreMes(meses[0]).split(" ")[0];
+  const actual = clasificar(ts, meses[0], CFG);
+  $("hClasCorta").textContent = "Clasificación de " + nombreMes(meses[0]).split(" ")[0] + de;
   $("clasCorta").innerHTML = filasClas(actual, 5);
-  const filas = clasificar(HIST, mesSel, CFG), n = HIST.filter(t => mesDe(t) === mesSel).length;
-  $("hClas").textContent = "Clasificación de " + nombreMes(mesSel);
+  const filas = clasificar(ts, mesSel, CFG), n = ts.filter(t => mesDe(t) === mesSel).length;
+  $("hClas").textContent = "Clasificación de " + nombreMes(mesSel) + de;
   $("clasTodo").innerHTML = filasClas(filas, filas.length);
   $("clasNota").textContent = n + (n === 1 ? " torneo" : " torneos") + " en " + nombreMes(mesSel) + ".";
 }
 $("mesSel").onchange = e => { mesSel = e.target.value; pintarClas(); };
+$("tablaSel").onchange = e => { TABLA = +e.target.value; mesSel = null; pintarClas(); };
 
 /* ------------------------------------------------------------ torneos y agenda */
 function pintarTorneos(){

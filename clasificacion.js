@@ -1,7 +1,7 @@
 /* ============================================================
    clasificacion.js — la clasificación mensual de una tienda
    ------------------------------------------------------------
-   Versión actual: v=1   (subir el ?v= al tocar este archivo)
+   Versión actual: v=2   (subir el ?v= al tocar este archivo)
 
    La usan la vista de jugadores (pestaña Ranking) y el perfil de la tienda.
    Vive acá para que las dos sumen igual: dos copias de esta cuenta terminan
@@ -20,6 +20,12 @@ export const PUNTOS_DEF = { puntos: [12, 10, 8, 7, 6, 5, 4, 3], resto: 1 };
 /* El mes se saca de la fecha si falta: con UN solo torneo sin el campo, la
    pestaña entera se caía en nombreMes(undefined). */
 export const mesDe = t => t.mes || String(t.fecha || "").slice(0, 7);
+
+/* Desde el 01-10-2026 cada timer de la tienda tiene su propia tabla, con el
+   nombre del timer. El torneo guarda de qué timer salió (timer: 2..5); sin el
+   campo es del 1, que es de donde salían todos antes. */
+export const timerDe = t => t.timer || 1;
+export const deTimer = (torneos, n) => torneos.filter(t => timerDe(t) === n);
 
 /* Los meses con torneos, del más nuevo al más viejo. */
 export const mesesDe = torneos => [...new Set(torneos.map(mesDe).filter(Boolean))].sort().reverse();

@@ -61,7 +61,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, connectDatabaseEmulator, ref, get, goOffline } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { TIENDA, nombreTienda, iniciales } from "./sala.js?v=6";
 import { estaVigente, urlGoogle, ordenar } from "./agenda.js?v=4";
-import { clasificar, mesesDe, nombreMes, PUNTOS_DEF } from "./clasificacion.js?v=1";
+import { clasificar, mesesDe, nombreMes, PUNTOS_DEF, deTimer } from "./clasificacion.js?v=2";
 import { historialUnaVez } from "./historial.js?v=1";
 import { contarVisita } from "./presencia.js?v=4";
 
@@ -99,7 +99,8 @@ async function cargar(){
     : '<div class="vacio">No hay fechas anunciadas.</div>';
 
   /* El ranking del mes en curso; si este mes no hubo torneos, el último que tuvo. */
-  const torneos = Object.values(hist || {});
+  /* La tabla del timer 1, o la de &timer=N si la tienda pegó ese código. */
+  const torneos = deTimer(Object.values(hist || {}), +new URLSearchParams(location.search).get("timer") || 1);
   const cfg = config && Array.isArray(config.puntos) ? { puntos: config.puntos, resto: config.resto ?? 1 } : PUNTOS_DEF;
   const mes = mesesDe(torneos)[0];
   if (!mes){ $("ranking").innerHTML = '<div class="vacio">Todavía no hay torneos archivados.</div>'; }
