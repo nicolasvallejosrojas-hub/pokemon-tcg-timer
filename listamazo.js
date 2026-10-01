@@ -1,7 +1,7 @@
 /* ============================================================
    listamazo.js — la lista de mazo de las inscripciones
    ------------------------------------------------------------
-   Versión actual: v=3   (subir el ?v= al tocar este archivo)
+   Versión actual: v=4   (subir el ?v= al tocar este archivo)
 
    La usan la página de inscripción (el jugador la escribe y ve si está bien)
    y el panel (la tienda imprime las de todos). Vive acá para que las dos
@@ -84,20 +84,44 @@ function revisarLegal(r, base){
     ". Si son reimpresión de una carta legal con el mismo texto, valen (en la hoja, NA en la expansión).");
 }
 
+/* «Pokémon: 12», «Trainer», «Energía:»: devuelve la sección, o null si la línea no es un título. */
+function titulo(l){
+  const s = SECCION.find(([, re]) => re.test(l) && !/^\d/.test(l));
+  return s && /^[^\d]*[:\-–]?\s*\d*\s*$/.test(l) ? s[0] : null;
+}
+
+/* La inscripción pide la lista en tres cajas, pero se guarda como un solo texto
+   con sus títulos, igual que antes: así la hoja, el CSV y las reglas no
+   cambian. separar() reparte un texto en las tres (lo que va antes del primer
+   título cae en `primera`) y componer() las vuelve a juntar. */
+export function separar(texto, primera = "pokemon"){
+  const out = { pokemon: [], entrenador: [], energia: [] };
+  let sec = primera;
+  String(texto || "").split(/\r?\n/).forEach(crudo => {
+    const l = crudo.trim();
+    if (!l || /^(total|cartas)/i.test(l)) return;
+    const s = titulo(l);
+    if (s) sec = s; else out[sec].push(l);
+  });
+  return { pokemon: out.pokemon.join("\n"), entrenador: out.entrenador.join("\n"), energia: out.energia.join("\n") };
+}
+export const componer = c => "Pokémon:\n" + (c.pokemon || "").trim() + "\n\nEntrenador:\n" + (c.entrenador || "").trim() +
+  "\n\nEnergía:\n" + (c.energia || "").trim();
+
 export function leerLista(texto, base = null){
   const r = { pokemon: [], entrenador: [], energia: [], total: 0, errores: [], avisos: [] };
   let sec = null;
-  String(texto || "").split(/\r?\n/).forEach((crudo, i) => {
+  String(texto || "").split(/\r?\n/).forEach(crudo => {
     const l = crudo.trim();
     if (!l || /^(total|cartas)/i.test(l)) return;
-    const s = SECCION.find(([, re]) => re.test(l) && !/^\d/.test(l));
-    if (s && /^[^\d]*[:\-–]?\s*\d*\s*$/.test(l)){ sec = s[0]; return; }
+    const s = titulo(l);
+    if (s){ sec = s; return; }
     const m = LINEA.exec(l);
-    if (!m){ r.errores.push("No entendí la línea " + (i + 1) + ": «" + l + "»."); return; }
+    if (!m){ r.errores.push("No entendí «" + l + "»: cada línea es cantidad, nombre, expansión y número."); return; }
     if (!sec){ r.errores.push("Falta el título de la sección (Pokémon:, Entrenador: o Energía:) antes de «" + l + "»."); return; }
     const c = COLA.exec(m[2]);
     const carta = { cant: +m[1], nombre: c ? c[1] : m[2], set: c ? c[2] : "", num: c ? c[3] : "" };
-    if (!carta.cant){ r.errores.push("La línea " + (i + 1) + " dice 0 copias."); return; }
+    if (!carta.cant){ r.errores.push("«" + l + "» dice 0 copias."); return; }
     r[sec].push(carta);
     r.total += carta.cant;
   });

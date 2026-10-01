@@ -1200,7 +1200,7 @@ import { MAPA as PAL_MAPA, TOKENS as PAL_TOKENS, DEF as PAL_DEF, PRESETS as PAL_
          leerColor, formatear, extraerColores, contraste, derivar, resolver,
          revisar, esOriginal, aplicar as palAplicarEn, alDia } from "./paleta.js?v=4";
 import { entregarTabla } from "./tablafinal.js?v=1";
-import { leerLista, division, hoja, imprimir, ddmmaaaa, cargarEstandar } from "./listamazo.js?v=3";
+import { leerLista, division, hoja, imprimir, ddmmaaaa, cargarEstandar } from "./listamazo.js?v=4";
 
 /* =========================================================
    1. Arranque: Firebase, sala y utilidades
@@ -4140,9 +4140,12 @@ function pintarInscritos(){
     '<div class="row" style="align-items:center;gap:8px">' +
       '<input readonly id="inscUrl" value="' + esc(urlInscripcion(ev)) + '" style="flex:1;min-width:220px">' +
       '<button class="small sec" data-i="copiar">Copiar enlace</button>' +
-      '<button class="small sec" data-i="abrir">' + (abierta ? "Cerrar inscripciones" : "Abrir inscripciones") + "</button></div>" +
-    '<div class="muted" style="margin-top:6px">' + filas.length + (filas.length === 1 ? " inscrito" : " inscritos") + " · " +
-      (!abierta ? "cerradas" : empezo ? "el torneo ya empezó: nadie puede inscribirse ni cambiar su lista" : "abiertas hasta que empiece el torneo") + "</div>" +
+      "</div>" +
+    '<div class="row" style="align-items:center;gap:8px;margin-top:8px">' +
+      '<span style="flex:1">' + filas.length + (filas.length === 1 ? " inscrito" : " inscritos") + " · Inscripciones <b>" +
+      (!abierta ? "cerradas</b>: el enlace no deja inscribirse" : empezo ? "cerradas</b>: el torneo ya empezó" : "abiertas</b> hasta que empiece el torneo") + "</span>" +
+      (empezo ? "" : '<button class="small sec" data-i="abrir">' + (abierta ? "Dejar de recibir inscripciones" : "Volver a abrir inscripciones") + "</button>") +
+    "</div>" +
     (filas.length ? '<div style="overflow-x:auto"><table class="inscTabla"><thead><tr><th>#</th><th>Nick</th><th>Nombre</th><th>ID</th>' +
       "<th>Nacimiento</th><th>División</th><th>Lista</th><th></th></tr></thead><tbody>" +
       filas.map((f, i) => { const r = leerLista(f.lista, estandar ? BASE_E : null), av = r.avisos.filter(a => /Estándar/.test(a));
@@ -4160,8 +4163,11 @@ function pintarInscritos(){
     const b = e.target.closest("button"); if (!b) return;
     const d = b.dataset;
     if (d.i === "copiar") navigator.clipboard?.writeText(urlInscripcion(ev)).then(() => { b.textContent = "Copiado ✓"; });
-    if (d.i === "abrir") try { await update(ref(db, BASE_T + "/agenda/" + ev.id + "/inscripcion"), { abierta: !abierta }); }
+    if (d.i === "abrir"){
+      if (abierta && !confirm("¿Dejar de recibir inscripciones para «" + ev.titulo + "»?\n\nEl enlace deja de aceptar inscripciones y nadie puede corregir su lista. Las que ya llegaron se quedan.")) return;
+      try { await update(ref(db, BASE_T + "/agenda/" + ev.id + "/inscripcion"), { abierta: !abierta }); }
       catch(err){ alert(mensajeConexion(err)); }
+    }
     if (d.imp && INSC[d.imp]) imprimir([hoja(INSC[d.imp], paraHoja(ev), BASE_E)]);
     if (d.i === "todas") imprimir(filas.map(f => hoja(f, paraHoja(ev), BASE_E)));
     if (d.i === "csv") bajarCsvInscritos(ev, filas);

@@ -27,7 +27,9 @@
   .campo{display:flex;flex-direction:column;gap:7px;}
   .campo > span:not(.pista){font-size:var(--t1);letter-spacing:.06em;text-transform:uppercase;color:var(--apagado);}
   .campo input,.campo textarea{width:100%;padding:13px 14px;font-size:var(--t4);box-sizing:border-box;font-family:inherit;}
-  .campo textarea{min-height:260px;font-size:var(--t3);line-height:1.5;resize:vertical;font-variant-numeric:tabular-nums;}
+  .campo textarea{min-height:120px;font-size:var(--t3);line-height:1.5;resize:vertical;font-variant-numeric:tabular-nums;}
+  #listaT{min-height:220px;} #listaE{min-height:90px;}
+  .campo .cuantas{float:right;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums;color:var(--texto);}
   .pista{font-size:var(--t2);color:var(--apagado);line-height:1.5;margin:0;}
   .pista a,.meta a{color:var(--accion-texto);}
   .conteo{display:flex;gap:var(--e3);flex-wrap:wrap;font-size:var(--t3);font-variant-numeric:tabular-nums;}
@@ -84,19 +86,18 @@
 
       <div class="caja" style="margin-top:var(--e4)">
         <h2>Lista de mazo</h2>
-        <p class="pista">Pégala tal como la exporta el juego en línea, o escríbela con el mismo formato: un título por
-          sección y una carta por línea con cantidad, nombre, expansión y número. Puedes corregirla hasta que empiece el torneo.</p>
-        <label class="campo"><span>Tu lista</span>
-          <textarea id="lista" maxlength="6000" spellcheck="false" placeholder="Pokémon: 12
-3 Dreepy TWM 128
-…
-
-Trainer: 40
-4 Arven SVI 166
-…
-
-Energy: 8
-4 Basic {P} Energy SVE 5"></textarea></label>
+        <p class="pista">Una carta por línea: cantidad, nombre, expansión y número. Si pegas la lista completa como la
+          exporta el juego en línea, en cualquier caja, se reparte sola. Puedes corregirla hasta que empiece el torneo.</p>
+        <label class="campo"><span>Pokémon <b class="cuantas" id="nP"></b></span>
+          <textarea id="listaP" data-sec="pokemon" maxlength="3000" spellcheck="false" placeholder="3 Dreepy TWM 128
+3 Drakloak TWM 129
+2 Dragapult ex TWM 130"></textarea></label>
+        <label class="campo"><span>Entrenadores <b class="cuantas" id="nT"></b></span>
+          <textarea id="listaT" data-sec="entrenador" maxlength="3000" spellcheck="false" placeholder="4 Ultra Ball MEG 131
+4 Boss's Orders MEG 114
+4 Rare Candy MEG 125"></textarea></label>
+        <label class="campo"><span>Energías <b class="cuantas" id="nE"></b></span>
+          <textarea id="listaE" data-sec="energia" maxlength="1500" spellcheck="false" placeholder="8 Basic {P} Energy SVE 5"></textarea></label>
         <div class="conteo" id="conteo" aria-live="polite"></div>
         <ul class="revision" id="revision"></ul>
       </div>
@@ -128,7 +129,7 @@ import { getAuth, connectAuthEmulator, signInAnonymously, onAuthStateChanged } f
 import { db, auth, ID_OK, CORREO_OK, errorNacimiento, params } from "./sesion.js?v=12";
 import { slug, nombreTienda } from "./sala.js?v=6";
 import { fechaLegible, urlGoogle } from "./agenda.js?v=4";
-import { leerLista, cuenta, division, hoja, imprimir, cargarEstandar } from "./listamazo.js?v=3";
+import { leerLista, cuenta, division, hoja, imprimir, cargarEstandar, separar, componer } from "./listamazo.js?v=4";
 
 const $ = id => document.getElementById(id);
 const q = new URLSearchParams(location.search);
@@ -171,27 +172,43 @@ function pintarAcuerdo(){
 /* ------------------------------------------------------------ la lista, en vivo */
 /* La base de cartas de Estándar: avisa lo que no es legal y llena la columna Reg. de la hoja. */
 let BASE_E = null;
+const CAJA = { pokemon: "listaP", entrenador: "listaT", energia: "listaE" };
+const lista = () => componer({ pokemon: $("listaP").value, entrenador: $("listaT").value, energia: $("listaE").value });
+function ponerLista(texto){ const s = separar(texto); Object.keys(CAJA).forEach(k => $(CAJA[k]).value = s[k]); }
 function revisarLista(){
-  const r = leerLista($("lista").value, BASE_E);
-  const vacia = !$("lista").value.trim();
+  const r = leerLista(lista(), BASE_E);
+  const vacia = !Object.values(CAJA).some(id => $(id).value.trim());
+  [["nP", "pokemon"], ["nT", "entrenador"], ["nE", "energia"]].forEach(([id, k]) => $(id).textContent = vacia ? "" : cuenta(r, k));
   $("conteo").innerHTML = vacia ? "" :
-    "<span>Pokémon <b>" + cuenta(r, "pokemon") + "</b></span><span>Entrenador <b>" + cuenta(r, "entrenador") + "</b></span>" +
-    "<span>Energía <b>" + cuenta(r, "energia") + '</b></span><span class="tot ' + (r.total === 60 ? "ok" : "mal") + '">Total <b>' + r.total + "</b> / 60</span>";
+    '<span class="tot ' + (r.total === 60 ? "ok" : "mal") + '">Total <b>' + r.total + "</b> / 60</span>";
   $("revision").innerHTML = vacia ? "" : r.errores.map(e => '<li class="mal">' + esc(e) + "</li>").join("") +
     r.avisos.map(a => '<li class="av">' + esc(a) + "</li>").join("");
   return r;
 }
-$("lista").oninput = revisarLista;
+/* Si en una caja aparece un título («Trainer: 40»), es una lista entera pegada:
+   se reparte. Solo se reemplazan las cajas de las secciones que trae, así que
+   escribir «Pokémon:» en su caja no borra las otras dos. */
+Object.keys(CAJA).forEach(k => $(CAJA[k]).oninput = e => {
+  const caja = e.target;
+  if (caja.value.split(/\r?\n/).some(l => /^\s*(pok[eé]mon|trainers?|entrenador(es)?|energy|energ[ií]as?)\b[^\d]*[:\-–]?\s*\d*\s*$/i.test(l))){
+    const s = separar(caja.value, k);
+    Object.keys(CAJA).forEach(x => { if (s[x] || x === k) $(CAJA[x]).value = s[x]; });
+  }
+  revisarLista();
+});
 
 /* ------------------------------------------------------------ formulario */
-const CAMPOS = ["correo", "playerId", "nick", "nombre", "apellido", "nacimiento", "lista"];
+const CAMPOS = ["correo", "playerId", "nick", "nombre", "apellido", "nacimiento"];
 function rellenar(d, soloVacios){
   CAMPOS.forEach(k => { if (d[k] && (!soloVacios || !$(k).value)) $(k).value = d[k]; });
+  if (d.lista) ponerLista(d.lista);
   revisarLista();
 }
 function leer(){
   const d = {};
   CAMPOS.forEach(k => d[k] = $(k).value.trim().replace(/[ \t]+/g, " "));
+  d.lista = lista().replace(/[ \t]+/g, " ");
+  if (d.lista.length > 6000) return { error: "La lista es demasiado larga: revisa que no se haya pegado dos veces." };
   d.playerId = d.playerId.replace(/\D/g, "");
   if (!CORREO_OK(d.correo)) return { error: "Revisa el correo: no tiene un formato válido." };
   if (!ID_OK(d.playerId)) return { error: "El ID de jugador son 7 u 8 números. Está en tu cuenta de Play! Pokémon." };
@@ -289,7 +306,17 @@ $("imprimir").onclick = () => MIA && imprimir([hoja(MIA, { ...EV, formato: EV.in
     rellenar({ correo: u.email || "", playerId: (p && p.playerId) || "", nacimiento: (p && p.nacimiento) || "",
                nombre: partes[0] || "", apellido: partes.slice(1).join(" ") }, true);
   }
-  if (!abierta()) $("form").querySelectorAll("input,textarea,#enviar").forEach(x => x.disabled = true);
+  if (!abierta()){
+    /* Cerrado por la tienda o porque ya empezó: se dice por qué. Sin
+       inscripción propia no hay nada que mostrar; con una, se ve sin editar. */
+    const motivo = (EV.inicioMs || 0) <= Date.now()
+      ? "El torneo ya empezó: las inscripciones y las listas de mazo quedaron cerradas."
+      : "La tienda cerró las inscripciones de este torneo. Si quieres inscribirte, pregúntale a " + TIENDA + ".";
+    $("noHay").className = "aviso" + (MIA ? "" : " mal"); $("noHay").textContent = motivo;
+    if (!MIA) return;
+    $("form").querySelectorAll("input,textarea,#enviar").forEach(x => x.disabled = true);
+    $("quien").classList.add("oculto");
+  }
   $("form").classList.remove("oculto");
   pintarMia();
 })();
